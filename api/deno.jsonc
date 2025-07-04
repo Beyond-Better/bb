@@ -1,8 +1,8 @@
 {
 	"name": "bb-api",
-	"version": "0.8.9",
+	"version": "0.8.10",
 	"license": "AGPL-3.0-or-later",
-	"copyright": "2025 - Beyond Better <charlie@beyondbetter.dev>",
+	"copyright": "2025 - Beyond Better <charlie@beyondbetter.app>",
 	"exports": "./src/main.ts",
 	"tasks": {
 		"tool:debug-instances": "DENO_TLS_CA_STORE=system deno run --allow-all scripts/debug_instances.ts",

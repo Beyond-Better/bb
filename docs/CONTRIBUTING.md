@@ -48,7 +48,7 @@ BB has a strict code of being kind to everyone - listening without judgement and
 ### Documentation
 
 - Help improve the README.md, API.md, or other documentation files.
-- Contribute to the upcoming documentation site at beyondbetter.dev.
+- Contribute to the upcoming documentation site at beyondbetter.app.
 
 ## Style Guidelines
 

@@ -1,8 +1,8 @@
 {
 	"name": "bb-cli",
-	"version": "0.8.9",
+	"version": "0.8.10",
 	"license": "AGPL-3.0-or-later",
-	"copyright": "2025 - Beyond Better <charlie@beyondbetter.dev>",
+	"copyright": "2025 - Beyond Better <charlie@beyondbetter.app>",
 	"exports": "./src/main.ts",
 	"tasks": {
 		"start": "deno run --allow-env --allow-read --allow-write --allow-run --allow-net src/main.ts",

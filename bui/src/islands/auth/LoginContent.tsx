@@ -122,7 +122,7 @@ export default function LoginContent() {
 						<span class='text-gray-600 dark:text-gray-400'>
 							Need help? Visit our{' '}
 							<ExternalLink
-								href='https://www.beyondbetter.dev/docs'
+								href='https://www.beyondbetter.app/docs'
 								class='font-medium text-purple-600 hover:text-purple-500'
 							>
 								documentation

@@ -16,7 +16,7 @@ const ERROR_MESSAGES: Record<string, ErrorPageData> = {
 			'BB is not configured for authentication. The Supabase configuration is missing and local mode is not enabled.',
 		action: {
 			text: 'View Documentation',
-			href: 'https://www.beyondbetter.dev/docs/authentication',
+			href: 'https://www.beyondbetter.app/docs/authentication',
 		},
 	},
 	'auth_failed': {

@@ -44,7 +44,9 @@
   ],
   "remote": {
     "urls": [
+      "https://chat.beyondbetter.app/**",
       "https://chat.beyondbetter.dev/**",
+      "https://chat.beyondbetter.team/**",
       "https://localhost:8080/**",
       "http://localhost:8080/**"
     ]
@@ -52,7 +54,9 @@
   "webviewConfig": {
     "allowedNavigateOrigins": [
       "ipc://localhost",
+      "https://chat.beyondbetter.app",
       "https://chat.beyondbetter.dev",
+      "https://chat.beyondbetter.team",
       "https://localhost:8080",
       "http://localhost:8080"
     ],
@@ -71,7 +75,15 @@
         "enableTauriAPI": true
       },
       {
+        "domain": "chat.beyondbetter.app",
+        "enableTauriAPI": true
+      },
+      {
         "domain": "chat.beyondbetter.dev",
+        "enableTauriAPI": true
+      },
+      {
+        "domain": "chat.beyondbetter.team",
         "enableTauriAPI": true
       }
     ]

@@ -17,6 +17,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.8.10] - 2025-07-04
+
+### Added
+
+
+### Changed
+
+- switched domain to beyondbetter.app
+
+### Fixed
+
+- catching global errors in the api
+
+
 ## [0.8.9] - 2025-06-28
 
 ### Added

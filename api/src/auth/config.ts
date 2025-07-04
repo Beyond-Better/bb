@@ -54,7 +54,7 @@ export async function fetchSupabaseConfig(
 	// Allow override of config URL via options parameter
 	const configUrl = options.supabaseConfigUrl ||
 		globalConfig.api.supabaseConfigUrl ||
-		'https://www.beyondbetter.dev/api/v1/config/supabase';
+		'https://www.beyondbetter.app/api/v1/config/supabase';
 
 	// 	return {
 	// 		url: globalConfig.bui.supabaseUrl!,

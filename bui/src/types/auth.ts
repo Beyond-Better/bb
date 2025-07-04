@@ -33,7 +33,7 @@ export interface AuthState {
 // Dummy session for local mode
 export const DUMMY_USER: User = {
 	id: 'local-user', // 'dummy_user',
-	email: 'local@beyondbetter.dev',
+	email: 'local@beyondbetter.app',
 	created_at: new Date().toISOString(),
 	last_sign_in_at: new Date().toISOString(),
 	app_metadata: {},

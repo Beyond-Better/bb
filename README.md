@@ -240,7 +240,7 @@ We value your input and are here to help you get the most out of Beyond Better:
 
 - For bug reports or feature requests, please [open an issue](https://github.com/Beyond-Better/bb/issues) on our GitHub repository.
 - For general questions or discussions, join our [community forum](https://github.com/Beyond-Better/bb/discussions).
-- For more immediate support, reach out to us via email at support@beyondbetter.dev.
+- For more immediate support, reach out to us via email at support@beyondbetter.app.
 
 Your feedback is crucial in shaping the future of Beyond Better!
 

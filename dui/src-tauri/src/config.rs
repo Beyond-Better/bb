@@ -217,7 +217,7 @@ impl Default for ApiConfig {
             log_file_hydration: false,
             ignore_llm_request_cache: false,
             use_prompt_caching: true,
-            supabase_config_url: "https://www.beyondbetter.dev/api/v1/config/supabase".to_string(),
+            supabase_config_url: "https://www.beyondbetter.app/api/v1/config/supabase".to_string(),
             max_turns: 25,
             user_tool_directories: vec!["./tools".to_string()],
             tool_configs: serde_json::Value::Object(serde_json::Map::new()),

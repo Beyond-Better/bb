@@ -1,6 +1,6 @@
 /*
  * License: AGPL-3.0-or-later
- * Copyright: 2025 - Beyond Better <charlie@beyondbetter.dev>
+ * Copyright: 2025 - Beyond Better <charlie@beyondbetter.app>
  */
 
 import { Application } from '@oak/oak';
@@ -133,8 +133,8 @@ if (apiConfig.logLevel === 'debug') {
 }
 
 app.use(oakCors({
-	origin: [/^https?:\/\/localhost(:\d+)?$/, /^https?:\/\/((www|chat)\.)?(bbai\.tips|beyondbetter\.dev)$/],
-})); // Enable CORS for localhost, bbai.tips, and chat.bbai.tips, beyondbetter.dev, and chat.beyondbetter.dev
+	origin: [/^https?:\/\/localhost(:\d+)?$/, /^https?:\/\/((www|chat)\.)?(bbai\.tips|beyondbetter\.(app|dev|team))$/],
+})); // Enable CORS for localhost, bbai.tips, and chat.bbai.tips, beyondbetter.app, and chat.beyondbetter.app, beyondbetter.dev, and chat.beyondbetter.dev
 app.use(router.routes());
 app.use(router.allowedMethods());
 
@@ -174,7 +174,15 @@ for (const signal of signals) {
 
 addEventListener('unhandledrejection', (event) => {
 	logger.error('APIEventLoop: Unhandled Promise Rejection at:', event.promise, 'reason:', event.reason);
+	logger.debug('APIEventLoop: Unhandled Promise Rejection Stack at:', event.reason?.stack);
 	// Optionally prevent default behavior (though this doesn't stop the error)
+	event.preventDefault();
+});
+
+globalThis.addEventListener('error', (event) => {
+	logger.error('APIEventLoop: Global Error:', event.error);
+	logger.debug('APIEventLoop: Global Error Stack:', event.error?.stack);
+	// Prevent the default behavior (which would exit the process)
 	event.preventDefault();
 });
 

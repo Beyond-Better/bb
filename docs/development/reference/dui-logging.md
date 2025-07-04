@@ -44,7 +44,7 @@ The DUI application uses log4rs for structured logging with automatic log rotati
 
 2. Proxy Access Log:
    ```
-   [2024-03-19 10:15:23.456] GET /api/v1/status 200 45ms -> chat.beyondbetter.dev
+   [2024-03-19 10:15:23.456] GET /api/v1/status 200 45ms -> chat.beyondbetter.app
    ```
    - Simpler format for access logging
    - Includes request method, path, status, duration, and target

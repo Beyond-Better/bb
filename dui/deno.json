@@ -1,6 +1,6 @@
 {
 	"license": "AGPL-3.0-or-later",
-	"copyright": "2025 - Beyond Better <charlie@beyondbetter.dev>",
+	"copyright": "2025 - Beyond Better <charlie@beyondbetter.app>",
 	"tasks": {
 		"dev-npx": "npx vite",
 		"dev-deno": "deno run -A --node-modules-dir npm:vite",

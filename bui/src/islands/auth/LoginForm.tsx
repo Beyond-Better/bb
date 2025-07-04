@@ -160,7 +160,7 @@ export default function LoginForm() {
 								<p class='mt-2 text-sm text-red-700 dark:text-red-300'>
 									Need help?{' '}
 									<ExternalLink
-										href='https://www.beyondbetter.dev/docs/install'
+										href='https://www.beyondbetter.app/docs/install'
 										class='font-medium underline'
 									>
 										View troubleshooting guide

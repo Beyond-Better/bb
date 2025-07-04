@@ -19,7 +19,7 @@ use tower_http::trace::TraceLayer;
 const FALLBACK_PORTS: &[u16] = &[
     45000, 45001, 45002, 45003, 45004, 45005, 45006, 45007, 45008, 45009,
 ];
-const DEFAULT_TARGET: &str = "https://chat.beyondbetter.dev";
+const DEFAULT_TARGET: &str = "https://chat.beyondbetter.app";
 const MAINTENANCE_HTML: &str = include_str!("maintenance.html");
 
 #[derive(Debug)]

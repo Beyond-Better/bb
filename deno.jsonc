@@ -1,8 +1,8 @@
 {
 	"name": "bb",
-	"version": "0.8.9",
+	"version": "0.8.10",
 	"license": "AGPL-3.0-or-later",
-	"copyright": "2025 - Beyond Better <charlie@beyondbetter.dev>",
+	"copyright": "2025 - Beyond Better <charlie@beyondbetter.app>",
 	"exports": "./cli/src/main.ts",
 	"tasks": {
 		"tool:check-types-project": "deno task -c ./cli/deno.jsonc check-types && deno task -c ./bui/deno.jsonc check-types && deno task -c ./api/deno.jsonc check-types",

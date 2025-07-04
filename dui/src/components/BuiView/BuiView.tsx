@@ -9,7 +9,7 @@ interface BuiViewProps {
 
 export function BuiView({ serverStatus }: BuiViewProps) {
   const [error, setError] = useState<string | null>(null);
-  const buiUrl = 'https://chat.beyondbetter.dev';
+  const buiUrl = 'https://chat.beyondbetter.app';
 
   useEffect(() => {
     if (serverStatus === ApiStatus.Ready) {

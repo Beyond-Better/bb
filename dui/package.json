@@ -3,7 +3,7 @@
 	"private": true,
 	"version": "0.1.0",
 	"license": "AGPL-3.0-or-later",
-	"copyright": "2025 - Beyond Better <charlie@beyondbetter.dev>",
+	"copyright": "2025 - Beyond Better <charlie@beyondbetter.app>",
 	"type": "module",
 	"scripts": {
 		"dev": "vite",

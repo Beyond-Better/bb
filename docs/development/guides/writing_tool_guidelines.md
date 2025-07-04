@@ -339,7 +339,7 @@ If you encounter a tool that:
 
 Report it by:
 1. Opening an issue on the tool's repository
-2. Emailing security@beyondbetter.dev
+2. Emailing security@beyondbetter.app
 3. Using the report form (coming soon)
 
 Include:
