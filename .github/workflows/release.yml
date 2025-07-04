@@ -30,7 +30,9 @@ jobs:
       - name: Setup Deno
         uses: denoland/setup-deno@v2
         with:
-          deno-version: v2.x
+          #deno-version: v2.x
+          deno-version: v2.3.7
+          cache: true
 
       - name: Get version
         id: get_version
@@ -142,7 +144,9 @@ jobs:
       - name: Setup Deno
         uses: denoland/setup-deno@v2
         with:
-          deno-version: v2.x
+          #deno-version: v2.x
+          deno-version: v2.3.7
+          cache: true
 
       - name: Building with Deno version
         run: |
@@ -224,7 +228,9 @@ jobs:
       - name: Setup Deno
         uses: denoland/setup-deno@v2
         with:
-          deno-version: v2.x
+          #deno-version: v2.x
+          deno-version: v2.3.7
+          cache: true
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
@@ -395,7 +401,9 @@ jobs:
       - name: Setup Deno
         uses: denoland/setup-deno@v2
         with:
-          deno-version: v2.x
+          #deno-version: v2.x
+          deno-version: v2.3.7
+          cache: true
 
       - name: Get version
         id: get_version
