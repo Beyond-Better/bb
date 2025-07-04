@@ -36,8 +36,8 @@ export default function Landing() {
 							</dt>
 							<dd class='mt-4 flex flex-auto flex-col text-base leading-7 text-gray-600 dark:text-gray-400'>
 								<p class='flex-auto'>
-									BB reads and understands your entire project context, not just individual files. This means more
-									contextual and accurate assistance across all your work.
+									BB reads and understands your entire project context, not just individual files.
+									This means more contextual and accurate assistance across all your work.
 								</p>
 							</dd>
 						</div>
@@ -86,8 +86,8 @@ export default function Landing() {
 							</dt>
 							<dd class='mt-4 flex flex-auto flex-col text-base leading-7 text-gray-600 dark:text-gray-400'>
 								<p class='flex-auto'>
-									BB can execute commands, modify files, and perform real project tasks across research,
-									content creation, analysis, and development work.
+									BB can execute commands, modify files, and perform real project tasks across
+									research, content creation, analysis, and development work.
 								</p>
 							</dd>
 						</div>

@@ -109,8 +109,8 @@ export default function LandingHero() {
 						</div>
 					</h1>
 					<p class='mt-6 text-lg leading-8 text-gray-600 dark:text-gray-400'>
-						Beyond Better is your AI-powered agentic assistant <br />that handles the complexity while you focus
-						on results.
+						Beyond Better is your AI-powered agentic assistant{' '}
+						<br />that handles the complexity while you focus on results.
 					</p>
 					<div class='mt-10 flex items-center justify-center gap-x-6 flex-wrap'>
 						{appState.value.status.isReady
