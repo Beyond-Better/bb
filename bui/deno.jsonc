@@ -51,7 +51,8 @@
 		],
 		"exclude": [
 			"src/testdata/",
-			"src/fixtures/**/*.ts"
+			"src/fixtures/**/*.ts",
+			"src/static/providers/*.svg"
 		]
 	}
 }
