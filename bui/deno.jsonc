@@ -2,6 +2,7 @@
 	"version": "0.8.10",
 	"license": "AGPL-3.0-or-later",
 	"copyright": "2025 - Beyond Better <charlie@beyondbetter.app>",
+	"lock": false,
 	"tasks": {
 		"tool:test": "deno test --allow-all $DENO_ARGS",
 		"check": "deno fmt --check && deno lint && deno check **/*.ts && deno check **/*.tsx",
@@ -52,7 +53,7 @@
 		"exclude": [
 			"src/testdata/",
 			"src/fixtures/**/*.ts",
-			"src/static/providers/*.svg"
+			"src/static/**/*.svg"
 		]
 	}
 }
