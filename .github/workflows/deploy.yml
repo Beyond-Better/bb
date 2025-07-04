@@ -23,8 +23,8 @@ jobs:
           mkdir -p .bb
           cat << EOF > .bb/config.yaml
           version: 2.2.0
-          myPersonsName: bb
-          myAssistantsName: Claude
+          myPersonsName: BB
+          myAssistantsName: Assistant
           defaultModels:
             orchestrator: claude-sonnet-4-20250514
             agent: claude-sonnet-4-20250514
@@ -37,12 +37,12 @@ jobs:
             environment: local
             hostname: localhost
             port: 3162
-            ignoreLLMRequestCache: false
-            usePromptCaching: true
             tls:
               useTls: false
             logFile: api.log
             logLevel: info
+            ignoreLLMRequestCache: false
+            usePromptCaching: true
             llmProviders:
               anthropic: 
                 apiKey: sk-not-a-valid-key-not-a-valid-key-not-a-valid-key-not-a-valid-key-not-a-valid-key
@@ -70,9 +70,9 @@ jobs:
 
       - name: Deploy to Chat server
         env:
-          HOST: site.beyondbetter.dev
+          HOST: site.beyondbetter.app
           USER: deploy
-          DEPLOY_PATH: "/var/www/chat.beyondbetter.dev/bb"
+          DEPLOY_PATH: "/var/www/chat.beyondbetter.app/bb"
           TEMP_DEPLOY_PATH: "/home/deploy/temp_deploy"
         run: |
           # Install rsync if not already installed
