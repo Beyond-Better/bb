@@ -35,11 +35,11 @@ export interface Subscription {
 	paymentMethod?: PaymentMethod;
 }
 export interface SubscriptionUsage {
-	currentUsage: {
-		costUsd: number;
-		tokenCount: number;
-		requestCount: number;
-	};
+// 	currentUsage: {
+// 		costUsd: number;
+// 		tokenCount: number;
+// 		requestCount: number;
+// 	};
 	quotaLimits: {
 		base_cost_monthly: number; //Base monthly cost limit in USD
 		max_cost_monthly: number; //Maximum monthly cost limit (usage plans only)
@@ -62,8 +62,14 @@ export interface BillingPreview {
 	periodStart: string; // iso8601
 	periodEnd: string; // iso8601
 	nextPeriodStart?: string; // iso8601
+	nextPeriodEnd?: string; // iso8601
 	currentPlan: Plan;
 	newPlan: Plan;
+	// New fields for upgrade/downgrade differentiation
+	changeType?: 'upgrade' | 'downgrade';
+	immediateChange?: boolean;
+	effectiveDate?: string; // iso8601
+	description?: string;
 }
 export interface BillingPreviewResults {
 	preview: BillingPreview;

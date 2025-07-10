@@ -213,6 +213,17 @@ export default function PaymentFlowDialog({
 						</div>
 						<ErrorAlert />
 
+						{/* Description based on change type */}
+						{billingPreview.description && (
+							<div class={`mt-4 p-4 rounded-md ${
+								billingPreview.changeType === 'upgrade' 
+									? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300'
+									: 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300'
+							}`}>
+								<p class='text-sm'>{billingPreview.description}</p>
+							</div>
+						)}
+
 						<div class='mt-4 bg-gray-50 dark:bg-gray-700 rounded-md p-4'>
 							<h4 class='text-sm font-medium text-gray-900 dark:text-gray-100'>Billing Preview</h4>
 							<dl class='mt-2 space-y-2'>
@@ -228,35 +239,67 @@ export default function PaymentFlowDialog({
 										{selectedPlan.plan_name}
 									</dd>
 								</div>
-								<div class='flex justify-between'>
-									<dt class='text-sm text-gray-500 dark:text-gray-400 group relative'>
-										Initial Payment (Prorated)
-										<span class='ml-1 cursor-help'>ⓘ</span>
-										<div class='invisible group-hover:visible absolute left-0 top-6 w-64 p-2 bg-gray-900 text-white text-xs rounded shadow-lg z-10'>
-											This is your first payment, adjusted for the remaining days in the current
-											billing period. You'll be charged the full amount on your next billing date.
+								
+								{/* Show effective date */}
+								{billingPreview.effectiveDate && (
+									<div class='flex justify-between'>
+										<dt class='text-sm text-gray-500 dark:text-gray-400'>Effective Date:</dt>
+										<dd class='text-sm font-medium text-gray-900 dark:text-gray-100'>
+											{new Date(billingPreview.effectiveDate).toLocaleDateString()}
+										</dd>
+									</div>
+								)}
+
+								{/* Show different payment info based on change type */}
+								{billingPreview.changeType === 'upgrade' ? (
+									<>
+										<div class='flex justify-between'>
+											<dt class='text-sm text-gray-500 dark:text-gray-400 group relative'>
+												Initial Payment (Prorated)
+												<span class='ml-1 cursor-help'>ⓘ</span>
+												<div class='invisible group-hover:visible absolute left-0 top-6 w-64 p-2 bg-gray-900 text-white text-xs rounded shadow-lg z-10'>
+													This is your first payment, adjusted for the remaining days in the current
+													billing period. You'll be charged the full amount on your next billing date.
+												</div>
+											</dt>
+											<dd class='text-sm font-medium text-gray-900 dark:text-gray-100'>
+												${billingPreview.proratedAmount
+													? billingPreview.proratedAmount.toFixed(2)
+													: (billingPreview.prorationFactor * selectedPlan.plan_price_monthly)
+														.toFixed(2)}
+											</dd>
 										</div>
-									</dt>
-									<dd class='text-sm font-medium text-gray-900 dark:text-gray-100'>
-										${billingPreview.proratedAmount
-											? billingPreview.proratedAmount.toFixed(2)
-											: (billingPreview.prorationFactor * selectedPlan.plan_price_monthly)
-												.toFixed(2)}
-									</dd>
-								</div>
-								<div class='flex justify-between'>
-									<dt class='text-sm text-gray-500 dark:text-gray-400 group relative'>
-										Next Payment (Full Amount)
-										<span class='ml-1 cursor-help'>ⓘ</span>
-										<div class='invisible group-hover:visible absolute left-0 top-6 w-64 p-2 bg-gray-900 text-white text-xs rounded shadow-lg z-10'>
-											This is the regular monthly amount you'll be charged on your next billing
-											date and thereafter.
+										<div class='flex justify-between'>
+											<dt class='text-sm text-gray-500 dark:text-gray-400 group relative'>
+												Next Payment (Full Amount)
+												<span class='ml-1 cursor-help'>ⓘ</span>
+												<div class='invisible group-hover:visible absolute left-0 top-6 w-64 p-2 bg-gray-900 text-white text-xs rounded shadow-lg z-10'>
+													This is the regular monthly amount you'll be charged on your next billing
+													date and thereafter.
+												</div>
+											</dt>
+											<dd class='text-sm font-medium text-gray-900 dark:text-gray-100'>
+												${selectedPlan.plan_price_monthly.toFixed(2)}
+											</dd>
 										</div>
-									</dt>
-									<dd class='text-sm font-medium text-gray-900 dark:text-gray-100'>
-										${selectedPlan.plan_price_monthly.toFixed(2)}
-									</dd>
-								</div>
+									</>
+								) : (
+									<>
+										<div class='flex justify-between'>
+											<dt class='text-sm text-gray-500 dark:text-gray-400'>Immediate Payment:</dt>
+											<dd class='text-sm font-medium text-green-600 dark:text-green-400'>
+												$0.00 (No immediate charge)
+											</dd>
+										</div>
+										<div class='flex justify-between'>
+											<dt class='text-sm text-gray-500 dark:text-gray-400'>New Monthly Amount:</dt>
+											<dd class='text-sm font-medium text-gray-900 dark:text-gray-100'>
+												${selectedPlan.plan_price_monthly.toFixed(2)}
+											</dd>
+										</div>
+									</>
+								)}
+
 								<div class='flex justify-between'>
 									<dt class='text-sm text-gray-500 dark:text-gray-400'>Next Billing Date:</dt>
 									<dd class='text-sm font-medium text-gray-900 dark:text-gray-100'>
@@ -277,7 +320,13 @@ export default function PaymentFlowDialog({
 							<button
 								type='button'
 								onClick={() => {
-									paymentFlowStep.value = existingPaymentMethod ? 'confirm' : 'payment';
+									// For downgrades, skip payment collection since there's no immediate charge
+									if (billingPreview.changeType === 'downgrade') {
+										paymentFlowStep.value = 'confirm';
+									} else {
+										// For upgrades, check if payment method is needed
+										paymentFlowStep.value = existingPaymentMethod ? 'confirm' : 'payment';
+									}
 								}}
 								class='px-4 py-2 text-sm font-medium text-white bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 rounded-md'
 							>
@@ -316,18 +365,32 @@ export default function PaymentFlowDialog({
 						<ErrorAlert />
 
 						<div class='mt-4'>
-							<p class='text-sm text-gray-500 dark:text-gray-400'>
-								You will be charged ${billingPreview.proratedAmount
-									? billingPreview.proratedAmount.toFixed(2)
-									: (billingPreview.prorationFactor * selectedPlan.plan_price_monthly).toFixed(2)}
-								{' '}
-								now, and ${billingPreview.fullAmount
-									? billingPreview.fullAmount.toFixed(2)
-									: selectedPlan.plan_price_monthly.toFixed(2)} on{' '}
-								{new Date(billingPreview.nextPeriodStart || billingPreview.periodEnd)
-									.toLocaleDateString()}.
-							</p>
-							{existingPaymentMethod && (
+							{/* Different messaging for upgrades vs downgrades */}
+							{billingPreview.changeType === 'upgrade' ? (
+								<p class='text-sm text-gray-500 dark:text-gray-400'>
+									You will be charged ${billingPreview.proratedAmount
+										? billingPreview.proratedAmount.toFixed(2)
+										: (billingPreview.prorationFactor * selectedPlan.plan_price_monthly).toFixed(2)}
+									{' '}
+									now, and ${billingPreview.fullAmount
+										? billingPreview.fullAmount.toFixed(2)
+										: selectedPlan.plan_price_monthly.toFixed(2)} on{' '}
+									{new Date(billingPreview.nextPeriodStart || billingPreview.periodEnd)
+										.toLocaleDateString()}.
+								</p>
+							) : (
+								<p class='text-sm text-gray-500 dark:text-gray-400'>
+									Your plan will be changed to <strong>{selectedPlan.plan_name}</strong> on{' '}
+									{new Date(billingPreview.effectiveDate || billingPreview.nextPeriodStart || billingPreview.periodEnd)
+										.toLocaleDateString()}. You will continue to have access to your current plan until then.
+									<br /><br />
+									Starting {new Date(billingPreview.effectiveDate || billingPreview.nextPeriodStart || billingPreview.periodEnd)
+										.toLocaleDateString()}, you will be charged ${selectedPlan.plan_price_monthly.toFixed(2)} monthly.
+								</p>
+							)}
+							
+							{/* Payment method info - only show for upgrades or if payment method exists */}
+							{existingPaymentMethod && (billingPreview.changeType === 'upgrade' || billingPreview.changeType === 'downgrade') && (
 								<div class='mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-md'>
 									<div class='flex items-center justify-between'>
 										<div class='flex items-center'>
@@ -359,7 +422,7 @@ export default function PaymentFlowDialog({
 								onClick={handleConfirm}
 								class='px-4 py-2 text-sm font-medium text-white bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 rounded-md'
 							>
-								Confirm Plan Change
+								{billingPreview.changeType === 'upgrade' ? 'Confirm Upgrade' : 'Schedule Downgrade'}
 							</button>
 						</div>
 					</>

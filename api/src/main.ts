@@ -138,24 +138,6 @@ app.use(oakCors({
 app.use(router.routes());
 app.use(router.allowedMethods());
 
-app.addEventListener(
-	'listen',
-	async ({ hostname, port, secure }: { hostname: string; port: number; secure: boolean }) => {
-		const versionInfo = await getVersionInfo();
-		logger.info(`APIStartup: Starting API v${versionInfo.version} with config:`, globalRedactedConfig);
-		if (apiConfig.ignoreLLMRequestCache) {
-			logger.warn('APIStartup: Cache for LLM requests is disabled!');
-		}
-		logger.info(`APIStartup: Version: ${versionInfo.version}`);
-		logger.info(`APIStartup: Environment: ${environment}`);
-		logger.info(`APIStartup: Log level: ${apiConfig.logLevel}`);
-		logger.info(`APIStartup: Listening on: ${secure ? 'https://' : 'http://'}${hostname ?? 'localhost'}:${port}`);
-	},
-);
-app.addEventListener('error', (evt: ErrorEvent) => {
-	logger.error(`APIStartup: Application error:`, evt.error);
-});
-
 const cleanup = async (code: number = 0) => {
 	try {
 		await KVManager.closeAll();
@@ -172,7 +154,7 @@ for (const signal of signals) {
 	Deno.addSignalListener(signal, cleanup);
 }
 
-addEventListener('unhandledrejection', (event) => {
+globalThis.addEventListener('unhandledrejection', (event) => {
 	logger.error('APIEventLoop: Unhandled Promise Rejection at:', event.promise, 'reason:', event.reason);
 	logger.debug('APIEventLoop: Unhandled Promise Rejection Stack at:', event.reason?.stack);
 	// Optionally prevent default behavior (though this doesn't stop the error)
@@ -186,6 +168,25 @@ globalThis.addEventListener('error', (event) => {
 	event.preventDefault();
 });
 
+app.addEventListener('error', (evt: ErrorEvent) => {
+	logger.error(`APIEventLoop: Application error:`, evt.error);
+	evt.preventDefault();
+});
+
+app.addEventListener(
+	'listen',
+	async ({ hostname, port, secure }: { hostname: string; port: number; secure: boolean }) => {
+		const versionInfo = await getVersionInfo();
+		logger.info(`APIStartup: Starting API v${versionInfo.version} with config:`, globalRedactedConfig);
+		if (apiConfig.ignoreLLMRequestCache) {
+			logger.warn('APIStartup: Cache for LLM requests is disabled!');
+		}
+		logger.info(`APIStartup: Version: ${versionInfo.version}`);
+		logger.info(`APIStartup: Environment: ${environment}`);
+		logger.info(`APIStartup: Log level: ${apiConfig.logLevel}`);
+		logger.info(`APIStartup: Listening on: ${secure ? 'https://' : 'http://'}${hostname ?? 'localhost'}:${port}`);
+	},
+);
 if (import.meta.main) {
 	// Initialize API base URL for use throughout the application
 	const baseUrl = `${customUseTls ? 'https' : 'http'}://${customHostname}:${customPort}`;

@@ -126,54 +126,76 @@ export default function SubscriptionSettings() {
 								Current Subscription
 							</h3>
 							<div class='p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 h-full flex flex-col'>
-								<div class='flex-grow space-y-4'>
-									<div class='flex flex-wrap items-center gap-2'>
-										<span class='text-sm text-gray-500 dark:text-gray-400'>Plan:</span>
-										<span class='ml-2 text-sm font-medium text-gray-900 dark:text-gray-100'>
+								<div class='flex items-center justify-between mb-4'>
+									<h4 class='text-sm font-medium text-gray-500 dark:text-gray-400'>
+										Active Plan
+									</h4>
+									<span
+										class={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+											billingState.value.subscription.subscription_status === 'ACTIVE'
+												? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200'
+												: 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200'
+										}`}
+									>
+										{billingState.value.subscription.subscription_status}
+									</span>
+								</div>
+
+								<div class='flex-grow flex flex-col space-y-4'>
+									{/* Plan Name */}
+									<div class='text-center'>
+										<div class='text-2xl font-bold text-gray-900 dark:text-gray-100'>
 											{billingState.value.subscription.plan.plan_name}
-										</span>
-										<span
-											class={`ml-4 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-												billingState.value.subscription.subscription_status === 'ACTIVE'
-													? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200'
-													: 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200'
-											}`}
-										>
-											{billingState.value.subscription.subscription_status}
-										</span>
+										</div>
+										<div class='text-sm text-gray-500 dark:text-gray-400'>
+											Current Plan
+										</div>
 									</div>
 
-									<div class='flex flex-wrap items-center gap-2'>
-										<span class='text-sm text-gray-500 dark:text-gray-400'>Current period:</span>
-										<span class='ml-2 text-sm font-medium text-gray-900 dark:text-gray-100'>
-											{new Date(billingState.value.subscription.subscription_period_start)
-												.toLocaleDateString()}
-											{' - '}
-											{new Date(billingState.value.subscription.subscription_period_end)
-												.toLocaleDateString()}
-										</span>
+									{/* Billing Period */}
+									<div class='pt-4 border-t border-gray-200 dark:border-gray-700'>
+										<div class='text-center text-sm'>
+											<div class='text-gray-500 dark:text-gray-400 mb-1'>
+												Billing Period
+											</div>
+											<div class='font-medium text-gray-900 dark:text-gray-100'>
+												{new Date(billingState.value.subscription.subscription_period_start)
+													.toLocaleDateString()}
+											</div>
+											<div class='text-gray-500 dark:text-gray-400'>
+												to {new Date(billingState.value.subscription.subscription_period_end)
+													.toLocaleDateString()}
+											</div>
+										</div>
 									</div>
 
+									{/* Cancellation Notice */}
 									{billingState.value.subscription.subscription_cancel_at && (
-										<p class='text-sm text-amber-600 dark:text-amber-400'>
-											Cancels on:{' '}
-											{new Date(billingState.value.subscription.subscription_cancel_at)
-												.toLocaleDateString()}
-										</p>
+										<div class='pt-4 border-t border-gray-200 dark:border-gray-700'>
+											<div class='text-center text-sm'>
+												<div class='text-amber-600 dark:text-amber-400 font-medium'>
+													Cancels on
+												</div>
+												<div class='text-amber-600 dark:text-amber-400'>
+													{new Date(billingState.value.subscription.subscription_cancel_at)
+														.toLocaleDateString()}
+												</div>
+											</div>
+										</div>
 									)}
 								</div>
 
 								<button
 									type='button'
 									onClick={handleCancelSubscription}
-									class='mt-4 w-full px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-40 dark:hover:bg-red-800/20 rounded-md'
+									class='w-full px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-800/20 rounded-md'
 								>
 									Cancel Subscription
 								</button>
 							</div>
 						</div>
 
-						{/* Section 2: Purchased Tokens */}
+						{/* Section 2: Credit Balance */}
 						<div class='lg:col-span-1 mb-6'>
 							<h3 class='text-base font-medium text-gray-700 dark:text-gray-300 mb-4'>
 								Credit Balance and Purchases
