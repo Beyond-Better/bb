@@ -118,18 +118,9 @@ export interface BlockPurchaseResults {
 
 export interface PurchasesBalance {
 	balance: {
-		// Allowances
-		subscription_allowance_usd: number; // Monthly subscription allowance amount
-		purchased_allowance_usd: number; // Total purchased block allowance
-		total_allowance_usd: number; // Total available allowance (subscription + blocks)
-
-		// Usage
-		subscription_used_usd: number; // Amount used from subscription allowance
-		purchased_used_usd: number; // Amount used from purchased blocks
-		total_used_usd: number; // Total usage across all sources
-
-		// Balance
-		remaining_balance_usd: number; // Total remaining balance
+		current_balance_usd: number; // Current token balance
+		last_updated: string; // When balance was last updated
+		usage_since_update_usd: number; // Usage since last update
 	};
 	purchases: Array<BlockPurchase>;
 }
