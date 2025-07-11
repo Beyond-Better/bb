@@ -1,6 +1,8 @@
--- Feature System Migration
--- Creates the feature management system for BB with hierarchical features and dynamic configuration
--- Uses abi_core schema as this is core application functionality
+-- Feature System Migration - Complete Implementation
+-- Migration: 20250711102800_create_feature_system.sql
+-- Purpose: Create comprehensive feature management system with hierarchical features, plan mappings, and security
+-- Affected: Creates new abi_core schema tables, functions, and security policies
+-- Special considerations: Uses abi_core schema for core functionality, implements proper user reference architecture
 
 -- Enable required extensions
 create extension if not exists "uuid-ossp";

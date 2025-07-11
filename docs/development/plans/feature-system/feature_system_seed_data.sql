@@ -1,206 +1,574 @@
--- Feature System Seed Data
--- This file contains the initial feature definitions and plan mappings
--- Based on the plan structure: Basic ($10), Advanced ($30), Professional ($99), Enterprise (Custom)
+-- Feature System Seed Data Functions
+-- This file contains functions to initialize feature definitions and plan mappings
+-- Uses proper UUID generation and error handling
 
--- First, let's create the base subscription plans
-INSERT INTO "abi_billing"."subscription_plans" (
-    "plan_id", "plan_name", "plan_type", "plan_price_monthly_cents_usd", "plan_price_yearly_cents_usd", "plan_active"
-) VALUES 
-    ('11111111-1111-1111-1111-111111111111', 'Basic', 'basic', 1000, 10800, true),
-    ('22222222-2222-2222-2222-222222222222', 'Advanced', 'usage', 3000, 32400, true),
-    ('33333333-3333-3333-3333-333333333333', 'Professional', 'usage', 9900, 106920, true),
-    ('44444444-4444-4444-4444-444444444444', 'Enterprise', 'usage', null, null, true)
-ON CONFLICT (plan_id) DO UPDATE SET
-    plan_name = EXCLUDED.plan_name,
-    plan_price_monthly_cents_usd = EXCLUDED.plan_price_monthly_cents_usd,
-    plan_price_yearly_cents_usd = EXCLUDED.plan_price_yearly_cents_usd,
-    updated_at = now();
+-- Function to seed subscription plans
+create or replace function abi_core.seed_subscription_plans()
+returns void
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+declare
+    v_basic_plan_id uuid;
+    v_advanced_plan_id uuid;
+    v_professional_plan_id uuid;
+    v_enterprise_plan_id uuid;
+begin
+    -- Generate consistent plan IDs for reference
+    v_basic_plan_id := gen_random_uuid();
+    v_advanced_plan_id := gen_random_uuid();
+    v_professional_plan_id := gen_random_uuid();
+    v_enterprise_plan_id := gen_random_uuid();
+    
+    -- Insert or update subscription plans
+    insert into abi_billing.subscription_plans (
+        plan_id, plan_name, plan_type, plan_price_monthly_cents_usd, plan_price_yearly_cents_usd, plan_active
+    ) values 
+        (v_basic_plan_id, 'Base', 'free', 0, 0, true),
+        (v_advanced_plan_id, 'Build', 'usage', 1900, 20400, true),
+        (v_professional_plan_id, 'Beyond', 'usage', 5900, 63600, true),
+        (v_enterprise_plan_id, 'Enterprise', 'usage', null, null, true)
+    on conflict (plan_name) do update set
+        plan_type = excluded.plan_type,
+        plan_price_monthly_cents_usd = excluded.plan_price_monthly_cents_usd,
+        plan_price_yearly_cents_usd = excluded.plan_price_yearly_cents_usd,
+        plan_active = excluded.plan_active,
+        updated_at = now();
+    
+    -- Store plan IDs for use in feature seeding
+    perform abi_core.store_seed_plan_ids(v_basic_plan_id, v_advanced_plan_id, v_professional_plan_id, v_enterprise_plan_id);
+end;
+$$;
 
--- Feature Definitions - Hierarchical structure
-INSERT INTO "abi_billing"."feature_definitions" (
-    "feature_id", "feature_key", "feature_name", "feature_description", "feature_type", "parent_feature_id", "feature_category", "default_value", "value_schema"
-) VALUES 
-    -- Top-level model access
-    ('f0000001-0000-0000-0000-000000000001', 'models', 'Model Access', 'Access to LLM models', 'access', null, 'models', 
-     '{"enabled": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}}}'),
+-- Function to store plan IDs in a temporary table for other functions
+create or replace function abi_core.store_seed_plan_ids(
+    p_basic_plan_id uuid,
+    p_advanced_plan_id uuid,
+    p_professional_plan_id uuid,
+    p_enterprise_plan_id uuid
+)
+returns void
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+begin
+    -- Create temporary table to store plan IDs
+    create temp table if not exists temp_plan_ids (
+        plan_name text primary key,
+        plan_id uuid not null
+    );
     
-    -- Claude model hierarchy
-    ('f0000002-0000-0000-0000-000000000002', 'models.claude', 'Claude Models', 'Access to Claude models', 'access', 'f0000001-0000-0000-0000-000000000001', 'models',
-     '{"enabled": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}}}'),
-    ('f0000003-0000-0000-0000-000000000003', 'models.claude.sonnet', 'Claude Sonnet', 'Access to Claude Sonnet', 'access', 'f0000002-0000-0000-0000-000000000002', 'models',
-     '{"enabled": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}}}'),
-    ('f0000004-0000-0000-0000-000000000004', 'models.claude.opus', 'Claude Opus', 'Access to Claude Opus', 'access', 'f0000002-0000-0000-0000-000000000002', 'models',
-     '{"enabled": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}}}'),
-    ('f0000005-0000-0000-0000-000000000005', 'models.claude.haiku', 'Claude Haiku', 'Access to Claude Haiku', 'access', 'f0000002-0000-0000-0000-000000000002', 'models',
-     '{"enabled": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}}}'),
+    -- Clear existing data
+    delete from temp_plan_ids;
     
-    -- Other model providers
-    ('f0000006-0000-0000-0000-000000000006', 'models.openai', 'OpenAI Models', 'Access to OpenAI models', 'access', 'f0000001-0000-0000-0000-000000000001', 'models',
-     '{"enabled": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}}}'),
-    ('f0000007-0000-0000-0000-000000000007', 'models.openai.gpt4', 'GPT-4 Models', 'Access to GPT-4 models', 'access', 'f0000006-0000-0000-0000-000000000006', 'models',
-     '{"enabled": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}}}'),
-    ('f0000008-0000-0000-0000-000000000008', 'models.openai.gpt3', 'GPT-3.5 Models', 'Access to GPT-3.5 models', 'access', 'f0000006-0000-0000-0000-000000000006', 'models',
-     '{"enabled": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}}}'),
-    
-    -- Datasource access
-    ('f0000010-0000-0000-0000-000000000010', 'datasources', 'Data Sources', 'Access to data sources', 'access', null, 'datasources',
-     '{"enabled": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}}}'),
-    ('f0000011-0000-0000-0000-000000000011', 'datasources.filesystem', 'Filesystem Access', 'Access to filesystem datasource', 'access', 'f0000010-0000-0000-0000-000000000010', 'datasources',
-     '{"enabled": false, "read": false, "write": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}, "read": {"type": "boolean"}, "write": {"type": "boolean"}}}'),
-    ('f0000012-0000-0000-0000-000000000012', 'datasources.github', 'GitHub Integration', 'Access to GitHub datasource', 'access', 'f0000010-0000-0000-0000-000000000010', 'datasources',
-     '{"enabled": false, "read": false, "write": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}, "read": {"type": "boolean"}, "write": {"type": "boolean"}}}'),
-    ('f0000013-0000-0000-0000-000000000013', 'datasources.notion', 'Notion Integration', 'Access to Notion datasource', 'access', 'f0000010-0000-0000-0000-000000000010', 'datasources',
-     '{"enabled": false, "read": false, "write": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}, "read": {"type": "boolean"}, "write": {"type": "boolean"}}}'),
-    ('f0000014-0000-0000-0000-000000000014', 'datasources.supabase', 'Supabase Integration', 'Access to Supabase datasource', 'access', 'f0000010-0000-0000-0000-000000000010', 'datasources',
-     '{"enabled": false, "read": false, "write": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}, "read": {"type": "boolean"}, "write": {"type": "boolean"}}}'),
-    
-    -- Tools access
-    ('f0000020-0000-0000-0000-000000000020', 'tools', 'Tools Access', 'Access to tools and integrations', 'access', null, 'tools',
-     '{"enabled": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}}}'),
-    ('f0000021-0000-0000-0000-000000000021', 'tools.builtin', 'Built-in Tools', 'Access to built-in tools', 'access', 'f0000020-0000-0000-0000-000000000020', 'tools',
-     '{"enabled": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}}}'),
-    ('f0000022-0000-0000-0000-000000000022', 'tools.external', 'External Tools (MCP)', 'Access to external MCP tools', 'access', 'f0000020-0000-0000-0000-000000000020', 'tools',
-     '{"enabled": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}}}'),
-    
-    -- Rate limits
-    ('f0000030-0000-0000-0000-000000000030', 'limits.tokens_per_minute', 'Token Rate Limit', 'Tokens per minute rate limit', 'limit', null, 'limits',
-     '{"limit": 1000}', '{"type": "object", "properties": {"limit": {"type": "integer", "minimum": 0}}}'),
-    ('f0000031-0000-0000-0000-000000000031', 'limits.requests_per_minute', 'Request Rate Limit', 'Requests per minute rate limit', 'limit', null, 'limits',
-     '{"limit": 5}', '{"type": "object", "properties": {"limit": {"type": "integer", "minimum": 0}}}'),
-    
-    -- Support and features
-    ('f0000040-0000-0000-0000-000000000040', 'support.community', 'Community Support', 'Access to community support', 'access', null, 'limits',
-     '{"enabled": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}}}'),
-    ('f0000041-0000-0000-0000-000000000041', 'support.email', 'Email Support', 'Access to priority email support', 'access', null, 'limits',
-     '{"enabled": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}}}'),
-    ('f0000042-0000-0000-0000-000000000042', 'support.priority_queue', 'Priority Queue', 'Access to priority processing queue', 'access', null, 'limits',
-     '{"enabled": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}}}'),
-    ('f0000043-0000-0000-0000-000000000043', 'features.early_access', 'Early Access Features', 'Access to early access features', 'access', null, 'limits',
-     '{"enabled": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}}}'),
-    ('f0000044-0000-0000-0000-000000000044', 'features.workspace_isolation', 'SOC-2 Workspace Isolation', 'SOC-2 compliant workspace isolation', 'access', null, 'limits',
-     '{"enabled": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}}}'),
-    ('f0000045-0000-0000-0000-000000000045', 'features.sso', 'Single Sign-On', 'SSO integration', 'access', null, 'limits',
-     '{"enabled": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}}}'),
-    ('f0000046-0000-0000-0000-000000000046', 'features.dedicated_csm', 'Dedicated CSM', 'Dedicated Customer Success Manager', 'access', null, 'limits',
-     '{"enabled": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}}}'),
-    ('f0000047-0000-0000-0000-000000000047', 'features.on_prem', 'On-Premises Option', 'On-premises deployment option', 'access', null, 'limits',
-     '{"enabled": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}}}')
-ON CONFLICT (feature_id) DO UPDATE SET
-    feature_name = EXCLUDED.feature_name,
-    feature_description = EXCLUDED.feature_description,
-    feature_type = EXCLUDED.feature_type,
-    parent_feature_id = EXCLUDED.parent_feature_id,
-    feature_category = EXCLUDED.feature_category,
-    default_value = EXCLUDED.default_value,
-    value_schema = EXCLUDED.value_schema,
-    updated_at = now();
+    -- Insert plan IDs
+    insert into temp_plan_ids (plan_name, plan_id) values
+        ('Base', p_basic_plan_id),
+        ('Build', p_advanced_plan_id),
+        ('Beyond', p_professional_plan_id),
+        ('Enterprise', p_enterprise_plan_id);
+end;
+$$;
 
--- Plan Features - Map features to plans
--- Basic Plan ($10) - Claude only, Filesystem r/w, Built-in tools, 200K tok/min, 10 req/min
-INSERT INTO "abi_billing"."plan_features" (
-    "plan_id", "feature_id", "feature_value", "is_enabled"
-) VALUES 
-    -- Basic: Claude access only
-    ('11111111-1111-1111-1111-111111111111', 'f0000001-0000-0000-0000-000000000001', '{"enabled": true}', true),
-    ('11111111-1111-1111-1111-111111111111', 'f0000002-0000-0000-0000-000000000002', '{"enabled": true}', true),
-    ('11111111-1111-1111-1111-111111111111', 'f0000003-0000-0000-0000-000000000003', '{"enabled": true}', true),
-    ('11111111-1111-1111-1111-111111111111', 'f0000005-0000-0000-0000-000000000005', '{"enabled": true}', true), -- Haiku
-    -- Basic: Filesystem r/w
-    ('11111111-1111-1111-1111-111111111111', 'f0000010-0000-0000-0000-000000000010', '{"enabled": true}', true),
-    ('11111111-1111-1111-1111-111111111111', 'f0000011-0000-0000-0000-000000000011', '{"enabled": true, "read": true, "write": true}', true),
-    -- Basic: Built-in tools
-    ('11111111-1111-1111-1111-111111111111', 'f0000020-0000-0000-0000-000000000020', '{"enabled": true}', true),
-    ('11111111-1111-1111-1111-111111111111', 'f0000021-0000-0000-0000-000000000021', '{"enabled": true}', true),
-    -- Basic: Rate limits
-    ('11111111-1111-1111-1111-111111111111', 'f0000030-0000-0000-0000-000000000030', '{"limit": 200000}', true),
-    ('11111111-1111-1111-1111-111111111111', 'f0000031-0000-0000-0000-000000000031', '{"limit": 10}', true),
-    -- Basic: Community support
-    ('11111111-1111-1111-1111-111111111111', 'f0000040-0000-0000-0000-000000000040', '{"enabled": true}', true),
+-- Function to seed feature definitions with hierarchical structure
+create or replace function abi_core.seed_feature_definitions()
+returns void
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+declare
+    v_models_root_id uuid;
+    v_claude_models_id uuid;
+    v_openai_models_id uuid;
+    v_datasources_root_id uuid;
+    v_tools_root_id uuid;
+begin
+    -- Insert root level features and capture IDs
+    insert into abi_core.feature_definitions (
+        feature_key, feature_name, feature_description, feature_type, parent_feature_id, feature_category, default_value, value_schema
+    ) values 
+        ('models', 'Model Access', 'Access to LLM models', 'access', null, 'models', 
+         '{"enabled": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}}}')
+    on conflict (feature_key) do update set
+        feature_name = excluded.feature_name,
+        feature_description = excluded.feature_description,
+        updated_at = now()
+    returning feature_id into v_models_root_id;
     
-    -- Advanced Plan ($30) - All models, Read-only datasources, 500K tok/min, 30 req/min
-    ('22222222-2222-2222-2222-222222222222', 'f0000001-0000-0000-0000-000000000001', '{"enabled": true}', true),
-    ('22222222-2222-2222-2222-222222222222', 'f0000002-0000-0000-0000-000000000002', '{"enabled": true}', true),
-    ('22222222-2222-2222-2222-222222222222', 'f0000003-0000-0000-0000-000000000003', '{"enabled": true}', true),
-    ('22222222-2222-2222-2222-222222222222', 'f0000004-0000-0000-0000-000000000004', '{"enabled": true}', true), -- Opus
-    ('22222222-2222-2222-2222-222222222222', 'f0000005-0000-0000-0000-000000000005', '{"enabled": true}', true), -- Haiku
-    ('22222222-2222-2222-2222-222222222222', 'f0000006-0000-0000-0000-000000000006', '{"enabled": true}', true), -- OpenAI
-    ('22222222-2222-2222-2222-222222222222', 'f0000007-0000-0000-0000-000000000007', '{"enabled": true}', true), -- GPT-4
-    ('22222222-2222-2222-2222-222222222222', 'f0000008-0000-0000-0000-000000000008', '{"enabled": true}', true), -- GPT-3.5
-    -- Advanced: Read-only datasources
-    ('22222222-2222-2222-2222-222222222222', 'f0000010-0000-0000-0000-000000000010', '{"enabled": true}', true),
-    ('22222222-2222-2222-2222-222222222222', 'f0000011-0000-0000-0000-000000000011', '{"enabled": true, "read": true, "write": true}', true),
-    ('22222222-2222-2222-2222-222222222222', 'f0000012-0000-0000-0000-000000000012', '{"enabled": true, "read": true, "write": false}', true),
-    ('22222222-2222-2222-2222-222222222222', 'f0000013-0000-0000-0000-000000000013', '{"enabled": true, "read": true, "write": false}', true),
-    ('22222222-2222-2222-2222-222222222222', 'f0000014-0000-0000-0000-000000000014', '{"enabled": true, "read": true, "write": false}', true),
-    -- Advanced: Built-in tools
-    ('22222222-2222-2222-2222-222222222222', 'f0000020-0000-0000-0000-000000000020', '{"enabled": true}', true),
-    ('22222222-2222-2222-2222-222222222222', 'f0000021-0000-0000-0000-000000000021', '{"enabled": true}', true),
-    -- Advanced: Rate limits
-    ('22222222-2222-2222-2222-222222222222', 'f0000030-0000-0000-0000-000000000030', '{"limit": 500000}', true),
-    ('22222222-2222-2222-2222-222222222222', 'f0000031-0000-0000-0000-000000000031', '{"limit": 30}', true),
-    -- Advanced: Email support + early access
-    ('22222222-2222-2222-2222-222222222222', 'f0000041-0000-0000-0000-000000000041', '{"enabled": true}', true),
-    ('22222222-2222-2222-2222-222222222222', 'f0000043-0000-0000-0000-000000000043', '{"enabled": true}', true),
+    insert into abi_core.feature_definitions (
+        feature_key, feature_name, feature_description, feature_type, parent_feature_id, feature_category, default_value, value_schema
+    ) values 
+        ('datasources', 'Data Sources', 'Access to data sources', 'access', null, 'datasources',
+         '{"enabled": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}}}')
+    on conflict (feature_key) do update set
+        feature_name = excluded.feature_name,
+        feature_description = excluded.feature_description,
+        updated_at = now()
+    returning feature_id into v_datasources_root_id;
     
-    -- Professional Plan ($99) - All models, All datasources r/w, External tools, 1.75M tok/min, 150 req/min
-    ('33333333-3333-3333-3333-333333333333', 'f0000001-0000-0000-0000-000000000001', '{"enabled": true}', true),
-    ('33333333-3333-3333-3333-333333333333', 'f0000002-0000-0000-0000-000000000002', '{"enabled": true}', true),
-    ('33333333-3333-3333-3333-333333333333', 'f0000003-0000-0000-0000-000000000003', '{"enabled": true}', true),
-    ('33333333-3333-3333-3333-333333333333', 'f0000004-0000-0000-0000-000000000004', '{"enabled": true}', true),
-    ('33333333-3333-3333-3333-333333333333', 'f0000005-0000-0000-0000-000000000005', '{"enabled": true}', true),
-    ('33333333-3333-3333-3333-333333333333', 'f0000006-0000-0000-0000-000000000006', '{"enabled": true}', true),
-    ('33333333-3333-3333-3333-333333333333', 'f0000007-0000-0000-0000-000000000007', '{"enabled": true}', true),
-    ('33333333-3333-3333-3333-333333333333', 'f0000008-0000-0000-0000-000000000008', '{"enabled": true}', true),
-    -- Professional: All datasources r/w
-    ('33333333-3333-3333-3333-333333333333', 'f0000010-0000-0000-0000-000000000010', '{"enabled": true}', true),
-    ('33333333-3333-3333-3333-333333333333', 'f0000011-0000-0000-0000-000000000011', '{"enabled": true, "read": true, "write": true}', true),
-    ('33333333-3333-3333-3333-333333333333', 'f0000012-0000-0000-0000-000000000012', '{"enabled": true, "read": true, "write": true}', true),
-    ('33333333-3333-3333-3333-333333333333', 'f0000013-0000-0000-0000-000000000013', '{"enabled": true, "read": true, "write": true}', true),
-    ('33333333-3333-3333-3333-333333333333', 'f0000014-0000-0000-0000-000000000014', '{"enabled": true, "read": true, "write": true}', true),
-    -- Professional: All tools
-    ('33333333-3333-3333-3333-333333333333', 'f0000020-0000-0000-0000-000000000020', '{"enabled": true}', true),
-    ('33333333-3333-3333-3333-333333333333', 'f0000021-0000-0000-0000-000000000021', '{"enabled": true}', true),
-    ('33333333-3333-3333-3333-333333333333', 'f0000022-0000-0000-0000-000000000022', '{"enabled": true}', true),
-    -- Professional: Higher rate limits
-    ('33333333-3333-3333-3333-333333333333', 'f0000030-0000-0000-0000-000000000030', '{"limit": 1750000}', true),
-    ('33333333-3333-3333-3333-333333333333', 'f0000031-0000-0000-0000-000000000031', '{"limit": 150}', true),
-    -- Professional: Priority queue, SOC-2 workspace isolation
-    ('33333333-3333-3333-3333-333333333333', 'f0000041-0000-0000-0000-000000000041', '{"enabled": true}', true),
-    ('33333333-3333-3333-3333-333333333333', 'f0000042-0000-0000-0000-000000000042', '{"enabled": true}', true),
-    ('33333333-3333-3333-3333-333333333333', 'f0000043-0000-0000-0000-000000000043', '{"enabled": true}', true),
-    ('33333333-3333-3333-3333-333333333333', 'f0000044-0000-0000-0000-000000000044', '{"enabled": true}', true),
+    insert into abi_core.feature_definitions (
+        feature_key, feature_name, feature_description, feature_type, parent_feature_id, feature_category, default_value, value_schema
+    ) values 
+        ('tools', 'Tools Access', 'Access to tools and integrations', 'access', null, 'tools',
+         '{"enabled": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}}}')
+    on conflict (feature_key) do update set
+        feature_name = excluded.feature_name,
+        feature_description = excluded.feature_description,
+        updated_at = now()
+    returning feature_id into v_tools_root_id;
     
-    -- Enterprise Plan (Custom) - Everything enabled
-    ('44444444-4444-4444-4444-444444444444', 'f0000001-0000-0000-0000-000000000001', '{"enabled": true}', true),
-    ('44444444-4444-4444-4444-444444444444', 'f0000002-0000-0000-0000-000000000002', '{"enabled": true}', true),
-    ('44444444-4444-4444-4444-444444444444', 'f0000003-0000-0000-0000-000000000003', '{"enabled": true}', true),
-    ('44444444-4444-4444-4444-444444444444', 'f0000004-0000-0000-0000-000000000004', '{"enabled": true}', true),
-    ('44444444-4444-4444-4444-444444444444', 'f0000005-0000-0000-0000-000000000005', '{"enabled": true}', true),
-    ('44444444-4444-4444-4444-444444444444', 'f0000006-0000-0000-0000-000000000006', '{"enabled": true}', true),
-    ('44444444-4444-4444-4444-444444444444', 'f0000007-0000-0000-0000-000000000007', '{"enabled": true}', true),
-    ('44444444-4444-4444-4444-444444444444', 'f0000008-0000-0000-0000-000000000008', '{"enabled": true}', true),
-    -- Enterprise: All datasources r/w
-    ('44444444-4444-4444-4444-444444444444', 'f0000010-0000-0000-0000-000000000010', '{"enabled": true}', true),
-    ('44444444-4444-4444-4444-444444444444', 'f0000011-0000-0000-0000-000000000011', '{"enabled": true, "read": true, "write": true}', true),
-    ('44444444-4444-4444-4444-444444444444', 'f0000012-0000-0000-0000-000000000012', '{"enabled": true, "read": true, "write": true}', true),
-    ('44444444-4444-4444-4444-444444444444', 'f0000013-0000-0000-0000-000000000013', '{"enabled": true, "read": true, "write": true}', true),
-    ('44444444-4444-4444-4444-444444444444', 'f0000014-0000-0000-0000-000000000014', '{"enabled": true, "read": true, "write": true}', true),
-    -- Enterprise: All tools
-    ('44444444-4444-4444-4444-444444444444', 'f0000020-0000-0000-0000-000000000020', '{"enabled": true}', true),
-    ('44444444-4444-4444-4444-444444444444', 'f0000021-0000-0000-0000-000000000021', '{"enabled": true}', true),
-    ('44444444-4444-4444-4444-444444444444', 'f0000022-0000-0000-0000-000000000022', '{"enabled": true}', true),
-    -- Enterprise: Custom limits (set high)
-    ('44444444-4444-4444-4444-444444444444', 'f0000030-0000-0000-0000-000000000030', '{"limit": 10000000}', true),
-    ('44444444-4444-4444-4444-444444444444', 'f0000031-0000-0000-0000-000000000031', '{"limit": 1000}', true),
-    -- Enterprise: All premium features
-    ('44444444-4444-4444-4444-444444444444', 'f0000041-0000-0000-0000-000000000041', '{"enabled": true}', true),
-    ('44444444-4444-4444-4444-444444444444', 'f0000042-0000-0000-0000-000000000042', '{"enabled": true}', true),
-    ('44444444-4444-4444-4444-444444444444', 'f0000043-0000-0000-0000-000000000043', '{"enabled": true}', true),
-    ('44444444-4444-4444-4444-444444444444', 'f0000044-0000-0000-0000-000000000044', '{"enabled": true}', true),
-    ('44444444-4444-4444-4444-444444444444', 'f0000045-0000-0000-0000-000000000045', '{"enabled": true}', true),
-    ('44444444-4444-4444-4444-444444444444', 'f0000046-0000-0000-0000-000000000046', '{"enabled": true}', true),
-    ('44444444-4444-4444-4444-444444444444', 'f0000047-0000-0000-0000-000000000047', '{"enabled": true}', true)
-ON CONFLICT (plan_id, feature_id) DO UPDATE SET
-    feature_value = EXCLUDED.feature_value,
-    is_enabled = EXCLUDED.is_enabled,
-    updated_at = now();
+    -- Insert claude model hierarchy
+    insert into abi_core.feature_definitions (
+        feature_key, feature_name, feature_description, feature_type, parent_feature_id, feature_category, default_value, value_schema
+    ) values 
+        ('models.claude', 'Claude Models', 'Access to Claude models', 'access', v_models_root_id, 'models',
+         '{"enabled": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}}}')
+    on conflict (feature_key) do update set
+        feature_name = excluded.feature_name,
+        feature_description = excluded.feature_description,
+        parent_feature_id = excluded.parent_feature_id,
+        updated_at = now()
+    returning feature_id into v_claude_models_id;
+    
+    -- Insert specific claude models
+    insert into abi_core.feature_definitions (
+        feature_key, feature_name, feature_description, feature_type, parent_feature_id, feature_category, default_value, value_schema
+    ) values 
+        ('models.claude.sonnet', 'Claude Sonnet', 'Access to Claude Sonnet models', 'access', v_claude_models_id, 'models',
+         '{"enabled": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}}}'),
+        ('models.claude.opus', 'Claude Opus', 'Access to Claude Opus models', 'access', v_claude_models_id, 'models',
+         '{"enabled": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}}}'),
+        ('models.claude.haiku', 'Claude Haiku', 'Access to Claude Haiku models', 'access', v_claude_models_id, 'models',
+         '{"enabled": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}}}')
+    on conflict (feature_key) do update set
+        feature_name = excluded.feature_name,
+        feature_description = excluded.feature_description,
+        parent_feature_id = excluded.parent_feature_id,
+        updated_at = now();
+    
+    -- Insert openai model hierarchy
+    insert into abi_core.feature_definitions (
+        feature_key, feature_name, feature_description, feature_type, parent_feature_id, feature_category, default_value, value_schema
+    ) values 
+        ('models.openai', 'OpenAI Models', 'Access to OpenAI models', 'access', v_models_root_id, 'models',
+         '{"enabled": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}}}')
+    on conflict (feature_key) do update set
+        feature_name = excluded.feature_name,
+        feature_description = excluded.feature_description,
+        parent_feature_id = excluded.parent_feature_id,
+        updated_at = now()
+    returning feature_id into v_openai_models_id;
+    
+    -- Insert specific openai models
+    insert into abi_core.feature_definitions (
+        feature_key, feature_name, feature_description, feature_type, parent_feature_id, feature_category, default_value, value_schema
+    ) values 
+        ('models.openai.gpt4', 'GPT-4 Models', 'Access to GPT-4 models', 'access', v_openai_models_id, 'models',
+         '{"enabled": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}}}'),
+        ('models.openai.gpt3', 'GPT-3.5 Models', 'Access to GPT-3.5 models', 'access', v_openai_models_id, 'models',
+         '{"enabled": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}}}')
+    on conflict (feature_key) do update set
+        feature_name = excluded.feature_name,
+        feature_description = excluded.feature_description,
+        parent_feature_id = excluded.parent_feature_id,
+        updated_at = now();
+    
+    -- Insert Google Gemini models
+    insert into abi_core.feature_definitions (
+        feature_key, feature_name, feature_description, feature_type, parent_feature_id, feature_category, default_value, value_schema
+    ) values 
+        ('models.gemini', 'Google Gemini Models', 'Access to Google Gemini models', 'access', v_models_root_id, 'models',
+         '{"enabled": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}}}')
+    on conflict (feature_key) do update set
+        feature_name = excluded.feature_name,
+        feature_description = excluded.feature_description,
+        parent_feature_id = excluded.parent_feature_id,
+        updated_at = now();
+    
+    -- Insert Groq models
+    insert into abi_core.feature_definitions (
+        feature_key, feature_name, feature_description, feature_type, parent_feature_id, feature_category, default_value, value_schema
+    ) values 
+        ('models.groq', 'Groq Models', 'Access to Groq open-source models', 'access', v_models_root_id, 'models',
+         '{"enabled": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}}}')
+    on conflict (feature_key) do update set
+        feature_name = excluded.feature_name,
+        feature_description = excluded.feature_description,
+        parent_feature_id = excluded.parent_feature_id,
+        updated_at = now();
+    
+    -- Insert Ollama models
+    insert into abi_core.feature_definitions (
+        feature_key, feature_name, feature_description, feature_type, parent_feature_id, feature_category, default_value, value_schema
+    ) values 
+        ('models.ollama', 'Ollama Models', 'Access to local Ollama models', 'access', v_models_root_id, 'models',
+         '{"enabled": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}}}')
+    on conflict (feature_key) do update set
+        feature_name = excluded.feature_name,
+        feature_description = excluded.feature_description,
+        parent_feature_id = excluded.parent_feature_id,
+        updated_at = now();
+    
+    -- Insert datasource features
+    insert into abi_core.feature_definitions (
+        feature_key, feature_name, feature_description, feature_type, parent_feature_id, feature_category, default_value, value_schema
+    ) values 
+        ('datasources.filesystem', 'Filesystem Access', 'Access to filesystem datasource', 'access', v_datasources_root_id, 'datasources',
+         '{"enabled": false, "read": false, "write": false}', 
+         '{"type": "object", "properties": {"enabled": {"type": "boolean"}, "read": {"type": "boolean"}, "write": {"type": "boolean"}}}'),
+        ('datasources.github', 'GitHub Integration', 'Access to GitHub datasource', 'access', v_datasources_root_id, 'datasources',
+         '{"enabled": false, "read": false, "write": false}', 
+         '{"type": "object", "properties": {"enabled": {"type": "boolean"}, "read": {"type": "boolean"}, "write": {"type": "boolean"}}}'),
+        ('datasources.notion', 'Notion Integration', 'Access to Notion datasource', 'access', v_datasources_root_id, 'datasources',
+         '{"enabled": false, "read": false, "write": false}', 
+         '{"type": "object", "properties": {"enabled": {"type": "boolean"}, "read": {"type": "boolean"}, "write": {"type": "boolean"}}}'),
+        ('datasources.supabase', 'Supabase Integration', 'Access to Supabase datasource', 'access', v_datasources_root_id, 'datasources',
+         '{"enabled": false, "read": false, "write": false}', 
+         '{"type": "object", "properties": {"enabled": {"type": "boolean"}, "read": {"type": "boolean"}, "write": {"type": "boolean"}}}')
+    on conflict (feature_key) do update set
+        feature_name = excluded.feature_name,
+        feature_description = excluded.feature_description,
+        parent_feature_id = excluded.parent_feature_id,
+        updated_at = now();
+    
+    -- Insert tools features
+    insert into abi_core.feature_definitions (
+        feature_key, feature_name, feature_description, feature_type, parent_feature_id, feature_category, default_value, value_schema
+    ) values 
+        ('tools.builtin', 'Built-in Tools', 'Access to built-in tools', 'access', v_tools_root_id, 'tools',
+         '{"enabled": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}}}'),
+        ('tools.external', 'External Tools (MCP)', 'Access to external MCP tools', 'access', v_tools_root_id, 'tools',
+         '{"enabled": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}}}')
+    on conflict (feature_key) do update set
+        feature_name = excluded.feature_name,
+        feature_description = excluded.feature_description,
+        parent_feature_id = excluded.parent_feature_id,
+        updated_at = now();
+    
+    -- Insert limit features
+    insert into abi_core.feature_definitions (
+        feature_key, feature_name, feature_description, feature_type, parent_feature_id, feature_category, default_value, value_schema
+    ) values 
+        ('limits.tokens_per_minute', 'Token Rate Limit', 'Tokens per minute rate limit', 'limit', null, 'limits',
+         '{"limit": 1000}', '{"type": "object", "properties": {"limit": {"type": "integer", "minimum": 0}}}'),
+        ('limits.requests_per_minute', 'Request Rate Limit', 'Requests per minute rate limit', 'limit', null, 'limits',
+         '{"limit": 5}', '{"type": "object", "properties": {"limit": {"type": "integer", "minimum": 0}}}')
+    on conflict (feature_key) do update set
+        feature_name = excluded.feature_name,
+        feature_description = excluded.feature_description,
+        updated_at = now();
+    
+    -- Insert support and premium features
+    insert into abi_core.feature_definitions (
+        feature_key, feature_name, feature_description, feature_type, parent_feature_id, feature_category, default_value, value_schema
+    ) values 
+        ('support.community', 'Community Support', 'Access to community support', 'access', null, 'support',
+         '{"enabled": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}}}'),
+        ('support.email', 'Email Support', 'Access to priority email support', 'access', null, 'support',
+         '{"enabled": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}}}'),
+        ('support.priority_queue', 'Priority Queue', 'Access to priority processing queue', 'access', null, 'support',
+         '{"enabled": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}}}'),
+        ('features.early_access', 'Early Access Features', 'Access to early access features', 'access', null, 'features',
+         '{"enabled": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}}}'),
+        ('features.workspace_isolation', 'SOC-2 Workspace Isolation', 'SOC-2 compliant workspace isolation', 'access', null, 'features',
+         '{"enabled": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}}}'),
+        ('features.sso', 'Single Sign-On', 'SSO integration', 'access', null, 'features',
+         '{"enabled": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}}}'),
+        ('features.dedicated_csm', 'Dedicated CSM', 'Dedicated Customer Success Manager', 'access', null, 'features',
+         '{"enabled": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}}}'),
+        ('features.on_prem', 'On-Premises Option', 'On-premises deployment option', 'access', null, 'features',
+         '{"enabled": false}', '{"type": "object", "properties": {"enabled": {"type": "boolean"}}}')
+    on conflict (feature_key) do update set
+        feature_name = excluded.feature_name,
+        feature_description = excluded.feature_description,
+        updated_at = now();
+end;
+$$;
+
+-- Function to seed plan features for Base plan
+create or replace function abi_core.seed_base_plan_features()
+returns void
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+declare
+    v_plan_id uuid;
+begin
+    -- Get plan ID
+    select plan_id into v_plan_id from temp_plan_ids where plan_name = 'Base';
+    
+    if v_plan_id is null then
+        raise exception 'Base plan ID not found. Run seed_subscription_plans first.';
+    end if;
+    
+    -- Base plan features: Claude (Sonnet + Haiku), Filesystem r/w + External read-only, Built-in tools, 300K tok/min, 15 req/min
+    insert into abi_core.plan_features (plan_id, feature_id, feature_value, is_enabled)
+    select 
+        v_plan_id,
+        fd.feature_id,
+        case fd.feature_key
+            when 'models' then '{"enabled": true}'
+            when 'models.claude' then '{"enabled": true}'
+            when 'models.claude.sonnet' then '{"enabled": true}'
+            when 'models.claude.haiku' then '{"enabled": true}'
+            when 'models.openai' then '{"enabled": true}'
+            when 'models.openai.gpt4' then '{"enabled": true}'
+            when 'models.openai.gpt3' then '{"enabled": true}'
+            when 'models.gemini' then '{"enabled": true}'
+            when 'models.groq' then '{"enabled": true}'
+            when 'models.ollama' then '{"enabled": true}'
+            when 'datasources' then '{"enabled": true}'
+            when 'datasources.filesystem' then '{"enabled": true, "read": true, "write": true}'
+            when 'datasources.github' then '{"enabled": true, "read": true, "write": true}'
+            when 'datasources.notion' then '{"enabled": true, "read": true, "write": true}'
+            when 'datasources.supabase' then '{"enabled": true, "read": true, "write": true}'
+            when 'tools' then '{"enabled": true}'
+            when 'tools.builtin' then '{"enabled": true}'
+            when 'limits.tokens_per_minute' then '{"limit": 300000}'
+            when 'limits.requests_per_minute' then '{"limit": 15}'
+            when 'support.community' then '{"enabled": true}'
+        end as feature_value,
+        true
+    from abi_core.feature_definitions fd
+    where fd.feature_key in (
+        'models', 'models.claude', 'models.claude.sonnet', 'models.claude.haiku',
+        'datasources', 'datasources.filesystem', 'datasources.github', 'datasources.notion', 'datasources.supabase',
+        'tools', 'tools.builtin', 'limits.tokens_per_minute', 'limits.requests_per_minute', 'support.community'
+    )
+    on conflict (plan_id, feature_id) do update set
+        feature_value = excluded.feature_value,
+        is_enabled = excluded.is_enabled,
+        updated_at = now();
+end;
+$$;
+
+-- Function to seed plan features for Build plan
+create or replace function abi_core.seed_build_plan_features()
+returns void
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+declare
+    v_plan_id uuid;
+begin
+    -- Get plan ID
+    select plan_id into v_plan_id from temp_plan_ids where plan_name = 'Build';
+    
+    if v_plan_id is null then
+        raise exception 'Build plan ID not found. Run seed_subscription_plans first.';
+    end if;
+    
+    -- Build plan features: Claude (Sonnet + Haiku), All datasources read-write, Built-in tools, 1M tok/min, 50 req/min
+    insert into abi_core.plan_features (plan_id, feature_id, feature_value, is_enabled)
+    select 
+        v_plan_id,
+        fd.feature_id,
+        case fd.feature_key
+            when 'models' then '{"enabled": true}'
+            when 'models.claude' then '{"enabled": true}'
+            when 'models.claude.sonnet' then '{"enabled": true}'
+            when 'models.claude.haiku' then '{"enabled": true}'
+            when 'datasources' then '{"enabled": true}'
+            when 'datasources.filesystem' then '{"enabled": true, "read": true, "write": true}'
+            when 'datasources.github' then '{"enabled": true, "read": true, "write": false}'
+            when 'datasources.notion' then '{"enabled": true, "read": true, "write": false}'
+            when 'datasources.supabase' then '{"enabled": true, "read": true, "write": false}'
+            when 'tools' then '{"enabled": true}'
+            when 'tools.builtin' then '{"enabled": true}'
+            when 'limits.tokens_per_minute' then '{"limit": 1000000}'
+            when 'limits.requests_per_minute' then '{"limit": 50}'
+            when 'support.email' then '{"enabled": true}'
+            when 'features.early_access' then '{"enabled": true}'
+        end as feature_value,
+        true
+    from abi_core.feature_definitions fd
+    where fd.feature_key in (
+        'models', 'models.claude', 'models.claude.sonnet', 'models.claude.haiku',
+        'datasources', 'datasources.filesystem', 'datasources.github', 'datasources.notion', 'datasources.supabase',
+        'tools', 'tools.builtin', 'limits.tokens_per_minute', 'limits.requests_per_minute',
+        'support.email', 'features.early_access'
+    )
+    on conflict (plan_id, feature_id) do update set
+        feature_value = excluded.feature_value,
+        is_enabled = excluded.is_enabled,
+        updated_at = now();
+end;
+$$;
+
+-- Function to seed plan features for Beyond plan
+create or replace function abi_core.seed_beyond_plan_features()
+returns void
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+declare
+    v_plan_id uuid;
+begin
+    -- Get plan ID
+    select plan_id into v_plan_id from temp_plan_ids where plan_name = 'Beyond';
+    
+    if v_plan_id is null then
+        raise exception 'Beyond plan ID not found. Run seed_subscription_plans first.';
+    end if;
+    
+    -- Beyond plan features: All models (including Gemini, Groq, Ollama), All datasources r/w, External tools, 3M tok/min, 150 req/min
+    insert into abi_core.plan_features (plan_id, feature_id, feature_value, is_enabled)
+    select 
+        v_plan_id,
+        fd.feature_id,
+        case fd.feature_key
+            when 'models' then '{"enabled": true}'
+            when 'models.claude' then '{"enabled": true}'
+            when 'models.claude.sonnet' then '{"enabled": true}'
+            when 'models.claude.opus' then '{"enabled": true}'
+            when 'models.claude.haiku' then '{"enabled": true}'
+            when 'models.openai' then '{"enabled": true}'
+            when 'models.openai.gpt4' then '{"enabled": true}'
+            when 'models.openai.gpt3' then '{"enabled": true}'
+            when 'datasources' then '{"enabled": true}'
+            when 'datasources.filesystem' then '{"enabled": true, "read": true, "write": true}'
+            when 'datasources.github' then '{"enabled": true, "read": true, "write": true}'
+            when 'datasources.notion' then '{"enabled": true, "read": true, "write": true}'
+            when 'datasources.supabase' then '{"enabled": true, "read": true, "write": true}'
+            when 'tools' then '{"enabled": true}'
+            when 'tools.builtin' then '{"enabled": true}'
+            when 'tools.external' then '{"enabled": true}'
+            when 'limits.tokens_per_minute' then '{"limit": 3000000}'
+            when 'limits.requests_per_minute' then '{"limit": 150}'
+            when 'support.email' then '{"enabled": true}'
+            when 'support.priority_queue' then '{"enabled": true}'
+            when 'features.early_access' then '{"enabled": true}'
+            when 'features.workspace_isolation' then '{"enabled": true}'
+        end as feature_value,
+        true
+    from abi_core.feature_definitions fd
+    where fd.feature_key in (
+        'models', 'models.claude', 'models.claude.sonnet', 'models.claude.opus', 'models.claude.haiku',
+        'models.openai', 'models.openai.gpt4', 'models.openai.gpt3',
+        'models.gemini', 'models.groq', 'models.ollama',
+        'datasources', 'datasources.filesystem', 'datasources.github', 'datasources.notion', 'datasources.supabase',
+        'tools', 'tools.builtin', 'tools.external', 'limits.tokens_per_minute', 'limits.requests_per_minute',
+        'support.email', 'support.priority_queue', 'features.early_access', 'features.workspace_isolation'
+    )
+    on conflict (plan_id, feature_id) do update set
+        feature_value = excluded.feature_value,
+        is_enabled = excluded.is_enabled,
+        updated_at = now();
+end;
+$$;
+
+-- Function to seed plan features for Enterprise plan
+create or replace function abi_core.seed_enterprise_plan_features()
+returns void
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+declare
+    v_plan_id uuid;
+begin
+    -- Get plan ID
+    select plan_id into v_plan_id from temp_plan_ids where plan_name = 'Enterprise';
+    
+    if v_plan_id is null then
+        raise exception 'Enterprise plan ID not found. Run seed_subscription_plans first.';
+    end if;
+    
+    -- Enterprise plan features: Everything enabled with high limits
+    insert into abi_core.plan_features (plan_id, feature_id, feature_value, is_enabled)
+    select 
+        v_plan_id,
+        fd.feature_id,
+        case fd.feature_key
+            when 'models' then '{"enabled": true}'
+            when 'models.claude' then '{"enabled": true}'
+            when 'models.claude.sonnet' then '{"enabled": true}'
+            when 'models.claude.opus' then '{"enabled": true}'
+            when 'models.claude.haiku' then '{"enabled": true}'
+            when 'models.openai' then '{"enabled": true}'
+            when 'models.openai.gpt4' then '{"enabled": true}'
+            when 'models.openai.gpt3' then '{"enabled": true}'
+            when 'models.gemini' then '{"enabled": true}'
+            when 'models.groq' then '{"enabled": true}'
+            when 'models.ollama' then '{"enabled": true}'
+            when 'datasources' then '{"enabled": true}'
+            when 'datasources.filesystem' then '{"enabled": true, "read": true, "write": true}'
+            when 'datasources.github' then '{"enabled": true, "read": true, "write": true}'
+            when 'datasources.notion' then '{"enabled": true, "read": true, "write": true}'
+            when 'datasources.supabase' then '{"enabled": true, "read": true, "write": true}'
+            when 'tools' then '{"enabled": true}'
+            when 'tools.builtin' then '{"enabled": true}'
+            when 'tools.external' then '{"enabled": true}'
+            when 'limits.tokens_per_minute' then '{"limit": 10000000}'
+            when 'limits.requests_per_minute' then '{"limit": 1000}'
+            when 'support.email' then '{"enabled": true}'
+            when 'support.priority_queue' then '{"enabled": true}'
+            when 'features.early_access' then '{"enabled": true}'
+            when 'features.workspace_isolation' then '{"enabled": true}'
+            when 'features.sso' then '{"enabled": true}'
+            when 'features.dedicated_csm' then '{"enabled": true}'
+            when 'features.on_prem' then '{"enabled": true}'
+        end as feature_value,
+        true
+    from abi_core.feature_definitions fd
+    where fd.feature_key in (
+        'models', 'models.claude', 'models.claude.sonnet', 'models.claude.opus', 'models.claude.haiku',
+        'models.openai', 'models.openai.gpt4', 'models.openai.gpt3',
+        'models.gemini', 'models.groq', 'models.ollama',
+        'datasources', 'datasources.filesystem', 'datasources.github', 'datasources.notion', 'datasources.supabase',
+        'tools', 'tools.builtin', 'tools.external', 'limits.tokens_per_minute', 'limits.requests_per_minute',
+        'support.email', 'support.priority_queue', 'features.early_access', 'features.workspace_isolation',
+        'features.sso', 'features.dedicated_csm', 'features.on_prem'
+    )
+    on conflict (plan_id, feature_id) do update set
+        feature_value = excluded.feature_value,
+        is_enabled = excluded.is_enabled,
+        updated_at = now();
+end;
+$$;
+
+-- Main seeding function that orchestrates the entire process
+create or replace function abi_core.seed_all_feature_data()
+returns void
+language plpgsql
+security invoker
+set search_path = ''
+as $$
+begin
+    -- Seed subscription plans first
+    perform abi_core.seed_subscription_plans();
+    
+    -- Seed feature definitions
+    perform abi_core.seed_feature_definitions();
+    
+    -- Seed plan features for each plan
+    perform abi_core.seed_base_plan_features();
+    perform abi_core.seed_build_plan_features();
+    perform abi_core.seed_beyond_plan_features();
+    perform abi_core.seed_enterprise_plan_features();
+    
+    -- Clean up temporary table
+    drop table if exists temp_plan_ids;
+    
+    raise notice 'Feature system seeding completed successfully';
+end;
+$$;
+
+-- Grant execute permissions on functions
+grant execute on function abi_core.seed_subscription_plans() to service_role;
+grant execute on function abi_core.store_seed_plan_ids(uuid, uuid, uuid, uuid) to service_role;
+grant execute on function abi_core.seed_feature_definitions() to service_role;
+grant execute on function abi_core.seed_base_plan_features() to service_role;
+grant execute on function abi_core.seed_build_plan_features() to service_role;
+grant execute on function abi_core.seed_beyond_plan_features() to service_role;
+grant execute on function abi_core.seed_enterprise_plan_features() to service_role;
+grant execute on function abi_core.seed_all_feature_data() to service_role;
+
+-- Usage:
+-- select abi_core.seed_all_feature_data();

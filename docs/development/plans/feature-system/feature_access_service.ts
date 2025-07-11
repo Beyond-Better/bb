@@ -2,9 +2,10 @@
  * Feature Access Service
  * Provides a unified interface for checking feature access across all BB components
  * Supports hierarchical inheritance, caching, and real-time updates
+ * Updated to accept Supabase client directly for maximum flexibility
  */
 
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 export interface FeatureAccessResult {
   access_granted: boolean;
@@ -51,8 +52,8 @@ export class FeatureAccessService {
   private cache: Map<string, { result: CachedFeatureAccessResult; expires: Date }> = new Map();
   private cacheExpiry: number = 60 * 60 * 1000; // 1 hour in milliseconds
 
-  constructor(supabaseUrl: string, supabaseKey: string) {
-    this.supabase = createClient(supabaseUrl, supabaseKey);
+  constructor(supabaseClient: SupabaseClient) {
+    this.supabase = supabaseClient;
   }
 
   /**
@@ -75,11 +76,11 @@ export class FeatureAccessService {
         }
       }
 
-      // Get from database
+      // Get from database using RPC
       const { data, error } = await this.supabase
         .rpc('check_feature_access', {
-          user_id_param: userId,
-          feature_key_param: featureKey
+          p_user_id: userId,
+          p_feature_key: featureKey
         });
 
       if (error) {
@@ -134,9 +135,9 @@ export class FeatureAccessService {
   async getCachedFeatureAccess(userId: string, featureKey: string): Promise<CachedFeatureAccessResult> {
     try {
       const { data, error } = await this.supabase
-        .rpc('get_cached_feature_access', {
-          user_id_param: userId,
-          feature_key_param: featureKey
+        .rpc('check_feature_access_cached', {
+          p_user_id: userId,
+          p_feature_key: featureKey
         });
 
       if (error) {
@@ -170,7 +171,7 @@ export class FeatureAccessService {
     try {
       const { data, error } = await this.supabase
         .rpc('get_user_features', {
-          user_id_param: userId
+          p_user_id: userId
         });
 
       if (error) {
@@ -191,16 +192,37 @@ export class FeatureAccessService {
   async getUserPlan(userId: string): Promise<UserPlan | null> {
     try {
       const { data, error } = await this.supabase
-        .rpc('get_user_plan', {
-          user_id_param: userId
-        });
+        .from('abi_billing.user_subscriptions')
+        .select(`
+          plan_id,
+          subscription_status,
+          abi_billing.subscription_plans!inner(
+            plan_name,
+            plan_type
+          )
+        `)
+        .eq('user_id', userId)
+        .eq('subscription_status', 'ACTIVE')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
 
       if (error) {
         console.error('Error getting user plan:', error);
         return null;
       }
 
-      return data?.[0] || null;
+      if (!data) {
+        return null;
+      }
+
+      const planData = data.abi_billing?.subscription_plans as any;
+      return {
+        plan_id: data.plan_id,
+        plan_name: planData?.plan_name || 'Unknown',
+        plan_type: planData?.plan_type || 'unknown',
+        subscription_status: data.subscription_status
+      };
     } catch (error) {
       console.error('Exception in getUserPlan:', error);
       return null;
@@ -222,7 +244,7 @@ export class FeatureAccessService {
       // Refresh database cache
       const { data, error } = await this.supabase
         .rpc('refresh_feature_cache', {
-          user_id_param: userId
+          p_user_id: userId
         });
 
       if (error) {
@@ -251,16 +273,16 @@ export class FeatureAccessService {
 
       // Clear database cache
       const { data, error } = await this.supabase
-        .rpc('clear_user_feature_cache', {
-          user_id_param: userId
-        });
+        .from('abi_core.feature_access_cache')
+        .delete()
+        .eq('user_id', userId);
 
       if (error) {
         console.error('Error clearing feature cache:', error);
         return 0;
       }
 
-      return data || 0;
+      return data?.length || 0;
     } catch (error) {
       console.error('Exception in clearFeatureCache:', error);
       return 0;
@@ -280,11 +302,11 @@ export class FeatureAccessService {
     try {
       const { error } = await this.supabase
         .rpc('log_feature_access', {
-          user_id_param: userId,
-          feature_key_param: featureKey,
-          access_granted_param: accessGranted,
-          access_reason_param: accessReason,
-          request_context_param: requestContext
+          p_user_id: userId,
+          p_feature_key: featureKey,
+          p_access_granted: accessGranted,
+          p_access_reason: accessReason,
+          p_request_context: requestContext
         });
 
       if (error) {
@@ -307,28 +329,14 @@ export class FeatureAccessService {
     createdBy?: string
   ): Promise<boolean> {
     try {
-      // First get the feature definition
-      const { data: featureData, error: featureError } = await this.supabase
-        .from('feature_definitions')
-        .select('feature_id')
-        .eq('feature_key', featureKey)
-        .single();
-
-      if (featureError || !featureData) {
-        console.error('Feature not found:', featureKey);
-        return false;
-      }
-
-      // Create the override
-      const { error } = await this.supabase
-        .from('user_feature_overrides')
-        .upsert({
-          user_id: userId,
-          feature_id: featureData.feature_id,
-          override_value: overrideValue,
-          override_reason: overrideReason,
-          expires_at: expiresAt?.toISOString(),
-          created_by: createdBy
+      const { data, error } = await this.supabase
+        .rpc('create_feature_override', {
+          p_user_id: userId,
+          p_feature_key: featureKey,
+          p_override_value: overrideValue,
+          p_override_reason: overrideReason,
+          p_expires_at: expiresAt?.toISOString() || null,
+          p_created_by: createdBy || null
         });
 
       if (error) {
@@ -336,9 +344,7 @@ export class FeatureAccessService {
         return false;
       }
 
-      // Clear cache for this user
-      await this.clearFeatureCache(userId);
-      return true;
+      return !!data;
     } catch (error) {
       console.error('Exception in createFeatureOverride:', error);
       return false;
@@ -350,33 +356,18 @@ export class FeatureAccessService {
    */
   async removeFeatureOverride(userId: string, featureKey: string): Promise<boolean> {
     try {
-      // First get the feature definition
-      const { data: featureData, error: featureError } = await this.supabase
-        .from('feature_definitions')
-        .select('feature_id')
-        .eq('feature_key', featureKey)
-        .single();
-
-      if (featureError || !featureData) {
-        console.error('Feature not found:', featureKey);
-        return false;
-      }
-
-      // Remove the override
-      const { error } = await this.supabase
-        .from('user_feature_overrides')
-        .delete()
-        .eq('user_id', userId)
-        .eq('feature_id', featureData.feature_id);
+      const { data, error } = await this.supabase
+        .rpc('remove_feature_override', {
+          p_user_id: userId,
+          p_feature_key: featureKey
+        });
 
       if (error) {
         console.error('Error removing feature override:', error);
         return false;
       }
 
-      // Clear cache for this user
-      await this.clearFeatureCache(userId);
-      return true;
+      return !!data;
     } catch (error) {
       console.error('Exception in removeFeatureOverride:', error);
       return false;
@@ -389,7 +380,7 @@ export class FeatureAccessService {
   async getUserFeatureOverrides(userId: string): Promise<FeatureOverride[]> {
     try {
       const { data, error } = await this.supabase
-        .from('user_feature_overrides')
+        .from('abi_core.user_feature_overrides')
         .select(`
           override_id,
           user_id,
@@ -397,7 +388,7 @@ export class FeatureAccessService {
           override_reason,
           expires_at,
           created_by,
-          feature_definitions!inner(feature_key)
+          abi_core.feature_definitions!inner(feature_key)
         `)
         .eq('user_id', userId);
 
@@ -409,7 +400,7 @@ export class FeatureAccessService {
       return (data || []).map(item => ({
         override_id: item.override_id,
         user_id: item.user_id,
-        feature_key: (item.feature_definitions as any).feature_key,
+        feature_key: (item.abi_core?.feature_definitions as any)?.feature_key || 'unknown',
         override_value: item.override_value,
         override_reason: item.override_reason,
         expires_at: item.expires_at,
@@ -486,20 +477,6 @@ export class FeatureAccessService {
       this.cleanupCache();
     }, intervalMs);
   }
-}
-
-// Singleton instance for easy use across the application
-let featureAccessService: FeatureAccessService | null = null;
-
-export function getFeatureAccessService(supabaseUrl?: string, supabaseKey?: string): FeatureAccessService {
-  if (!featureAccessService) {
-    if (!supabaseUrl || !supabaseKey) {
-      throw new Error('FeatureAccessService not initialized. Provide supabaseUrl and supabaseKey.');
-    }
-    featureAccessService = new FeatureAccessService(supabaseUrl, supabaseKey);
-    featureAccessService.startCacheCleanup();
-  }
-  return featureAccessService;
 }
 
 // Export commonly used feature keys as constants
