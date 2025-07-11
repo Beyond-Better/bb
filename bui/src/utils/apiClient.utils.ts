@@ -33,8 +33,8 @@ import type {
 	PlanResults,
 	PurchasesBalance,
 	SubscriptionResults,
-	SubscriptionWithUsage,
-	SubscriptionWithUsageWithPaymentMethods,
+	Subscription,
+	SubscriptionWithPaymentMethods,
 } from '../types/subscription.ts';
 import { savePreferredProtocol } from './connectionManager.utils.ts';
 
@@ -396,11 +396,15 @@ export class ApiClient {
 	}
 
 	// Subscription Methods
-	async getCurrentSubscription(): Promise<SubscriptionWithUsageWithPaymentMethods | null> {
+	async getCurrentSubscription(): Promise<SubscriptionResults | null> {
 		const results = await this.get<SubscriptionResults>('/api/v1/user/subscription/current');
 		console.log('APIClient: getCurrentSubscription', results);
 		return results
-			? { ...results?.subscription, usage: results?.usage, payment_methods: results?.paymentMethods }
+			? {
+					subscription: results?.subscription,
+					futureSubscription: results?.futureSubscription,
+					paymentMethods: results?.paymentMethods || [],
+				}
 			: null;
 	}
 
@@ -413,7 +417,7 @@ export class ApiClient {
 	async changePlan(
 		planId: string,
 		paymentMethodId: string | null,
-	): Promise<SubscriptionWithUsageWithPaymentMethods | null> {
+	): Promise<SubscriptionWithPaymentMethods | null> {
 		const data: { planId: string; payment_method_id: string | null; paymentMethodId: string | null } = {
 			planId,
 			payment_method_id: paymentMethodId, // Original format - may be expected by some endpoints
@@ -421,18 +425,18 @@ export class ApiClient {
 		};
 		const results = await this.post<SubscriptionResults>('/api/v1/user/subscription/change', data);
 		return results
-			? { ...results?.subscription, usage: results?.usage, payment_methods: results?.paymentMethods }
+			? { ...results?.subscription, payment_methods: results?.paymentMethods }
 			: null;
 	}
 
 	async cancelSubscription(
 		immediate: boolean = false,
-	): Promise<{ success: boolean; subscription: SubscriptionWithUsage }> {
-		const result = await this.post<{ success: boolean; subscription: SubscriptionWithUsage }>(
+	): Promise<{ success: boolean; subscription: Subscription }> {
+		const result = await this.post<{ success: boolean; subscription: Subscription }>(
 			'/api/v1/user/subscription/cancel',
 			{ immediate },
 		);
-		return result ?? { success: false, subscription: {} as SubscriptionWithUsage };
+		return result ?? { success: false, subscription: {} as Subscription };
 	}
 
 	async getBillingPreview(planId: string): Promise<BillingPreviewWithUsage | null> {

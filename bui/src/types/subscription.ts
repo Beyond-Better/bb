@@ -35,11 +35,6 @@ export interface Subscription {
 	paymentMethod?: PaymentMethod;
 }
 export interface SubscriptionUsage {
-// 	currentUsage: {
-// 		costUsd: number;
-// 		tokenCount: number;
-// 		requestCount: number;
-// 	};
 	quotaLimits: {
 		base_cost_monthly: number; //Base monthly cost limit in USD
 		max_cost_monthly: number; //Maximum monthly cost limit (usage plans only)
@@ -49,7 +44,7 @@ export interface SubscriptionUsage {
 }
 export interface SubscriptionResults {
 	subscription: Subscription;
-	usage: SubscriptionUsage;
+	futureSubscription: Subscription | null;
 	paymentMethods: PaymentMethod[];
 }
 
@@ -76,10 +71,7 @@ export interface BillingPreviewResults {
 	usage: SubscriptionUsage;
 }
 
-export interface SubscriptionWithUsage extends Subscription {
-	usage?: SubscriptionUsage;
-}
-export interface SubscriptionWithUsageWithPaymentMethods extends SubscriptionWithUsage {
+export interface SubscriptionWithPaymentMethods extends Subscription {
 	payment_methods: PaymentMethod[];
 }
 

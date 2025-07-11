@@ -6,7 +6,7 @@ import type {
 	PaymentMethod,
 	Plan,
 	PurchasesBalance,
-	SubscriptionWithUsage,
+	Subscription,
 } from '../types/subscription.ts';
 import { useAppState } from './useAppState.ts';
 
@@ -51,7 +51,8 @@ interface BillingLoadingState {
 
 // Main State Interface
 interface BillingState {
-	subscription: SubscriptionWithUsage | null;
+	subscription: Subscription | null;
+	futureSubscription: Subscription | null;
 	availablePlans: Plan[];
 	purchasesBalance: PurchasesBalance | null;
 	selectedPlan: Plan | null;
@@ -76,6 +77,7 @@ const initialLoadingState: BillingLoadingState = {
 
 const initialBillingState: BillingState = {
 	subscription: null,
+	futureSubscription: null,
 	availablePlans: [],
 	purchasesBalance: null,
 	selectedPlan: null,
@@ -159,14 +161,18 @@ export function useBillingState() {
 				paymentFlowError: null,
 			};
 
-			const [subscription, plans, paymentMethods, purchasesBalance] = await Promise.all([
+			const [subscriptionResponse, plans, purchasesBalance] = await Promise.all([
 				apiClient.getCurrentSubscription(),
 				apiClient.getAvailablePlans(),
-				apiClient.listPaymentMethods(),
 				apiClient.listUsageBlocks(),
 			]);
-			console.log('useBillingState: subscription', subscription);
+			console.log('useBillingState: subscriptionResponse', subscriptionResponse);
 			console.log('useBillingState: purchasesBalance', purchasesBalance);
+
+			// Extract subscription, futureSubscription, and paymentMethods from API response
+			const subscription = subscriptionResponse?.subscription || null;
+			const futureSubscription = subscriptionResponse?.futureSubscription || null;
+			const paymentMethods = subscriptionResponse?.paymentMethods || [];
 
 			const defaultPaymentMethod = paymentMethods?.find((pm: PaymentMethod) => pm.is_default) || null;
 			console.log('useBillingState: paymentMethods', paymentMethods);
@@ -175,6 +181,7 @@ export function useBillingState() {
 			billingState.value = {
 				...billingState.value,
 				subscription: subscription || null,
+				futureSubscription: futureSubscription || null,
 				availablePlans: plans || [],
 				purchasesBalance,
 				paymentMethods: paymentMethods || [],

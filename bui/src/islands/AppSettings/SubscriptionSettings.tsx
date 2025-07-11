@@ -11,6 +11,7 @@ import PaymentFlowDialog from '../../components/Subscriptions/PaymentFlowDialog.
 import UsageBlockDialog from '../../components/Subscriptions/UsageBlockDialog.tsx';
 import CancelDialog from '../../components/Subscriptions/CancelDialog.tsx';
 import NewPaymentMethodForm from './../NewPaymentMethodForm.tsx';
+import { formatDateSafe } from 'bui/utils/intl.ts';
 
 const showCancelDialog = signal(false);
 const showUsageBlockDialog = signal(false);
@@ -18,7 +19,7 @@ const showPaymentMethodDialog = signal(false);
 const isRefreshingUsage = signal(false);
 
 export default function SubscriptionSettings() {
-	const { billingState, initialize, updatePaymentMethods, updateUsageData } = useBillingState();
+	const { billingState, initialize, cancelSubscription, updatePaymentMethods, updateUsageData } = useBillingState();
 	const appState = useAppState();
 
 	// Track previous active state to detect tab changes
@@ -62,9 +63,8 @@ export default function SubscriptionSettings() {
 	};
 
 	const handleConfirmDialogCancel = async () => {
-		const { cancelSubscription, initialize, billingState } = useBillingState();
 		// Initialize billing state
-		initialize();
+		//initialize(); // should already be initialized when tab became active
 
 		if (!billingState.value.subscription) return;
 
@@ -116,82 +116,124 @@ export default function SubscriptionSettings() {
 					</p>
 				</div>
 			</div>
-			{/* Section 1: Current Subscription */}
+			{/* Row 1: Plans and Billing */}
 			<div class='mt-0'>
 				{billingState.value.subscription && (
 					<div class='mt-6 grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-6'>
 						{/* Section 1: Current Subscription */}
 						<div class='lg:col-span-1 mb-6'>
 							<h3 class='text-base font-medium text-gray-700 dark:text-gray-300 mb-4'>
-								Current Subscription
+								Subscription Status
 							</h3>
-							<div class='p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 h-full flex flex-col'>
-								<div class='flex items-center justify-between mb-4'>
-									<h4 class='text-sm font-medium text-gray-500 dark:text-gray-400'>
-										Active Plan
-									</h4>
-									<span
-										class={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-											billingState.value.subscription.subscription_status === 'ACTIVE'
-												? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200'
-												: 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200'
-										}`}
-									>
-										{billingState.value.subscription.subscription_status}
-									</span>
-								</div>
-
-								<div class='flex-grow flex flex-col space-y-4'>
-									{/* Plan Name */}
-									<div class='text-center'>
-										<div class='text-2xl font-bold text-gray-900 dark:text-gray-100'>
-											{billingState.value.subscription.plan.plan_name}
-										</div>
-										<div class='text-sm text-gray-500 dark:text-gray-400'>
+							<div class='p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 h-full flex flex-col justify-between'>
+								<div class='space-y-4'>
+									{/* Current Active Subscription */}
+									<div class='flex items-center justify-between mb-4'>
+										<h4 class='text-sm font-medium text-gray-500 dark:text-gray-400'>
 											Current Plan
-										</div>
+										</h4>
+										<span
+											class={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+												billingState.value.subscription.subscription_status === 'ACTIVE'
+													? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200'
+													: 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200'
+											}`}
+										>
+											{billingState.value.subscription.subscription_status}
+										</span>
 									</div>
 
-									{/* Billing Period */}
-									<div class='pt-4 border-t border-gray-200 dark:border-gray-700'>
-										<div class='text-center text-sm'>
-											<div class='text-gray-500 dark:text-gray-400 mb-1'>
-												Billing Period
+									<div class='flex flex-col space-y-4'>
+										{/* Plan Name */}
+										<div class='text-center'>
+											<div class='text-2xl font-bold text-gray-900 dark:text-gray-100'>
+												{billingState.value.subscription.plan.plan_name}
 											</div>
-											<div class='font-medium text-gray-900 dark:text-gray-100'>
-												{new Date(billingState.value.subscription.subscription_period_start)
-													.toLocaleDateString()}
-											</div>
-											<div class='text-gray-500 dark:text-gray-400'>
-												to {new Date(billingState.value.subscription.subscription_period_end)
-													.toLocaleDateString()}
+											<div class='text-sm text-gray-500 dark:text-gray-400'>
+												Active Until {formatDateSafe(
+													new Date(
+														billingState.value.subscription.subscription_period_end,
+													),
+													{
+														timeZone: 'UTC',
+														dateStyle: 'short',
+													},
+													'Not scheduled',
+												)}
 											</div>
 										</div>
-									</div>
 
-									{/* Cancellation Notice */}
-									{billingState.value.subscription.subscription_cancel_at && (
-										<div class='pt-4 border-t border-gray-200 dark:border-gray-700'>
-											<div class='text-center text-sm'>
-												<div class='text-amber-600 dark:text-amber-400 font-medium'>
-													Cancels on
+										{/* Cancellation Notice */}
+										{billingState.value.subscription.subscription_cancel_at && (
+											<div class='pt-4 border-t border-gray-200 dark:border-gray-700'>
+												<div class='text-center text-sm'>
+													<div class='text-amber-600 dark:text-amber-400 font-medium'>
+														Cancels on
+													</div>
+													<div class='text-amber-600 dark:text-amber-400'>
+														{formatDateSafe(
+															new Date(
+																billingState.value.subscription
+																	.subscription_cancel_at,
+															),
+															{
+																timeZone: 'UTC',
+																dateStyle: 'short',
+															},
+															'Not scheduled',
+														)}
+													</div>
 												</div>
-												<div class='text-amber-600 dark:text-amber-400'>
-													{new Date(billingState.value.subscription.subscription_cancel_at)
-														.toLocaleDateString()}
+											</div>
+										)}
+									</div>
+
+									{/* Future Pending Subscription */}
+									{billingState.value.futureSubscription && (
+										<div class='p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700'>
+											<div class='flex items-center justify-between mb-4'>
+												<h4 class='text-sm font-medium text-blue-700 dark:text-blue-300'>
+													Scheduled Plan Change
+												</h4>
+												<span class='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200'>
+													PENDING
+												</span>
+											</div>
+
+											<div class='flex flex-col space-y-4'>
+												{/* Future Plan Name */}
+												<div class='text-center'>
+													<div class='text-xl font-bold text-blue-800 dark:text-blue-200'>
+														{billingState.value.futureSubscription.plan.plan_name}
+													</div>
+													<div class='text-sm text-blue-600 dark:text-blue-400'>
+														Effective {formatDateSafe(
+															new Date(
+																billingState.value.futureSubscription
+																	.subscription_period_start,
+															),
+															{
+																timeZone: 'UTC',
+																dateStyle: 'short',
+															},
+															'Not scheduled',
+														)}
+													</div>
 												</div>
 											</div>
 										</div>
 									)}
 								</div>
-
-								<button
-									type='button'
-									onClick={handleCancelSubscription}
-									class='w-full px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-800/20 rounded-md'
-								>
-									Cancel Subscription
-								</button>
+								{/* Action Button */}
+								{billingState.value.subscription && (
+									<button
+										type='button'
+										onClick={handleCancelSubscription}
+										class='w-full px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-800/20 rounded-md'
+									>
+										Cancel Subscription
+									</button>
+								)}
 							</div>
 						</div>
 
@@ -261,10 +303,17 @@ export default function SubscriptionSettings() {
 																.amount_usd?.toFixed(2)}
 														</div>
 														<div class='text-gray-500 dark:text-gray-400'>
-															{new Date(
-																billingState.value.purchasesBalance.purchases[0]
-																	.created_at,
-															).toLocaleDateString()}
+															{formatDateSafe(
+																new Date(
+																	billingState.value.purchasesBalance.purchases[0]
+																		.created_at,
+																),
+																{
+																	timeZone: 'UTC',
+																	dateStyle: 'short',
+																},
+																'Not created',
+															)}
 														</div>
 													</div>
 												</div>
@@ -273,6 +322,7 @@ export default function SubscriptionSettings() {
 
 										{/* Buy Tokens Button */}
 										<button
+											type='button'
 											onClick={() => showUsageBlockDialog.value = true}
 											class='w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 rounded-md'
 										>
@@ -283,13 +333,14 @@ export default function SubscriptionSettings() {
 								: (
 									<div class='p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 h-full flex flex-col items-center justify-center'>
 										<p class='text-sm text-gray-500 dark:text-gray-400 mb-4 text-center'>
-											No token balance available
+											No credit balance available
 										</p>
 										<button
+											type='button'
 											onClick={() => showUsageBlockDialog.value = true}
 											class='px-4 py-2 text-sm font-medium text-white bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 rounded-md'
 										>
-											Buy Tokens
+											Buy Credits
 										</button>
 									</div>
 								)}
@@ -297,7 +348,7 @@ export default function SubscriptionSettings() {
 
 						{/* Section 3: Payment Methods */}
 						<div class='lg:col-span-1 mb-6'>
-							<h3 class='text-base font-medium text-gray-700 dark:text-gray-300 mb-4'>Payment Methods</h3>
+							<h3 class='text-base font-medium text-gray-700 dark:text-gray-300 mb-4'>Payment Method</h3>
 							<div class='p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 h-full flex flex-col'>
 								{billingState.value.defaultPaymentMethod
 									? (
@@ -314,6 +365,7 @@ export default function SubscriptionSettings() {
 														</div>
 													</div>
 													<button
+														type='button'
 														onClick={async () => {
 															try {
 																await appState.value.apiClient?.removePaymentMethod(
@@ -357,6 +409,7 @@ export default function SubscriptionSettings() {
 												No payment methods added
 											</p>
 											<button
+												type='button'
 												onClick={() => showPaymentMethodDialog.value = true}
 												class='px-4 py-2 text-sm font-medium text-white bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 rounded-md'
 											>
@@ -370,7 +423,7 @@ export default function SubscriptionSettings() {
 				)}
 			</div>
 
-			{/* Section 4: Available Plans */}
+			{/* Row 2: Available Plans */}
 			<div class='mt-8'>
 				<h3 class='text-base font-medium text-gray-700 dark:text-gray-300'>Change Plan</h3>
 				<div class='mt-4 flex flex-nowrap gap-6 overflow-x-auto pb-4'>
@@ -398,7 +451,7 @@ export default function SubscriptionSettings() {
 			{/* Usage Block Dialog */}
 			{showUsageBlockDialog.value && (
 				<UsageBlockDialog
-					isOpen={true}
+					isOpen
 					onClose={() => {
 						showUsageBlockDialog.value = false;
 					}}
@@ -421,6 +474,7 @@ export default function SubscriptionSettings() {
 						<div class='flex justify-between items-center mb-4'>
 							<h3 class='text-lg font-medium text-gray-900 dark:text-gray-100'>Add Payment Method</h3>
 							<button
+								type='button'
 								onClick={() => showPaymentMethodDialog.value = false}
 								class='text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-400'
 							>
@@ -457,7 +511,7 @@ export default function SubscriptionSettings() {
 			{/* Payment Flow Dialog */}
 			{billingState.value.selectedPlan && billingState.value.billingPreview && (
 				<PaymentFlowDialog
-					isOpen={true}
+					isOpen
 					onClose={() => {
 						billingState.value = {
 							...billingState.value,
