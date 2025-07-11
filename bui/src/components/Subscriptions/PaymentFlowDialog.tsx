@@ -91,7 +91,9 @@ export default function PaymentFlowDialog({
 	};
 
 	const handleConfirm = async () => {
-		if (!selectedPaymentMethod.value) {
+		// For upgrades (immediate changes), require payment method; for downgrades (delayed changes), payment method is optional
+		const requiresPayment = billingPreview.changeType === 'upgrade' || billingPreview.immediateChange;
+		if (requiresPayment && !selectedPaymentMethod.value) {
 			paymentFlowError.value = 'Please add a payment method';
 			paymentFlowStep.value = 'payment';
 			return;
@@ -104,25 +106,14 @@ export default function PaymentFlowDialog({
 			const apiClient = appState.value.apiClient;
 			if (!apiClient) throw new Error('API client not available');
 
-			// payment intent is created in useBillingState.changePlan()
-			// // Create a payment intent for the prorated amount if needed
-			// const proratedAmount = Math.round(billingPreview.prorationFactor * selectedPlan.plan_price_monthly * 100);
-			// console.log('PaymentFlowDialog: handleConfirm-proratedAmount:', proratedAmount);
-			//
-			// if (proratedAmount > 0) {
-			// 	// Create payment intent with existing payment method
-			// 	await apiClient.createPaymentIntent({
-			// 		amount: proratedAmount,
-			// 		stripe_payment_method_id: selectedPaymentMethod.value,
-			// 		subscription_id: billingState.value.subscription?.subscription_id || '',
-			// 		payment_type: 'subscription',
-			// 		source: 'PaymentFlowDialog',
-			// 	});
-			// }
-
 			console.log('PaymentFlowDialog: handleConfirm-changing plan to:', selectedPlan);
+			console.log('PaymentFlowDialog: changeType:', billingPreview.changeType);
+			
+			// For downgrades, we might not have a payment method, so use empty string
+			const paymentMethodId = selectedPaymentMethod.value || '';
+			
 			// Change the plan - ABI will handle the payment success via webhook
-			await changePlan(selectedPlan.plan_id, selectedPaymentMethod.value);
+			await changePlan(selectedPlan.plan_id, paymentMethodId);
 
 			// Start polling for subscription status
 			let retries = 0;
@@ -140,12 +131,11 @@ export default function PaymentFlowDialog({
 					const subscription = await apiClient.getCurrentSubscription();
 					console.log('PaymentFlowDialog: Polling subscription status:', subscription?.subscription_status);
 
-					if (subscription?.subscription_status === 'ACTIVE') {
-						//const defaultPaymentMethod = subscription.PaymentMethods?.find((pm) => pm.isDefault) || null;
+					// For downgrades or non-immediate changes, we don't need to wait for ACTIVE status since it's scheduled
+					if (subscription && (subscription.subscription_status === 'ACTIVE' || billingPreview.changeType === 'downgrade' || !billingPreview.immediateChange)) {
 						billingState.value = {
 							...billingState.value,
 							subscription,
-							//defaultPaymentMethod,
 						};
 						onClose();
 
@@ -240,12 +230,15 @@ export default function PaymentFlowDialog({
 									</dd>
 								</div>
 								
-								{/* Show effective date */}
+								{/* Show effective date - different messaging for upgrades vs downgrades */}
 								{billingPreview.effectiveDate && (
 									<div class='flex justify-between'>
-										<dt class='text-sm text-gray-500 dark:text-gray-400'>Effective Date:</dt>
+										<dt class='text-sm text-gray-500 dark:text-gray-400'>
+											{billingPreview.changeType === 'upgrade' ? 'Effective Date:' : 'Change Date:'}
+										</dt>
 										<dd class='text-sm font-medium text-gray-900 dark:text-gray-100'>
 											{new Date(billingPreview.effectiveDate).toLocaleDateString()}
+											{billingPreview.changeType === 'upgrade' ? ' (Immediate)' : ' (Next billing cycle)'}
 										</dd>
 									</div>
 								)}
@@ -321,7 +314,7 @@ export default function PaymentFlowDialog({
 								type='button'
 								onClick={() => {
 									// For downgrades, skip payment collection since there's no immediate charge
-									if (billingPreview.changeType === 'downgrade') {
+									if (billingPreview.changeType === 'downgrade' || !billingPreview.immediateChange) {
 										paymentFlowStep.value = 'confirm';
 									} else {
 										// For upgrades, check if payment method is needed
@@ -330,7 +323,7 @@ export default function PaymentFlowDialog({
 								}}
 								class='px-4 py-2 text-sm font-medium text-white bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 rounded-md'
 							>
-								Continue
+								{billingPreview.changeType === 'downgrade' ? 'Schedule Change' : 'Continue'}
 							</button>
 						</div>
 					</>
@@ -365,8 +358,33 @@ export default function PaymentFlowDialog({
 						<ErrorAlert />
 
 						<div class='mt-4'>
-							{/* Different messaging for upgrades vs downgrades */}
-							{billingPreview.changeType === 'upgrade' ? (
+							{/* Use description from backend if available, otherwise fall back to custom messaging */}
+							{billingPreview.description ? (
+								<p class='text-sm text-gray-500 dark:text-gray-400'>
+									{billingPreview.description}
+									{billingPreview.changeType === 'upgrade' && (
+										<>
+											<br /><br />
+											You will be charged ${billingPreview.proratedAmount
+												? billingPreview.proratedAmount.toFixed(2)
+												: (billingPreview.prorationFactor * selectedPlan.plan_price_monthly).toFixed(2)}
+											{' '}
+											now, and ${billingPreview.fullAmount
+												? billingPreview.fullAmount.toFixed(2)
+												: selectedPlan.plan_price_monthly.toFixed(2)} on{' '}
+											{new Date(billingPreview.nextPeriodStart || billingPreview.periodEnd)
+												.toLocaleDateString()}.
+										</>
+									)}
+									{billingPreview.changeType === 'downgrade' && (
+										<>
+											<br /><br />
+											Starting {new Date(billingPreview.effectiveDate || billingPreview.nextPeriodStart || billingPreview.periodEnd)
+												.toLocaleDateString()}, you will be charged ${selectedPlan.plan_price_monthly.toFixed(2)} monthly.
+										</>
+									)}
+								</p>
+							) : billingPreview.changeType === 'upgrade' ? (
 								<p class='text-sm text-gray-500 dark:text-gray-400'>
 									You will be charged ${billingPreview.proratedAmount
 										? billingPreview.proratedAmount.toFixed(2)
@@ -389,7 +407,7 @@ export default function PaymentFlowDialog({
 								</p>
 							)}
 							
-							{/* Payment method info - only show for upgrades or if payment method exists */}
+							{/* Payment method info - show for upgrades (required) or downgrades (optional future billing) */}
 							{existingPaymentMethod && (billingPreview.changeType === 'upgrade' || billingPreview.changeType === 'downgrade') && (
 								<div class='mt-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-md'>
 									<div class='flex items-center justify-between'>

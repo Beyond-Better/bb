@@ -363,8 +363,15 @@ export function useBillingState() {
 
 			console.log('useBillingState: changing plan with paymentMethodId: ', paymentMethodId);
 
-			if (!paymentMethodId) {
-				throw new PaymentFlowError('A payment method is required', 'payment_method_required');
+			// For upgrades, payment method is required; for downgrades, it's optional
+			const isUpgrade = billingState.value.billingPreview?.changeType === 'upgrade';
+			const isDowngrade = billingState.value.billingPreview?.changeType === 'downgrade';
+			if (isUpgrade && !paymentMethodId) {
+				throw new PaymentFlowError('A payment method is required for upgrades', 'payment_method_required');
+			}
+			// For downgrades, payment method is optional since there's no immediate charge
+			if (isDowngrade && !paymentMethodId) {
+				console.log('Downgrade without payment method - this is allowed');
 			}
 
 			// Change plan - ABI will handle the payment success via webhook
