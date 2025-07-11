@@ -155,6 +155,7 @@
 		"api/tests/mockData.ts": "./api/tests/lib/mockData.ts",
 
 		"bui/utils/fileLogger.ts": "./bui/src/utils/fileLogger.utils.ts",
+		"bui/utils/intl.ts": "./bui/src/utils/intl.utils.ts",
 
 		"cli/apiClient.ts": "./cli/src/utils/apiClient.utils.ts",
 		"cli/websocketManager.ts": "./cli/src/utils/websocketManager.utils.ts",

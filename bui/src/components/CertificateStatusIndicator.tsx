@@ -1,4 +1,5 @@
 import { JSX } from 'preact';
+import { formatDateSafe } from 'bui/utils/intl.ts';
 
 type CertificateStatus = 'valid' | 'expiring' | 'expired' | 'invalid' | 'self-signed';
 
@@ -84,11 +85,11 @@ export function CertificateStatusIndicator({ certInfo, className = '' }: Certifi
 				<div className='text-xs text-gray-500 dark:text-gray-400 flex flex-col gap-0.5 ml-4'>
 					<div className='grid grid-cols-[auto,1fr] gap-x-2'>
 						<span className='font-medium'>Valid from:</span>
-						<span>{new Date(certInfo.validFrom).toLocaleDateString()}</span>
+						<span>{formatDateSafe(new Date(certInfo.validFrom))}</span>
 					</div>
 					<div className='grid grid-cols-[auto,1fr] gap-x-2'>
 						<span className='font-medium'>Valid to:</span>
-						<span>{new Date(certInfo.validTo).toLocaleDateString()}</span>
+						<span>{formatDateSafe(new Date(certInfo.validTo))}</span>
 					</div>
 					<div className='grid grid-cols-[auto,1fr] gap-x-2'>
 						<span className='font-medium'>Issuer:</span>

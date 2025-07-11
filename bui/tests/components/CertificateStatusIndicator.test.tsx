@@ -2,6 +2,7 @@ import { render } from '@testing-library/preact';
 import { CertificateStatusIndicator } from '../../src/components/CertificateStatusIndicator.tsx';
 import { describe, it } from '@std/testing/bdd';
 import { expect } from 'chai';
+import { formatDateSafe } from 'bui/utils/intl.ts';
 
 describe('CertificateStatusIndicator', () => {
 	const mockValidCert = {
@@ -68,8 +69,14 @@ describe('CertificateStatusIndicator', () => {
 			<CertificateStatusIndicator certInfo={mockValidCert} />,
 		);
 
-		const validFrom = new Date(mockValidCert.validFrom).toLocaleDateString();
-		const validTo = new Date(mockValidCert.validTo).toLocaleDateString();
+		const validFrom = formatDateSafe(new Date(mockValidCert.validFrom), {
+			timeZone: 'UTC',
+			dateStyle: 'short',
+		});
+		const validTo = formatDateSafe(new Date(mockValidCert.validTo), {
+			timeZone: 'UTC',
+			dateStyle: 'short',
+		});
 
 		expect(container.textContent).to.include(validFrom);
 		expect(container.textContent).to.include(validTo);
