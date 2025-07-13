@@ -328,8 +328,8 @@ begin
             when 'datasources.supabase' then '{"enabled": true, "read": true, "write": true}'
             when 'tools' then '{"enabled": true}'
             when 'tools.builtin' then '{"enabled": true}'
-            when 'limits.tokens_per_minute' then '{"limit": 300000}'
-            when 'limits.requests_per_minute' then '{"limit": 15}'
+            when 'limits.tokens_per_minute' then '{"enabled": true, "limit": 300000}'
+            when 'limits.requests_per_minute' then '{"enabled": true, "limit": 15}'
             when 'support.community' then '{"enabled": true}'
         end as feature_value,
         true
@@ -380,8 +380,8 @@ begin
             when 'datasources.supabase' then '{"enabled": true, "read": true, "write": false}'
             when 'tools' then '{"enabled": true}'
             when 'tools.builtin' then '{"enabled": true}'
-            when 'limits.tokens_per_minute' then '{"limit": 1000000}'
-            when 'limits.requests_per_minute' then '{"limit": 50}'
+            when 'limits.tokens_per_minute' then '{"enabled": true, "limit": 1000000}'
+            when 'limits.requests_per_minute' then '{"enabled": true, "limit": 50}'
             when 'support.email' then '{"enabled": true}'
             when 'features.early_access' then '{"enabled": true}'
         end as feature_value,

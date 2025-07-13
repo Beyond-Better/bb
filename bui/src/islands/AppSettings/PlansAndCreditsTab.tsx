@@ -25,6 +25,14 @@ export default function PlansAndCreditsTab() {
 	// Track previous active state to detect tab changes
 	const wasActive = useSignal(false);
 
+	// Scroll to Change Plan section
+	const scrollToChangePlan = () => {
+		const element = document.getElementById('change-plan-section');
+		if (element) {
+			element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+		}
+	};
+
 	// Initialize billing state and refresh when tab becomes active
 	useEffect(() => {
 		const isActive = activeTab.value === 'plans-credits';
@@ -400,7 +408,7 @@ export default function PlansAndCreditsTab() {
 			</div>
 
 			{/* Available Plans */}
-			<div class='mb-8'>
+			<div id='change-plan-section' class='mb-8'>
 				<h4 class='text-base font-medium text-gray-700 dark:text-gray-300 mb-4'>Change Plan</h4>
 				<div class='flex flex-nowrap gap-6 overflow-x-auto pb-4'>
 					{billingState.value.availablePlans.map((plan) => (
