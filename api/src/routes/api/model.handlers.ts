@@ -134,8 +134,9 @@ export const listModels = async (
 		// Perform feature access checks if user is authenticated
 		if (session?.user?.id) {
 			try {
-				// Create Supabase client for abi_core schema
+				// Create Supabase clients for both schemas
 				const supabaseCore = await SupabaseClientFactory.createClient('abi_core');
+				const supabaseBilling = await SupabaseClientFactory.createClient('abi_billing');
 				
 				// Batch check feature access for all models
 				const accessChecks = await Promise.allSettled(
@@ -144,6 +145,7 @@ export const listModels = async (
 						
 						const hasAccess = await ModelAccess.hasModel(
 							supabaseCore,
+							supabaseBilling,
 							session.user.id,
 							model.capabilities.featureKey
 						);
@@ -301,11 +303,13 @@ export const getModelCapabilities = async (
 		// Perform feature access check if user is authenticated
 		if (session?.user?.id && modelInfo.capabilities.featureKey) {
 			try {
-				// Create Supabase client for abi_core schema
+				// Create Supabase clients for both schemas
 				const supabaseCore = await SupabaseClientFactory.createClient('abi_core');
+				const supabaseBilling = await SupabaseClientFactory.createClient('abi_billing');
 				
 				userHasAccess = await ModelAccess.hasModel(
 					supabaseCore,
+					supabaseBilling,
 					session.user.id,
 					modelInfo.capabilities.featureKey
 				);
@@ -327,6 +331,7 @@ export const getModelCapabilities = async (
 				providerLabel: LLMProviderLabel[modelInfo.provider as LLMProvider] || 'Unknown',
 				source: modelInfo.source,
 				capabilities: modelInfo.capabilities,
+				featureKey: modelInfo.capabilities.featureKey,
 				userHasAccess,
 			},
 		};

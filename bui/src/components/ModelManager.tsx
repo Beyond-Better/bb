@@ -18,6 +18,7 @@ export interface ModelInfo {
 	intelligence?: 'medium' | 'high' | 'very-high';
 	releaseDate?: string;
 	trainingCutoff?: string;
+	userHasAccess?: boolean; // Added for feature access control
 	// We'll extend this with capabilities later
 }
 
@@ -44,6 +45,8 @@ interface ModelSelectorProps {
 	className?: string;
 	compact?: boolean; // For collaboration context
 	disabled?: boolean;
+	strictFiltering?: boolean; // When true, hide models user doesn't have access to
+	showAccessStatus?: boolean; // When true, show access status for models (dim unavailable ones)
 }
 
 // Global state for models to avoid repeated API calls
@@ -211,6 +214,8 @@ export function ModelSelector({
 	className = '',
 	compact = false,
 	disabled = false,
+	strictFiltering = false,
+	showAccessStatus = false,
 }: ModelSelectorProps) {
 	const [localError, setLocalError] = useState<string | null>(null);
 
@@ -298,8 +303,15 @@ export function ModelSelector({
 		const options: SelectOption[] = [];
 		//console.log('ModelSelector: Generating options from models:', modelsState.value.models.map(m => ({id: m.id, displayName: m.displayName})));
 
+		// Filter models based on access control settings
+		let filteredModels = modelsState.value.models;
+		if (strictFiltering) {
+			// Hide models user doesn't have access to
+			filteredModels = modelsState.value.models.filter(model => model.userHasAccess !== false);
+		}
+
 		// Group models by provider
-		const modelsByProvider = modelsState.value.models.reduce((acc, model) => {
+		const modelsByProvider = filteredModels.reduce((acc, model) => {
 			if (!acc[model.providerLabel]) {
 				acc[model.providerLabel] = [];
 			}
@@ -326,13 +338,25 @@ export function ModelSelector({
 
 			models.forEach((model) => {
 				const characteristics = getModelCharacteristics(model);
+			const hasAccess = model.userHasAccess !== false;
+			const showAsUnavailable = showAccessStatus && !hasAccess;
 
-				const label = compact ? model.displayName : (
-					<span>
+				const label = compact ? (
+				<span className={showAsUnavailable ? 'opacity-50' : ''}>
+					{model.displayName}
+					{showAsUnavailable && (
+						<span className='ml-2 text-xs text-gray-500 dark:text-gray-400'>(unavailable)</span>
+					)}
+				</span>
+			) : (
+					<span className={showAsUnavailable ? 'opacity-50' : ''}>
 						<span className='mr-2'>
 							{getProviderIcon(model.provider)}
 						</span>{' '}
 						{model.displayName}
+						{showAsUnavailable && (
+							<span className='ml-2 text-xs text-gray-500 dark:text-gray-400'>(unavailable)</span>
+						)}
 						<span className='ml-4 whitespace-nowrap'>
 							<span className='mr-2'>
 								{getCharacteristicIcon(
@@ -359,6 +383,7 @@ export function ModelSelector({
 				options.push({
 					value: model.id,
 					label,
+					disabled: showAsUnavailable, // Disable selection for unavailable models when showing access status
 				});
 			});
 		});

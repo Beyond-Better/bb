@@ -6,6 +6,7 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js';
+import type { SupabaseClientWithSchema } from '../types/supabase.types.ts';
 
 export interface FeatureAccessResult {
 	access_granted: boolean;
@@ -48,12 +49,17 @@ export interface UserPlan {
 }
 
 export class FeatureAccessService {
-	private supabase: SupabaseClient;
+	private coreClient: SupabaseClientWithSchema<'abi_core'>;
+	private billingClient: SupabaseClientWithSchema<'abi_billing'>;
 	private cache: Map<string, { result: CachedFeatureAccessResult; expires: Date }> = new Map();
 	private cacheExpiry: number = 60 * 60 * 1000; // 1 hour in milliseconds
 
-	constructor(supabaseClient: SupabaseClient) {
-		this.supabase = supabaseClient;
+	constructor(
+		coreClient: SupabaseClientWithSchema<'abi_core'>,
+		billingClient: SupabaseClientWithSchema<'abi_billing'>
+	) {
+		this.coreClient = coreClient;
+		this.billingClient = billingClient;
 	}
 
 	/**
@@ -81,7 +87,7 @@ export class FeatureAccessService {
 			}
 
 			// Get from database using RPC
-			const { data, error } = await this.supabase
+			const { data, error } = await this.coreClient
 				.rpc('check_feature_access', {
 					p_user_id: userId,
 					p_feature_key: featureKey,
@@ -139,7 +145,7 @@ export class FeatureAccessService {
 	 */
 	async getCachedFeatureAccess(userId: string, featureKey: string): Promise<CachedFeatureAccessResult> {
 		try {
-			const { data, error } = await this.supabase
+			const { data, error } = await this.coreClient
 				.rpc('check_feature_access_cached', {
 					p_user_id: userId,
 					p_feature_key: featureKey,
@@ -174,7 +180,7 @@ export class FeatureAccessService {
 	 */
 	async getUserFeatures(userId: string): Promise<UserFeature[]> {
 		try {
-			const { data, error } = await this.supabase
+			const { data, error } = await this.coreClient
 				.rpc('get_user_features', {
 					p_user_id: userId,
 				});
@@ -196,12 +202,12 @@ export class FeatureAccessService {
 	 */
 	async getUserPlan(userId: string): Promise<UserPlan | null> {
 		try {
-			const { data, error } = await this.supabase
-				.from('abi_billing.user_subscriptions')
+			const { data, error } = await this.billingClient
+				.from('user_subscriptions')
 				.select(`
           plan_id,
           subscription_status,
-          abi_billing.subscription_plans!inner(
+          subscription_plans!inner(
             plan_name,
             plan_type
           )
@@ -221,7 +227,7 @@ export class FeatureAccessService {
 				return null;
 			}
 
-			const planData = data.abi_billing?.subscription_plans as any;
+			const planData = data.subscription_plans as any;
 			return {
 				plan_id: data.plan_id,
 				plan_name: planData?.plan_name || 'Unknown',
@@ -247,7 +253,7 @@ export class FeatureAccessService {
 			}
 
 			// Refresh database cache
-			const { data, error } = await this.supabase
+			const { data, error } = await this.coreClient
 				.rpc('refresh_feature_cache', {
 					p_user_id: userId,
 				});
@@ -277,10 +283,11 @@ export class FeatureAccessService {
 			}
 
 			// Clear database cache
-			const { data, error } = await this.supabase
-				.from('abi_core.feature_access_cache')
+			const { data, error } = await this.coreClient
+				.from('feature_access_cache')
 				.delete()
-				.eq('user_id', userId);
+				.eq('user_id', userId)
+				.select();
 
 			if (error) {
 				console.error('Error clearing feature cache:', error);
@@ -305,7 +312,7 @@ export class FeatureAccessService {
 		requestContext?: any,
 	): Promise<void> {
 		try {
-			const { error } = await this.supabase
+			const { error } = await this.coreClient
 				.rpc('log_feature_access', {
 					p_user_id: userId,
 					p_feature_key: featureKey,
@@ -334,7 +341,7 @@ export class FeatureAccessService {
 		createdBy?: string,
 	): Promise<boolean> {
 		try {
-			const { data, error } = await this.supabase
+			const { data, error } = await this.coreClient
 				.rpc('create_feature_override', {
 					p_user_id: userId,
 					p_feature_key: featureKey,
@@ -361,7 +368,7 @@ export class FeatureAccessService {
 	 */
 	async removeFeatureOverride(userId: string, featureKey: string): Promise<boolean> {
 		try {
-			const { data, error } = await this.supabase
+			const { data, error } = await this.coreClient
 				.rpc('remove_feature_override', {
 					p_user_id: userId,
 					p_feature_key: featureKey,
@@ -384,8 +391,8 @@ export class FeatureAccessService {
 	 */
 	async getUserFeatureOverrides(userId: string): Promise<FeatureOverride[]> {
 		try {
-			const { data, error } = await this.supabase
-				.from('abi_core.user_feature_overrides')
+			const { data, error } = await this.coreClient
+				.from('user_feature_overrides')
 				.select(`
 				  override_id,
 				  user_id,
@@ -393,7 +400,7 @@ export class FeatureAccessService {
 				  override_reason,
 				  expires_at,
 				  created_by,
-				  abi_core.feature_definitions!inner(feature_key)
+				  feature_definitions!inner(feature_key)
 				`)
 				.eq('user_id', userId);
 
@@ -405,7 +412,7 @@ export class FeatureAccessService {
 			return (data || []).map((item) => ({
 				override_id: item.override_id,
 				user_id: item.user_id,
-				feature_key: (item.abi_core?.feature_definitions as any)?.feature_key || 'unknown',
+				feature_key: (item.feature_definitions as any)?.feature_key || 'unknown',
 				override_value: item.override_value,
 				override_reason: item.override_reason,
 				expires_at: item.expires_at,
@@ -435,7 +442,7 @@ export class FeatureAccessService {
 		datasourceKey: string,
 		operation: 'read' | 'write' = 'read',
 	): Promise<boolean> {
-		const resolvedDatasourceKey = modelKey.startsWith('datasources.')
+		const resolvedDatasourceKey = datasourceKey.startsWith('datasources.')
 			? datasourceKey
 			: `datasources.${datasourceKey}`;
 		const result = await this.checkFeatureAccess(userId, resolvedDatasourceKey);
@@ -490,6 +497,13 @@ export class FeatureAccessService {
 		setInterval(() => {
 			this.cleanupCache();
 		}, intervalMs);
+	}
+
+	/**
+	 * Clear all cache entries
+	 */
+	clearCache(): void {
+		this.cache.clear();
 	}
 }
 

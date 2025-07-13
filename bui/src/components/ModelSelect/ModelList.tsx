@@ -19,8 +19,8 @@ export function ModelList({
 	searchQuery,
 	onSelect,
 }: ModelListProps) {
-	// Filter out headers when searching
-	const validOptions = options.filter((opt) => !opt.isHeader);
+	// Filter out headers and disabled options when counting valid options for navigation
+	const validOptions = options.filter((opt) => !opt.isHeader && !opt.disabled);
 
 	if (validOptions.length === 0) {
 		return (
@@ -54,10 +54,15 @@ export function ModelList({
 					<button
 						key={option.value}
 						type='button'
-						onClick={() => onSelect(option.value)}
-						className={`w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:bg-gray-50 dark:focus:bg-gray-700 border-b border-gray-100 dark:border-gray-700 last:border-b-0 ${
-							isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : ''
-						} ${isCurrent ? 'bg-blue-100 dark:bg-blue-800/30' : ''}`}
+						onClick={() => !option.disabled && onSelect(option.value)}
+					disabled={option.disabled}
+						className={`w-full px-4 py-3 text-left border-b border-gray-100 dark:border-gray-700 last:border-b-0 ${
+							option.disabled 
+								? 'cursor-not-allowed bg-gray-50 dark:bg-gray-800' 
+								: 'hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:bg-gray-50 dark:focus:bg-gray-700'
+						} ${
+							isSelected && !option.disabled ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+						} ${isCurrent && !option.disabled ? 'bg-blue-100 dark:bg-blue-800/30' : ''}`}
 					>
 						{modelInfo
 							? (

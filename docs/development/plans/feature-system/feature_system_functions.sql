@@ -79,7 +79,8 @@ begin
     from abi_core.plan_features pf
     where pf.plan_id = v_user_subscription_plan_id
     and pf.feature_id = v_feature_definition_record.feature_id
-    and pf.is_enabled = true;
+    and pf.is_enabled = true
+    and coalesce((pf.feature_value->>'enabled')::boolean, false) = true;
     
     if found then
         return query select true, 'direct_plan_access', v_plan_feature_record.feature_value, array[p_feature_key];
@@ -110,7 +111,8 @@ begin
         from abi_core.plan_features pf
         where pf.plan_id = v_user_subscription_plan_id
         and pf.feature_id = v_feature_definition_record.feature_id
-        and pf.is_enabled = true;
+        and pf.is_enabled = true
+        and coalesce((pf.feature_value->>'enabled')::boolean, false) = true;
         
         if found then
             return query select true, 'inherited_access', v_plan_feature_record.feature_value, v_inheritance_chain;

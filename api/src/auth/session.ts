@@ -3,6 +3,14 @@ import { fetchSupabaseConfig } from './config.ts';
 import { logger } from 'shared/logger.ts';
 import { KVStorage } from 'shared/kvStorage.ts';
 import type { Session, SupabaseConfig } from '../types/auth.ts';
+import type {
+	SupabaseClientAuth,
+	SupabaseClientBilling,
+	SupabaseClientCore,
+	SupabaseClientLlm,
+	SupabaseClientMarketing,
+	SupabaseClientWithSchema,
+} from 'shared/types/supabase.ts';
 
 /**
  * Supabase Client Factory
@@ -27,7 +35,10 @@ export class SupabaseClientFactory {
 	 * @param useAuth - Whether to include auth configuration (default: false)
 	 * @returns Configured Supabase client
 	 */
-	static async createClient(schema: string, useAuth = false): Promise<any> {
+	static async createClient<T extends 'abi_billing' | 'abi_llm' | 'abi_auth' | 'abi_core' | 'abi_marketing' | 'public'>(
+		schema: T,
+		useAuth = false
+	): Promise<SupabaseClientWithSchema<T>> {
 		await SupabaseClientFactory.initialize();
 		
 		if (!SupabaseClientFactory.config) {
@@ -61,11 +72,12 @@ export class SupabaseClientFactory {
 			};
 		}
 
+		// Use type assertion to ensure the client is properly typed with the schema
 		const client = createClient(
 			SupabaseClientFactory.config.url,
 			SupabaseClientFactory.config.anonKey,
 			clientOptions
-		);
+		) as SupabaseClientWithSchema<T>;
 
 		// Cache the client
 		SupabaseClientFactory.clientCache.set(cacheKey, client);
@@ -95,7 +107,7 @@ export class SupabaseClientFactory {
  * - Manages single auth session
  */
 export class SessionManager {
-	private supabaseClient: ReturnType<typeof createClient> | null = null;
+	private supabaseClient: SupabaseClientWithSchema<'public'> | null = null;
 	private config: SupabaseConfig | null = null;
 	private storage: KVStorage;
 
@@ -203,7 +215,7 @@ export class SessionManager {
 	 * Get the Supabase client instance
 	 * Throws if not initialized
 	 */
-	getClient(): ReturnType<typeof createClient> {
+	getClient(): SupabaseClientWithSchema<'public'> {
 		if (!this.supabaseClient) {
 			throw new Error('SessionManager not initialized');
 		}
