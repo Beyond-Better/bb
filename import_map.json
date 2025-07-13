@@ -192,6 +192,7 @@
 		"shared/config/types.ts": "./src/shared/config/types.ts",
 		"shared/configSchema.ts": "./src/shared/config/configSchema.ts",
 		"shared/dynamicFormatter.ts": "./src/shared/utils/dynamicFormatter.ts",
+		"shared/features.ts": "./src/shared/utils/features.utils.ts",
 		"shared/generateIds.ts": "./src/shared/utils/generateIds.utils.ts",
 		"shared/install.ts": "./src/shared/utils/install.utils.ts",
 		"shared/upgrade.ts": "./src/shared/utils/upgrade.utils.ts",

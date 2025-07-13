@@ -5,7 +5,8 @@ import { signal } from '@preact/signals';
 import { PageContainer } from '../components/PageContainer.tsx';
 import { TabPanel, Tabs } from '../components/Tabs.tsx';
 import { NotificationSettings } from './AppSettings/NotificationSettings.tsx';
-import SubscriptionSettings from './AppSettings/SubscriptionSettings.tsx';
+import PlansAndCreditsTab from './AppSettings/PlansAndCreditsTab.tsx';
+import UsageAndHistoryTab from './AppSettings/UsageAndHistoryTab.tsx';
 import DefaultProjectSettings from './AppSettings/DefaultProjectSettings.tsx';
 import MCPServersSection from './AppSettings/MCPServersSection.tsx';
 import { AppearanceSettings } from './AppSettings/AppearanceSettings.tsx';
@@ -20,12 +21,20 @@ interface AppSettingsTab {
 
 const SETTINGS_TABS: AppSettingsTab[] = [
 	{
-		id: 'subscription',
-		label: 'Plans and Billing',
-		description: 'Manage your subscription plan and billing',
+		id: 'plans-credits',
+		label: 'Plans & Credits',
+		description: 'Manage your subscription plan, credits, and payment methods',
 		icon:
 			'M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z',
-		component: () => <SubscriptionSettings />,
+		component: () => <PlansAndCreditsTab />,
+	},
+	{
+		id: 'usage-history',
+		label: 'Usage & History',
+		description: 'View usage analytics and purchase history',
+		icon:
+			'M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z',
+		component: () => <UsageAndHistoryTab />,
 	},
 	{
 		id: 'projects',
@@ -67,31 +76,9 @@ const SETTINGS_TABS: AppSettingsTab[] = [
 			</div>
 		),
 	},
-	// 	{
-	// 		id: 'shortcuts',
-	// 		label: 'Shortcuts',
-	// 		description: 'Customize keyboard shortcuts',
-	// 		icon:
-	// 			'M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z',
-	// 		component: () => (
-	// 			<div class='p-6'>
-	// 				<div class='flex items-center space-x-3 mb-6'>
-	// 					<div>
-	// 						<h3 class='text-lg font-medium text-gray-900 dark:text-gray-100'>Keyboard Shortcuts</h3>
-	// 						<p class='mt-1 text-sm text-gray-500 dark:text-gray-400'>
-	// 							Customize keyboard shortcuts
-	// 						</p>
-	// 					</div>
-	// 				</div>
-	// 				<span class='mt-4 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'>
-	// 					Coming Soon
-	// 				</span>
-	// 			</div>
-	// 		),
-	// 	},
 ];
 
-export const activeTab = signal('subscription');
+export const activeTab = signal('plans-credits'); // Default to new primary tab
 export default function AppSettings(): JSX.Element {
 	// Set active tab from URL on initial load and navigation
 	if (IS_BROWSER) {

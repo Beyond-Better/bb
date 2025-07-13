@@ -6,7 +6,7 @@ import type {
 	UsageBlockPurchase,
 	UsageBlockResponse,
 } from '../../types/billing.ts';
-import type { SessionManager } from '../../auth/session.ts';
+import type { SessionManager } from 'api/auth/session.ts';
 import { logger } from 'shared/logger.ts';
 
 export async function createPaymentIntent(ctx: Context) {
@@ -297,10 +297,10 @@ export async function listUsageBlocks(ctx: Context) {
 		const { data, error } = await supabaseClient.functions.invoke('usage-purchase', {
 			method: 'GET',
 		});
-		logger.warn(
-			`BillingHandler: listUsageBlocks: `,
-			{ data, error },
-		);
+		//logger.warn(
+		//	`BillingHandler: listUsageBlocks: `,
+		//	{ data, error },
+		//);
 
 		if (error) {
 			ctx.response.status = 400;
@@ -360,3 +360,114 @@ export const removePaymentMethod = async (
 		response.body = { error: 'Failed to remove payment method' };
 	}
 };
+
+// Auto Top-up handlers
+export async function getAutoTopupStatus(ctx: Context) {
+	try {
+		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
+		if (!sessionManager) {
+			logger.warn(
+				`BillingHandler: getAutoTopupStatus: No session manager configured`,
+			);
+			ctx.response.status = 400;
+			ctx.response.body = { error: 'No session manager configured' };
+			return;
+		}
+		const supabaseClient = sessionManager.getClient();
+
+		const { data, error } = await supabaseClient.functions.invoke('auto-topup', {
+			method: 'GET',
+		});
+
+		if (error) {
+			ctx.response.status = 400;
+			ctx.response.body = { error: error.message };
+			return;
+		}
+
+		ctx.response.body = data;
+	} catch (err) {
+		console.error('Error getting auto top-up status:', err);
+		ctx.response.status = 500;
+		ctx.response.body = { error: 'Failed to get auto top-up status' };
+	}
+}
+
+export async function updateAutoTopupSettings(ctx: Context) {
+	try {
+		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
+		if (!sessionManager) {
+			logger.warn(
+				`BillingHandler: updateAutoTopupSettings: No session manager configured`,
+			);
+			ctx.response.status = 400;
+			ctx.response.body = { error: 'No session manager configured' };
+			return;
+		}
+		const supabaseClient = sessionManager.getClient();
+
+		const body = await ctx.request.body.json();
+		const { enabled, min_balance_cents, purchase_amount_cents, max_per_day_cents } = body;
+
+		// Basic validation
+		if (enabled && (!min_balance_cents || !purchase_amount_cents)) {
+			ctx.response.status = 400;
+			ctx.response.body = { error: 'Min balance and purchase amount are required when enabling auto top-up' };
+			return;
+		}
+
+		const { data, error } = await supabaseClient.functions.invoke('auto-topup', {
+			method: 'PUT',
+			body: {
+				enabled,
+				min_balance_cents,
+				purchase_amount_cents,
+				max_per_day_cents,
+			},
+		});
+
+		if (error) {
+			ctx.response.status = 400;
+			ctx.response.body = { error: error.message };
+			return;
+		}
+
+		ctx.response.body = data;
+	} catch (err) {
+		console.error('Error updating auto top-up settings:', err);
+		ctx.response.status = 500;
+		ctx.response.body = { error: 'Failed to update auto top-up settings' };
+	}
+}
+
+export async function triggerAutoTopup(ctx: Context) {
+	try {
+		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
+		if (!sessionManager) {
+			logger.warn(
+				`BillingHandler: triggerAutoTopup: No session manager configured`,
+			);
+			ctx.response.status = 400;
+			ctx.response.body = { error: 'No session manager configured' };
+			return;
+		}
+		const supabaseClient = sessionManager.getClient();
+
+		const { data, error } = await supabaseClient.functions.invoke('auto-topup', {
+			method: 'POST',
+			body: {},
+		});
+
+		if (error) {
+			ctx.response.status = 400;
+			ctx.response.body = { error: error.message };
+			return;
+		}
+
+		ctx.response.body = data;
+	} catch (err) {
+		console.error('Error triggering auto top-up:', err);
+		ctx.response.status = 500;
+		ctx.response.body = { error: 'Failed to trigger auto top-up' };
+	}
+}

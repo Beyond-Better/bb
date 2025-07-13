@@ -3,10 +3,13 @@ import { loadStripe } from '@stripe/stripe-js';
 import type { Stripe, StripeElements, StripeElementsOptions } from '@stripe/stripe-js';
 import type {
 	BillingPreviewWithUsage,
+	EnhancedPurchaseHistory,
 	PaymentMethod,
 	Plan,
+	PurchaseHistoryFilters,
 	PurchasesBalance,
 	Subscription,
+	UsageAnalytics,
 } from '../types/subscription.ts';
 import { useAppState } from './useAppState.ts';
 
@@ -44,6 +47,8 @@ interface BillingLoadingState {
 	plans: boolean;
 	paymentMethods: boolean;
 	purchasesBalance: boolean;
+	analytics: boolean;
+	history: boolean;
 	preview: boolean;
 	planChange: boolean;
 	paymentSetup: boolean;
@@ -59,6 +64,8 @@ interface BillingState {
 	paymentMethods: PaymentMethod[];
 	defaultPaymentMethod: PaymentMethod | null;
 	billingPreview: BillingPreviewWithUsage | null;
+	usageAnalytics: UsageAnalytics | null;
+	purchaseHistory: EnhancedPurchaseHistory | null;
 	loading: BillingLoadingState;
 	paymentFlowError: PaymentFlowError | null;
 	stripe: Stripe | null;
@@ -70,6 +77,8 @@ const initialLoadingState: BillingLoadingState = {
 	plans: false,
 	paymentMethods: false,
 	purchasesBalance: false,
+	analytics: false,
+	history: false,
 	preview: false,
 	planChange: false,
 	paymentSetup: false,
@@ -84,6 +93,8 @@ const initialBillingState: BillingState = {
 	paymentMethods: [],
 	defaultPaymentMethod: null,
 	billingPreview: null,
+	usageAnalytics: null,
+	purchaseHistory: null,
 	loading: initialLoadingState,
 	paymentFlowError: null,
 	stripe: null,
@@ -92,6 +103,95 @@ const initialBillingState: BillingState = {
 
 const billingState = signal<BillingState>(initialBillingState);
 let isInitialized = false;
+
+// Mock data for analytics features (to be replaced with real API calls)
+const createMockUsageAnalytics = (): UsageAnalytics => ({
+	current_month: {
+		total_cost_usd: 23.45,
+		total_requests: 2145,
+		total_tokens: 45000000,
+		period_start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString(),
+		period_end: new Date().toISOString(),
+	},
+	usage_trends: {
+		daily_usage: Array.from({ length: 30 }, (_, i) => {
+			const date = new Date();
+			date.setDate(date.getDate() - (29 - i));
+			return {
+				date: date.toISOString().split('T')[0],
+				cost_usd: Math.random() * 3 + 0.5,
+				requests: Math.floor(Math.random() * 100 + 20),
+				tokens: Math.floor(Math.random() * 50000 + 10000),
+			};
+		}),
+		weekly_usage: Array.from({ length: 4 }, (_, i) => {
+			const endDate = new Date();
+			endDate.setDate(endDate.getDate() - (i * 7));
+			const startDate = new Date(endDate);
+			startDate.setDate(startDate.getDate() - 6);
+			return {
+				week_start: startDate.toISOString().split('T')[0],
+				week_end: endDate.toISOString().split('T')[0],
+				cost_usd: Math.random() * 20 + 5,
+				requests: Math.floor(Math.random() * 500 + 100),
+				tokens: Math.floor(Math.random() * 300000 + 50000),
+			};
+		}),
+	},
+	model_breakdown: [
+		{ model_name: 'Claude-3.5-Sonnet', provider: 'Anthropic', cost_usd: 15.20, requests: 1245, tokens: 28000000, percentage_of_total: 64.8 },
+		{ model_name: 'GPT-4o', provider: 'OpenAI', cost_usd: 8.25, requests: 900, tokens: 17000000, percentage_of_total: 35.2 },
+	],
+	feature_breakdown: [
+		{ feature_type: 'chat', feature_name: 'Chat Conversations', cost_usd: 18.50, requests: 1850, tokens: 38000000, percentage_of_total: 78.9 },
+		{ feature_type: 'code', feature_name: 'Code Generation', cost_usd: 4.95, requests: 295, tokens: 7000000, percentage_of_total: 21.1 },
+	],
+});
+
+const createMockPurchaseHistory = (): EnhancedPurchaseHistory => ({
+	transactions: [
+		{
+			transaction_id: 'txn_auto_123',
+			transaction_type: 'auto_topup',
+			amount_usd: 20.00,
+			description: 'Auto top-up purchase',
+			status: 'completed',
+			created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+			payment_method: { type: 'card', last4: '4242', brand: 'visa' },
+			credit_details: { credits_added_usd: 20.00, auto_triggered: true },
+		},
+		{
+			transaction_id: 'txn_sub_456',
+			transaction_type: 'subscription',
+			amount_usd: 29.00,
+			description: 'Beyond Plan - Monthly',
+			status: 'completed',
+			created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+			payment_method: { type: 'card', last4: '4242', brand: 'visa' },
+			subscription_details: {
+				plan_name: 'Beyond Plan',
+				period_start: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+				period_end: new Date(Date.now() + 23 * 24 * 60 * 60 * 1000).toISOString(),
+			},
+		},
+		{
+			transaction_id: 'txn_credit_789',
+			transaction_type: 'credit_purchase',
+			amount_usd: 50.00,
+			description: 'Manual credit purchase',
+			status: 'completed',
+			created_at: new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toISOString(),
+			payment_method: { type: 'card', last4: '4242', brand: 'visa' },
+			credit_details: { credits_added_usd: 50.00, auto_triggered: false },
+		},
+	],
+	pagination: {
+		total_items: 3,
+		current_page: 1,
+		total_pages: 1,
+		per_page: 25,
+	},
+});
 
 export function useBillingState() {
 	const appState = useAppState();
@@ -279,6 +379,68 @@ export function useBillingState() {
 					paymentMethods: false,
 				},
 				paymentFlowError: handleError(error, 'Failed to load billing data', 'api_error'),
+			};
+		}
+	};
+
+	// NEW METHODS FOR ANALYTICS FEATURES
+
+	const loadUsageAnalytics = async (period?: 'month' | 'quarter' | 'year'): Promise<void> => {
+		try {
+			billingState.value = {
+				...billingState.value,
+				loading: { ...billingState.value.loading, analytics: true },
+				paymentFlowError: null,
+			};
+
+			// For now, use mock data. Replace with real API call when backend is ready:
+			// const apiClient = getApiClient();
+			// const analytics = await apiClient.getUsageAnalytics(period);
+			
+			// Simulate API delay
+			await new Promise(resolve => setTimeout(resolve, 500));
+			const analytics = createMockUsageAnalytics();
+
+			billingState.value = {
+				...billingState.value,
+				usageAnalytics: analytics,
+				loading: { ...billingState.value.loading, analytics: false },
+			};
+		} catch (error) {
+			billingState.value = {
+				...billingState.value,
+				loading: { ...billingState.value.loading, analytics: false },
+				paymentFlowError: handleError(error, 'Failed to load usage analytics', 'api_error'),
+			};
+		}
+	};
+
+	const loadPurchaseHistory = async (filters?: PurchaseHistoryFilters): Promise<void> => {
+		try {
+			billingState.value = {
+				...billingState.value,
+				loading: { ...billingState.value.loading, history: true },
+				paymentFlowError: null,
+			};
+
+			// For now, use mock data. Replace with real API call when backend is ready:
+			// const apiClient = getApiClient();
+			// const history = await apiClient.getEnhancedPurchaseHistory(filters);
+			
+			// Simulate API delay
+			await new Promise(resolve => setTimeout(resolve, 300));
+			const history = createMockPurchaseHistory();
+
+			billingState.value = {
+				...billingState.value,
+				purchaseHistory: history,
+				loading: { ...billingState.value.loading, history: false },
+			};
+		} catch (error) {
+			billingState.value = {
+				...billingState.value,
+				loading: { ...billingState.value.loading, history: false },
+				paymentFlowError: handleError(error, 'Failed to load purchase history', 'api_error'),
 			};
 		}
 	};
@@ -476,6 +638,8 @@ export function useBillingState() {
 		loadBillingData,
 		updateUsageData,
 		updatePaymentMethods,
+		loadUsageAnalytics,
+		loadPurchaseHistory,
 		createPaymentElements,
 		previewPlanChange,
 		changePlan,

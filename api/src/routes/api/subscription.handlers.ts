@@ -1,6 +1,6 @@
 import type { Context } from '@oak/oak';
 import type { BillingPreview, Plan, Subscription } from 'shared/types/subscription.ts';
-import type { SessionManager } from '../../auth/session.ts';
+import type { SessionManager } from 'api/auth/session.ts';
 import { logger } from 'shared/logger.ts';
 
 export async function getCurrentSubscription(ctx: Context) {
@@ -19,6 +19,10 @@ export async function getCurrentSubscription(ctx: Context) {
 		const { data, error } = await supabaseClient.functions.invoke('user-subscription', {
 			method: 'GET',
 		});
+		//logger.warn(
+		//	`SubscriptionHandler: getCurrentSubscription: `,
+		//	{ data, error },
+		//);
 
 		if (error) {
 			ctx.response.status = 400;

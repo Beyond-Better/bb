@@ -27,14 +27,19 @@ import type {
 	BillingPreviewWithUsage,
 	BlockPurchase,
 	BlockPurchaseResults,
+	EnhancedPurchaseHistory,
+	EnhancedPurchaseHistoryResults,
 	PaymentMethod,
 	PaymentMethodResults,
 	Plan,
 	PlanResults,
+	PurchaseHistoryFilters,
 	PurchasesBalance,
 	SubscriptionResults,
 	Subscription,
 	SubscriptionWithPaymentMethods,
+	UsageAnalytics,
+	UsageAnalyticsResults,
 } from '../types/subscription.ts';
 import { savePreferredProtocol } from './connectionManager.utils.ts';
 
@@ -458,6 +463,112 @@ export class ApiClient {
 	// Usage Block List
 	async listUsageBlocks(): Promise<PurchasesBalance | null> {
 		return await this.get<PurchasesBalance>('/api/v1/user/billing/usage/blocks');
+	}
+
+	// NEW ANALYTICS ENDPOINTS FOR RESTRUCTURED BILLING TABS
+
+	// Usage Analytics for Usage & History tab
+	async getUsageAnalytics(period?: 'month' | 'quarter' | 'year'): Promise<UsageAnalytics | null> {
+		const params = period ? `?period=${period}` : '';
+		const result = await this.get<UsageAnalyticsResults>(`/api/v1/user/billing/usage/analytics${params}`);
+		return result?.analytics || null;
+	}
+
+	// Enhanced Purchase History with filtering for Usage & History tab
+	async getEnhancedPurchaseHistory(filters?: PurchaseHistoryFilters): Promise<EnhancedPurchaseHistory | null> {
+		let endpoint = '/api/v1/user/billing/history/enhanced';
+		
+		if (filters) {
+			const params = new URLSearchParams();
+			if (filters.transaction_type && filters.transaction_type !== 'all') {
+				params.append('type', filters.transaction_type);
+			}
+			if (filters.date_start) params.append('date_start', filters.date_start);
+			if (filters.date_end) params.append('date_end', filters.date_end);
+			if (filters.status && filters.status !== 'all') {
+				params.append('status', filters.status);
+			}
+			if (filters.page) params.append('page', filters.page.toString());
+			if (filters.per_page) params.append('per_page', filters.per_page.toString());
+			
+			const queryString = params.toString();
+			if (queryString) {
+				endpoint += `?${queryString}`;
+			}
+		}
+		
+		const result = await this.get<EnhancedPurchaseHistoryResults>(endpoint);
+		return result?.history || null;
+	}
+
+	// Auto Top-up Methods
+	async getAutoTopupStatus(): Promise<{
+		settings: {
+			enabled: boolean;
+			min_balance_cents: number;
+			purchase_amount_cents: number;
+			max_per_day_cents: number;
+		};
+		rate_limits: {
+			daily_topup_count: number;
+			daily_topup_amount_cents: number;
+			failure_count: number;
+			temporary_disable_until: string | null;
+		};
+		recent_purchases: Array<{
+			purchase_id: string;
+			amount_usd: number;
+			purchase_status: string;
+			auto_triggered: boolean;
+			created_at: string;
+		}>;
+	} | null> {
+		return await this.get<{
+			settings: {
+				enabled: boolean;
+				min_balance_cents: number;
+				purchase_amount_cents: number;
+				max_per_day_cents: number;
+			};
+			rate_limits: {
+				daily_topup_count: number;
+				daily_topup_amount_cents: number;
+				failure_count: number;
+				temporary_disable_until: string | null;
+			};
+			recent_purchases: Array<{
+				purchase_id: string;
+				amount_usd: number;
+				purchase_status: string;
+				auto_triggered: boolean;
+				created_at: string;
+			}>;
+		}>('/api/v1/user/billing/auto-topup');
+	}
+
+	async updateAutoTopupSettings(settings: {
+		enabled: boolean;
+		min_balance_cents: number;
+		purchase_amount_cents: number;
+		max_per_day_cents: number;
+	}): Promise<{ success: boolean; message: string } | null> {
+		return await this.put<{ success: boolean; message: string }>('/api/v1/user/billing/auto-topup', settings);
+	}
+
+	async triggerAutoTopup(): Promise<{
+		success: boolean;
+		purchase_id?: string;
+		amount_cents?: number;
+		message: string;
+		retry_after_seconds?: number;
+	} | null> {
+		return await this.post<{
+			success: boolean;
+			purchase_id?: string;
+			amount_cents?: number;
+			message: string;
+			retry_after_seconds?: number;
+		}>('/api/v1/user/billing/auto-topup', {});
 	}
 
 	// Auth Methods

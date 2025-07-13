@@ -11,6 +11,7 @@ import PaymentFlowDialog from '../../components/Subscriptions/PaymentFlowDialog.
 import UsageBlockDialog from '../../components/Subscriptions/UsageBlockDialog.tsx';
 import CancelDialog from '../../components/Subscriptions/CancelDialog.tsx';
 import NewPaymentMethodForm from './../NewPaymentMethodForm.tsx';
+import AutoTopupSettings from '../../components/AutoTopup/AutoTopupSettings.tsx';
 import { formatDateSafe } from 'bui/utils/intl.ts';
 
 const showCancelDialog = signal(false);
@@ -423,7 +424,12 @@ export default function SubscriptionSettings() {
 				)}
 			</div>
 
-			{/* Row 2: Available Plans */}
+			{/* Row 2: Auto Top-up Settings */}
+			<div class='mt-8'>
+				<AutoTopupSettings />
+			</div>
+
+			{/* Row 3: Available Plans */}
 			<div class='mt-8'>
 				<h3 class='text-base font-medium text-gray-700 dark:text-gray-300'>Change Plan</h3>
 				<div class='mt-4 flex flex-nowrap gap-6 overflow-x-auto pb-4'>
