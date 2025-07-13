@@ -141,6 +141,61 @@ interface FetcherConfig {
 }
 
 /**
+ * Generate feature key for a model based on its provider and model ID
+ * Uses hierarchical dot notation for feature access control
+ */
+function generateFeatureKey(provider: string, modelId: string): string {
+	const baseKey = `models.${provider}`;
+	
+	// Claude models
+	if (provider === 'anthropic') {
+		if (modelId.includes('opus')) {
+			return 'models.claude.opus';
+		} else if (modelId.includes('sonnet')) {
+			return 'models.claude.sonnet';
+		} else if (modelId.includes('haiku')) {
+			return 'models.claude.haiku';
+		}
+		return 'models.claude';
+	}
+	
+	// OpenAI models
+	if (provider === 'openai') {
+		if (modelId.startsWith('o3')) {
+			return 'models.openai.o3';
+		} else if (modelId.startsWith('o4')) {
+			return 'models.openai.o4';
+		} else if (modelId.startsWith('o1')) {
+			return 'models.openai.o1';
+		} else if (modelId.includes('gpt-4') || modelId.includes('gpt4')) {
+			return 'models.openai.gpt4';
+		} else if (modelId.includes('gpt-3') || modelId.includes('gpt3')) {
+			return 'models.openai.gpt3';
+		}
+		return 'models.openai';
+	}
+	
+	// Google models
+	if (provider === 'google') {
+		return 'models.gemini';
+	}
+	
+	// Other providers - use base key
+	if (provider === 'deepseek') {
+		return 'models.deepseek';
+	}
+	if (provider === 'groq') {
+		return 'models.groq';
+	}
+	if (provider === 'ollama') {
+		return 'models.ollama';
+	}
+	
+	// Fallback to base key
+	return baseKey;
+}
+
+/**
  * Main capabilities fetcher class
  */
 class ModelCapabilitiesFetcher {
@@ -357,6 +412,9 @@ class ModelCapabilitiesFetcher {
 			effectiveDate = sourceModel.pricing.effectiveDate;
 		}
 
+		// Generate feature key for access control
+		const featureKey = generateFeatureKey(provider, sourceModel.modelId);
+
 		const capabilities: ModelCapabilities & { hidden?: boolean } = {
 			displayName: sourceModel.displayName,
 			contextWindow: sourceModel.contextWindow,
@@ -366,6 +424,7 @@ class ModelCapabilitiesFetcher {
 				currency: currency,
 				effectiveDate: effectiveDate,
 			},
+			featureKey: featureKey, // Add feature key for access control
 			supportedFeatures: {
 				functionCalling: sourceModel.supportedFeatures.functionCalling,
 				json: sourceModel.supportedFeatures.json,

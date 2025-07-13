@@ -5,6 +5,90 @@ import { KVStorage } from 'shared/kvStorage.ts';
 import type { Session, SupabaseConfig } from '../types/auth.ts';
 
 /**
+ * Supabase Client Factory
+ * Creates schema-specific Supabase clients for different use cases
+ */
+export class SupabaseClientFactory {
+	private static config: SupabaseConfig | null = null;
+	private static clientCache = new Map<string, any>();
+
+	/**
+	 * Initialize the factory with Supabase configuration
+	 */
+	static async initialize(): Promise<void> {
+		if (!SupabaseClientFactory.config) {
+			SupabaseClientFactory.config = await fetchSupabaseConfig();
+		}
+	}
+
+	/**
+	 * Create a Supabase client for a specific schema
+	 * @param schema - The database schema to use (e.g., 'abi_core', 'public')
+	 * @param useAuth - Whether to include auth configuration (default: false)
+	 * @returns Configured Supabase client
+	 */
+	static async createClient(schema: string, useAuth = false): Promise<any> {
+		await SupabaseClientFactory.initialize();
+		
+		if (!SupabaseClientFactory.config) {
+			throw new Error('SupabaseClientFactory: Configuration not initialized');
+		}
+
+		// Use cache key to avoid creating duplicate clients
+		const cacheKey = `${schema}_${useAuth ? 'auth' : 'noauth'}`;
+		const cachedClient = SupabaseClientFactory.clientCache.get(cacheKey);
+		if (cachedClient) {
+			return cachedClient;
+		}
+
+		const clientOptions: any = {
+			db: { schema },
+		};
+
+		// Only add auth configuration if requested (for session management)
+		if (useAuth) {
+			const storage = new KVStorage({
+				prefix: 'supabase_auth',
+				filename: 'auth.kv',
+			});
+			await storage.initialize();
+
+			clientOptions.auth = {
+				storage,
+				autoRefreshToken: true,
+				persistSession: true,
+				detectSessionInUrl: false,
+			};
+		}
+
+		const client = createClient(
+			SupabaseClientFactory.config.url,
+			SupabaseClientFactory.config.anonKey,
+			clientOptions
+		);
+
+		// Cache the client
+		SupabaseClientFactory.clientCache.set(cacheKey, client);
+
+		return client;
+	}
+
+	/**
+	 * Get the cached configuration
+	 */
+	static getConfig(): SupabaseConfig | null {
+		return SupabaseClientFactory.config;
+	}
+
+	/**
+	 * Clear the client cache (useful for testing or cleanup)
+	 */
+	static clearCache(): void {
+		SupabaseClientFactory.clientCache.clear();
+	}
+}
+
+/**
  * Manages Supabase authentication session
  * - Initializes Supabase client with Deno KV Storage
  * - Handles session refresh
@@ -35,21 +119,15 @@ export class SessionManager {
 			// Initialize KV storage first
 			await this.storage.initialize();
 
-			this.config = await fetchSupabaseConfig();
-			//logger.info('SessionManager: initialized with config: ', this.config);
-
-			// Create Supabase client with our storage
-			this.supabaseClient = createClient(this.config.url, this.config.anonKey, {
-				auth: {
-					storage: this.storage,
-					autoRefreshToken: true,
-					persistSession: true,
-					detectSessionInUrl: false, // API handles auth callbacks differently
-				},
-			});
+			// Initialize the factory and get auth-enabled client
+			await SupabaseClientFactory.initialize();
+			this.config = SupabaseClientFactory.getConfig();
+			this.supabaseClient = await SupabaseClientFactory.createClient('public', true);
 
 			// Enable auto refresh
-			await this.supabaseClient.auth.startAutoRefresh();
+			if (this.supabaseClient) {
+				await this.supabaseClient.auth.startAutoRefresh();
+			}
 			logger.info('SessionManager: initialized successfully');
 		} catch (error) {
 			logger.error('SessionManager: Failed to initialize SessionManager:', error);

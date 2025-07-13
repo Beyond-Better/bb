@@ -84,6 +84,31 @@ export default function PlansAndCreditsTab() {
 		}
 	};
 
+	// Find the next available plan for upgrade (excluding contact_for_signup plans)
+	const getNextPlan = () => {
+		if (!billingState.value.subscription || !billingState.value.availablePlans) return null;
+
+		const currentPlan = billingState.value.subscription.plan;
+		const availablePlans = billingState.value.availablePlans
+			.filter(plan => !plan.plan_features?.contact_for_signup) // Exclude enterprise plans
+			.sort((a, b) => a.plan_price_monthly - b.plan_price_monthly); // Sort by price
+
+		const currentIndex = availablePlans.findIndex(plan => plan.plan_id === currentPlan.plan_id);
+		if (currentIndex === -1 || currentIndex === availablePlans.length - 1) {
+			return null; // No next plan available
+		}
+
+		return availablePlans[currentIndex + 1];
+	};
+
+	const nextPlan = getNextPlan();
+
+	const handleExploreUpgrade = () => {
+		if (nextPlan) {
+			handlePlanSelect(nextPlan);
+		}
+	};
+
 	if (
 		!billingState.value.subscription || !billingState.value.availablePlans ||
 		billingState.value.loading.subscription || billingState.value.loading.plans
@@ -218,18 +243,30 @@ export default function PlansAndCreditsTab() {
 								{billingState.value.subscription?.subscription_status}
 							</span>
 
-							{/* Upgrade Encouragement */}
-							{billingState.value.subscription?.plan.plan_features.proposition && (
+							{/* Upgrade Encouragement or Congratulations */}
+							{nextPlan ? (
 								<div class='mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-700'>
 									<div class='text-sm text-blue-700 dark:text-blue-300 mb-2'>
-										🚀 {billingState.value.subscription.plan.plan_features.proposition}
+										🚀 Upgrade to {nextPlan.plan_name}
+										{nextPlan.plan_features?.proposition && (
+											<span class='block mt-1'>{nextPlan.plan_features.proposition}</span>
+										)}
 									</div>
 									<button
 										type='button'
-										class='text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium'
+										onClick={handleExploreUpgrade}
+										class='text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors'
 									>
-										Explore Upgrade Options →
+										Explore {nextPlan.plan_name} →
 									</button>
+								</div>
+							) : (
+								<div class='mt-4 p-3 bg-green-50 dark:bg-green-900/20 rounded border border-green-200 dark:border-green-700'>
+									<div class='text-sm text-green-700 dark:text-green-300 text-center'>
+										🎉 Congratulations! You're on our most powerful plan.
+										<br />
+										<span class='text-xs'>Thank you for being a premium subscriber!</span>
+									</div>
 								</div>
 							)}
 

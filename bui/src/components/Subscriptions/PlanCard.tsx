@@ -8,6 +8,14 @@ interface PlanCardProps {
 
 export default function PlanCard({ plan, isCurrentPlan, onSelect }: PlanCardProps) {
 	//const yearlySavings = Math.round((1 - (plan.plan_price_yearly / (plan.plan_price_monthly * 12))) * 100);
+
+	const isContactPlan = plan.plan_features?.contact_for_signup === true;
+	
+	const handleContactClick = () => {
+		// Open contact page in new tab
+		window.open('https://beyondbetter.app/contact', '_blank');
+	};
+
 	return (
 		<div
 			class={`relative p-6 rounded-lg border w-[300px] flex-shrink-0 flex flex-col ${
@@ -21,11 +29,21 @@ export default function PlanCard({ plan, isCurrentPlan, onSelect }: PlanCardProp
 					Current Plan
 				</span>
 			)}
+			
 			<h3 class='text-lg font-medium text-gray-900 dark:text-gray-100'>{plan.plan_name}</h3>
 			<p class='mt-2 text-sm text-gray-500 dark:text-gray-400'>{plan.plan_description}</p>
+			
 			<div class='mt-4'>
-				<span class='text-3xl font-bold text-gray-900 dark:text-gray-100'>${plan.plan_price_monthly}</span>
-				<span class='text-gray-500 dark:text-gray-400'>/ monthly (USD)</span>
+				{isContactPlan ? (
+					<span class='text-3xl font-bold text-gray-900 dark:text-gray-100'>Custom</span>
+				) : plan.plan_price_monthly > 0 ? (
+					<>
+						<span class='text-3xl font-bold text-gray-900 dark:text-gray-100'>${plan.plan_price_monthly}</span>
+						<span class='text-gray-500 dark:text-gray-400'>/ monthly (USD)</span>
+					</>
+				) : (
+					<span class='text-3xl font-bold text-gray-900 dark:text-gray-100'>Free</span>
+				)}
 			</div>
 			{
 				/*<div class='mt-2 flex items-center gap-2'>
@@ -40,9 +58,10 @@ export default function PlanCard({ plan, isCurrentPlan, onSelect }: PlanCardProp
 				)}
 			</div>*/
 			}
+
 			<ul class='mt-6 mb-8 space-y-4'>
-				{plan.plan_features?.features?.map((feature: string) => (
-					<li class='flex items-start'>
+				{plan.plan_features?.features?.map((feature: string, index: number) => (
+					<li key={index} class='flex items-start'>
 						<svg
 							class='flex-shrink-0 h-5 w-5 text-green-500 dark:text-green-400'
 							viewBox='0 0 20 20'
@@ -58,18 +77,30 @@ export default function PlanCard({ plan, isCurrentPlan, onSelect }: PlanCardProp
 					</li>
 				))}
 			</ul>
-			<button
-				type='button'
-				onClick={onSelect}
-				disabled={isCurrentPlan}
-				class={`mt-auto w-full px-4 py-2 rounded-md text-sm font-medium ${
-					isCurrentPlan
-						? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-						: 'bg-blue-600 dark:bg-blue-500 text-white hover:bg-blue-700 dark:hover:bg-blue-600'
-				}`}
-			>
-				{isCurrentPlan ? 'Current Plan' : 'Change Plan'}
-			</button>
+			
+			{/* Action Button */}
+			{isContactPlan ? (
+				<button
+					type='button'
+					onClick={handleContactClick}
+					class='mt-auto w-full px-4 py-2 rounded-md text-sm font-medium bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105'
+				>
+					Contact Sales
+				</button>
+			) : (
+				<button
+					type='button'
+					onClick={onSelect}
+					disabled={isCurrentPlan}
+					class={`mt-auto w-full px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+						isCurrentPlan
+							? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+							: 'bg-blue-600 dark:bg-blue-500 text-white hover:bg-blue-700 dark:hover:bg-blue-600'
+					}`}
+				>
+					{isCurrentPlan ? 'Current Plan' : 'Change Plan'}
+				</button>
+			)}
 		</div>
 	);
 }

@@ -10,16 +10,17 @@ export interface Plan {
 		features: string[];
 		proposition?: string; // Marketing content for upgrade encouragement
 		target_user?: string; // Target user description for upgrade encouragement
+		upgrade_credits_cents?: number; // Credits to encourage upgrades
+		contact_for_signup?: boolean; // Enterprise plans that require contact
 	};
-	plan_limits?: {
-		max_conversations?: number;
-		monthly_tokens?: number;
-		rate_limits: {
-			tokens_per_minute: number;
-			requests_per_minute: number;
-		};
-	};
-	upgrade_credits_cents?: number; // Credits to encourage upgrades
+	//plan_limits?: {
+	//	max_conversations?: number;
+	//	monthly_tokens?: number;
+	//	rate_limits: {
+	//		tokens_per_minute: number;
+	//		requests_per_minute: number;
+	//	};
+	//};
 }
 export interface PlanResults {
 	plans: Array<Plan>;

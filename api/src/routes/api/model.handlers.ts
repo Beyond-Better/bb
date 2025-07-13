@@ -4,6 +4,8 @@ import { ModelRegistryService } from 'api/llms/modelRegistryService.ts';
 import { type LLMProvider, LLMProviderLabel } from 'api/types/llms.ts';
 import type { ModelInfo } from 'api/types/modelCapabilities.ts';
 import { getConfigManager } from 'shared/config/configManager.ts';
+import { SupabaseClientFactory } from 'api/auth/session.ts';
+import { ModelAccess } from 'shared/utils/features.utils.ts';
 
 /**
  * @openapi
@@ -85,8 +87,9 @@ import { getConfigManager } from 'shared/config/configManager.ts';
  *         description: Internal server error
  */
 export const listModels = async (
-	{ request, response }: { request: Context['request']; response: Context['response'] },
+	ctx: Context,
 ) => {
+	const { request, response } = ctx;
 	try {
 		logger.info('ModelHandler: listModels called');
 
@@ -124,6 +127,54 @@ export const listModels = async (
 			allModels = allModels.filter((model: ModelInfo) => model.source === sourceFilter);
 		}
 
+		// Get user session for feature access checks
+		const session = ctx.state?.session;
+		let userHasAccess: Record<string, boolean> = {};
+
+		// Perform feature access checks if user is authenticated
+		if (session?.user?.id) {
+			try {
+				// Create Supabase client for abi_core schema
+				const supabaseCore = await SupabaseClientFactory.createClient('abi_core');
+				
+				// Batch check feature access for all models
+				const accessChecks = await Promise.allSettled(
+					allModels.map(async (model) => {
+						if (!model.capabilities.featureKey) return { modelId: model.id, hasAccess: true };
+						
+						const hasAccess = await ModelAccess.hasModel(
+							supabaseCore,
+							session.user.id,
+							model.capabilities.featureKey
+						);
+						return { modelId: model.id, hasAccess };
+					})
+				);
+				
+				// Process results
+				accessChecks.forEach((result, index) => {
+					if (result.status === 'fulfilled') {
+						userHasAccess[result.value.modelId] = result.value.hasAccess;
+					} else {
+						// On error, default to no access for security
+						userHasAccess[allModels[index].id] = false;
+						logger.warn(`Feature access check failed for model ${allModels[index].id}:`, result.reason);
+					}
+				});
+			} catch (error) {
+				logger.error('Failed to perform feature access checks:', error);
+				// Default to no access for all models on error
+				allModels.forEach(model => {
+					userHasAccess[model.id] = false;
+				});
+			}
+		} else {
+			// No authenticated user, default to no access
+			allModels.forEach(model => {
+				userHasAccess[model.id] = false;
+			});
+		}
+
 		// Transform models for API response
 		const transformedModels = allModels.map((model: ModelInfo) => ({
 			id: model.id,
@@ -139,6 +190,8 @@ export const listModels = async (
 			releaseDate: model.capabilities.releaseDate,
 			trainingCutoff: model.capabilities.trainingCutoff,
 			source: model.source,
+			featureKey: model.capabilities.featureKey,
+			userHasAccess: userHasAccess[model.id] ?? false,
 		}));
 
 		// Apply pagination
@@ -210,8 +263,9 @@ export const listModels = async (
  *         description: Internal server error
  */
 export const getModelCapabilities = async (
-	{ params, response }: { params: { modelId: string }; response: Context['response'] },
+	ctx: Context & { params: { modelId: string } },
 ) => {
+	const { params, response } = ctx;
 	try {
 		// Get the model ID from params
 		const modelId = params.modelId;
@@ -240,6 +294,30 @@ export const getModelCapabilities = async (
 			return;
 		}
 
+		// Get user session for feature access check
+		const session = ctx.state?.session;
+		let userHasAccess = false;
+
+		// Perform feature access check if user is authenticated
+		if (session?.user?.id && modelInfo.capabilities.featureKey) {
+			try {
+				// Create Supabase client for abi_core schema
+				const supabaseCore = await SupabaseClientFactory.createClient('abi_core');
+				
+				userHasAccess = await ModelAccess.hasModel(
+					supabaseCore,
+					session.user.id,
+					modelInfo.capabilities.featureKey
+				);
+			} catch (error) {
+				logger.warn(`Feature access check failed for model ${modelId}:`, error);
+				userHasAccess = false; // Default to no access on error
+			}
+		} else if (!modelInfo.capabilities.featureKey) {
+			// Models without feature keys are accessible by default (e.g., legacy models)
+			userHasAccess = true;
+		}
+
 		response.status = 200;
 		response.body = {
 			model: {
@@ -249,6 +327,7 @@ export const getModelCapabilities = async (
 				providerLabel: LLMProviderLabel[modelInfo.provider as LLMProvider] || 'Unknown',
 				source: modelInfo.source,
 				capabilities: modelInfo.capabilities,
+				userHasAccess,
 			},
 		};
 	} catch (error) {
@@ -280,8 +359,9 @@ export const getModelCapabilities = async (
  *         description: Internal server error
  */
 export const refreshDynamicModels = async (
-	{ response }: { response: Context['response'] },
+	ctx: Context,
 ) => {
+	const { response } = ctx;
 	try {
 		logger.info('ModelHandler: refreshDynamicModels called');
 

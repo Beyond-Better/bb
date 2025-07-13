@@ -5,6 +5,8 @@ import {
 	createSetupIntent,
 	getAutoTopupStatus,
 	getBillingConfig,
+	getEnhancedPurchaseHistory,
+	getUsageAnalytics,
 	listPaymentMethods,
 	listUsageBlocks,
 	purchaseUsageBlock,
@@ -26,6 +28,8 @@ billingRouter
 	.delete('/payment-methods/:id', removePaymentMethod)
 	.post('/usage/purchase', purchaseUsageBlock)
 	.get('/usage/blocks', listUsageBlocks)
+	.get('/usage/analytics', getUsageAnalytics)
+	.get('/history/enhanced', getEnhancedPurchaseHistory)
 	.get('/auto-topup', getAutoTopupStatus)
 	.put('/auto-topup', updateAutoTopupSettings)
 	.post('/auto-topup', triggerAutoTopup);

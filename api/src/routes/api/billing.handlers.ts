@@ -471,3 +471,149 @@ export async function triggerAutoTopup(ctx: Context) {
 		ctx.response.body = { error: 'Failed to trigger auto top-up' };
 	}
 }
+
+// NEW ENDPOINTS FOR BILLING RESTRUCTURE
+
+/**
+ * Get usage analytics for Usage & History tab
+ * Calls billing-usage-analytics edge function
+ */
+export async function getUsageAnalytics(ctx: Context) {
+	try {
+		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
+		if (!sessionManager) {
+			logger.warn(
+				`BillingHandler: getUsageAnalytics: No session manager configured`,
+			);
+			ctx.response.status = 400;
+			ctx.response.body = { error: 'No session manager configured' };
+			return;
+		}
+		const supabaseClient = sessionManager.getClient();
+
+		// Extract query parameters
+		const url = new URL(ctx.request.url);
+		const period = url.searchParams.get('period') || 'month';
+
+		// Validate period parameter
+		if (!['month', 'quarter', 'year'].includes(period)) {
+			ctx.response.status = 400;
+			ctx.response.body = { error: 'Invalid period. Must be month, quarter, or year' };
+			return;
+		}
+
+		// Build query parameters for GET request
+		const queryParams = new URLSearchParams({ period });
+		
+		const { data, error } = await supabaseClient.functions.invoke(
+			`billing-usage-analytics?${queryParams}`,
+			{ method: 'GET' }
+		);
+
+		if (error) {
+			logger.error(`BillingHandler: getUsageAnalytics: Edge function error`, { error });
+			ctx.response.status = 400;
+			ctx.response.body = { error: error.message };
+			return;
+		}
+
+		ctx.response.body = data;
+	} catch (err) {
+		console.error('Error getting usage analytics:', err);
+		ctx.response.status = 500;
+		ctx.response.body = { error: 'Failed to get usage analytics' };
+	}
+}
+
+/**
+ * Get enhanced purchase history for Usage & History tab
+ * Calls billing-invoice-history edge function
+ */
+export async function getEnhancedPurchaseHistory(ctx: Context) {
+	try {
+		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
+		if (!sessionManager) {
+			logger.warn(
+				`BillingHandler: getEnhancedPurchaseHistory: No session manager configured`,
+			);
+			ctx.response.status = 400;
+			ctx.response.body = { error: 'No session manager configured' };
+			return;
+		}
+		const supabaseClient = sessionManager.getClient();
+
+		// Extract query parameters
+		const url = new URL(ctx.request.url);
+		const type = url.searchParams.get('type') || 'all';
+		const status = url.searchParams.get('status') || 'all';
+		const date_start = url.searchParams.get('date_start');
+		const date_end = url.searchParams.get('date_end');
+		const page = parseInt(url.searchParams.get('page') || '1', 10);
+		const per_page = Math.min(parseInt(url.searchParams.get('per_page') || '25', 10), 100);
+
+		// Validate parameters
+		if (!['all', 'subscription', 'credit_purchase', 'auto_topup'].includes(type)) {
+			ctx.response.status = 400;
+			ctx.response.body = { error: 'Invalid transaction type' };
+			return;
+		}
+
+		if (!['all', 'pending', 'completed', 'failed', 'refunded'].includes(status)) {
+			ctx.response.status = 400;
+			ctx.response.body = { error: 'Invalid status' };
+			return;
+		}
+
+		if (page < 1) {
+			ctx.response.status = 400;
+			ctx.response.body = { error: 'Page must be >= 1' };
+			return;
+		}
+
+		if (per_page < 1 || per_page > 100) {
+			ctx.response.status = 400;
+			ctx.response.body = { error: 'Per page must be between 1 and 100' };
+			return;
+		}
+
+		// Validate date format if provided
+		if (date_start && !/^\d{4}-\d{2}-\d{2}$/.test(date_start)) {
+			ctx.response.status = 400;
+			ctx.response.body = { error: 'Invalid date_start format. Use YYYY-MM-DD' };
+			return;
+		}
+
+		if (date_end && !/^\d{4}-\d{2}-\d{2}$/.test(date_end)) {
+			ctx.response.status = 400;
+			ctx.response.body = { error: 'Invalid date_end format. Use YYYY-MM-DD' };
+			return;
+		}
+
+		// Build query parameters for GET request
+		const queryParams = new URLSearchParams();
+		if (type !== 'all') queryParams.set('type', type);
+		if (status !== 'all') queryParams.set('status', status);
+		if (date_start) queryParams.set('date_start', date_start);
+		if (date_end) queryParams.set('date_end', date_end);
+		queryParams.set('page', page.toString());
+		queryParams.set('per_page', per_page.toString());
+		
+		const { data, error } = await supabaseClient.functions.invoke(
+			`billing-invoice-history?${queryParams}`,
+			{ method: 'GET' }
+		);
+
+		if (error) {
+			logger.error(`BillingHandler: getEnhancedPurchaseHistory: Edge function error`, { error });
+			ctx.response.status = 400;
+			ctx.response.body = { error: error.message };
+			return;
+		}
+
+		ctx.response.body = data;
+	} catch (err) {
+		console.error('Error getting enhanced purchase history:', err);
+		ctx.response.status = 500;
+		ctx.response.body = { error: 'Failed to get purchase history' };
+	}
+}

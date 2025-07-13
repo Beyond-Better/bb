@@ -100,6 +100,9 @@ export interface ModelCapabilities {
 	// System prompt handling
 	systemPromptBehavior: 'required' | 'optional' | 'notSupported' | 'fixed';
 
+	// Feature access control
+	featureKey?: string; // Hierarchical feature key for access control (e.g., 'models.claude.sonnet')
+
 	// Metadata
 	trainingCutoff?: string; // When the model's training data ends
 	releaseDate?: string; // When the model was released
