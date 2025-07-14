@@ -5,6 +5,7 @@ export interface Plan {
 	plan_description: string;
 	plan_price_monthly: number;
 	plan_price_yearly: number;
+	signup_credits_cents: number;
 	//interval: 'month' | 'year';
 	plan_features: {
 		features: string[];

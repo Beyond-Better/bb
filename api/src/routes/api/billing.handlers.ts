@@ -494,6 +494,9 @@ export async function getUsageAnalytics(ctx: Context) {
 		// Extract query parameters
 		const url = new URL(ctx.request.url);
 		const period = url.searchParams.get('period') || 'month';
+		const month = url.searchParams.get('month') || 'current';
+		const models = url.searchParams.get('models');
+		const metric = url.searchParams.get('metric') || 'cost';
 
 		// Validate period parameter
 		if (!['month', 'quarter', 'year'].includes(period)) {
@@ -502,8 +505,25 @@ export async function getUsageAnalytics(ctx: Context) {
 			return;
 		}
 
+		// Validate month parameter
+		if (month !== 'current' && !/^\d{4}-\d{2}$/.test(month)) {
+			ctx.response.status = 400;
+			ctx.response.body = { error: 'Invalid month format. Use "current" or "YYYY-MM"' };
+			return;
+		}
+
+		// Validate metric parameter
+		if (!['cost', 'tokens', 'both'].includes(metric)) {
+			ctx.response.status = 400;
+			ctx.response.body = { error: 'Invalid metric. Must be cost, tokens, or both' };
+			return;
+		}
+
 		// Build query parameters for GET request
-		const queryParams = new URLSearchParams({ period });
+		const queryParams = new URLSearchParams({ period, month, metric });
+		if (models) {
+			queryParams.set('models', models);
+		}
 		
 		const { data, error } = await supabaseClient.functions.invoke(
 			`billing-usage-analytics?${queryParams}`,
