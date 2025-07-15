@@ -169,6 +169,7 @@
 		"shared/types/dataSource.ts": "./src/shared/types/dataSource.types.ts",
 		"shared/types/dataSourceResource.ts": "./src/shared/types/dataSourceResource.types.ts",
 		"shared/types/subscription.ts": "./src/shared/types/subscription.types.ts",
+		"shared/types/supabase.ts": "./src/shared/types/supabase.types.ts",
 		"shared/utils/logEntries.ts": "./src/shared/utils/logEntries.utils.ts",
 		"shared/logger.ts": "./src/shared/utils/logger.utils.ts",
 		"shared/logViewer.ts": "./src/shared/utils/logViewer.utils.ts",

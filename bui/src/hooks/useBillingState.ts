@@ -298,7 +298,7 @@ export function useBillingState() {
 
 	// NEW METHODS FOR ANALYTICS FEATURES
 
-	const loadUsageAnalytics = async (period?: 'month' | 'quarter' | 'year'): Promise<void> => {
+	const loadUsageAnalytics = async (params?: URLSearchParams): Promise<void> => {
 		try {
 			billingState.value = {
 				...billingState.value,
@@ -306,9 +306,8 @@ export function useBillingState() {
 				paymentFlowError: null,
 			};
 
-			// Call real API endpoint
 			const apiClient = getApiClient();
-			const analytics = await apiClient.getUsageAnalytics(period);
+			const analytics = await apiClient.getUsageAnalytics(params);
 
 			billingState.value = {
 				...billingState.value,
@@ -332,7 +331,6 @@ export function useBillingState() {
 				paymentFlowError: null,
 			};
 
-			// Call real API endpoint
 			const apiClient = getApiClient();
 			const history = await apiClient.getEnhancedPurchaseHistory(filters);
 

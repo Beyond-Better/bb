@@ -1,5 +1,6 @@
 import { Router } from '@oak/oak';
 import billingRouter from './billingRouter.ts';
+import featuresRouter from './featuresRouter.ts';
 import { cancelSubscription, changePlan, getCurrentSubscription, getPreview } from './subscription.handlers.ts';
 import { getUserPreferences, updateUserPreferences } from './userPreferences.handlers.ts';
 
@@ -104,6 +105,7 @@ userRouter
 	.post('/subscription/change', changePlan)
 	.post('/subscription/preview', getPreview)
 	.post('/subscription/cancel', cancelSubscription)
-	.use('/billing', billingRouter.routes(), billingRouter.allowedMethods());
+	.use('/billing', billingRouter.routes(), billingRouter.allowedMethods())
+	.use('/features', featuresRouter.routes(), featuresRouter.allowedMethods());
 
 export default userRouter;

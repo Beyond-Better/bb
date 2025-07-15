@@ -5,7 +5,7 @@ import { type LLMProvider, LLMProviderLabel } from 'api/types/llms.ts';
 import type { ModelInfo } from 'api/types/modelCapabilities.ts';
 import { getConfigManager } from 'shared/config/configManager.ts';
 import { SupabaseClientFactory } from 'api/auth/session.ts';
-import { ModelAccess } from 'shared/utils/features.utils.ts';
+import { ModelAccess } from 'shared/features.ts';
 
 /**
  * @openapi
@@ -131,12 +131,14 @@ export const listModels = async (
 		const session = ctx.state?.session;
 		let userHasAccess: Record<string, boolean> = {};
 
+		//logger.info('ModelHandler: session', session);
+
 		// Perform feature access checks if user is authenticated
 		if (session?.user?.id) {
 			try {
 				// Create Supabase clients for both schemas
-				const supabaseCore = await SupabaseClientFactory.createClient('abi_core');
-				const supabaseBilling = await SupabaseClientFactory.createClient('abi_billing');
+				const supabaseCore = await SupabaseClientFactory.createClient('abi_core', true);
+				const supabaseBilling = await SupabaseClientFactory.createClient('abi_billing', true);
 				
 				// Batch check feature access for all models
 				const accessChecks = await Promise.allSettled(

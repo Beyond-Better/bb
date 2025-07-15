@@ -5,12 +5,12 @@ export interface Plan {
 	plan_description: string;
 	plan_price_monthly: number;
 	plan_price_yearly: number;
-	signup_credits_cents: number;
 	//interval: 'month' | 'year';
 	plan_features: {
 		features: string[];
 		proposition?: string; // Marketing content for upgrade encouragement
 		target_user?: string; // Target user description for upgrade encouragement
+		signup_credits_cents: number;
 		upgrade_credits_cents?: number; // Credits to encourage upgrades
 		contact_for_signup?: boolean; // Enterprise plans that require contact
 	};

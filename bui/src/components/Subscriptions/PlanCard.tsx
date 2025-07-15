@@ -80,8 +80,8 @@ export default function PlanCard({ plan, isCurrentPlan, onSelect }: PlanCardProp
 			}
 
 			{/* Credits Section - Make it special and prominent */}
-			{!!hasCredits && (
-				<div class='mt-6 p-4 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800 relative overflow-hidden'>
+			{hasCredits && (
+				<div class='mt-4 p-4 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800 relative overflow-hidden'>
 					{/* Background decoration */}
 					<div class='absolute top-0 right-0 w-16 h-16 bg-emerald-100 dark:bg-emerald-800/30 rounded-full -mr-8 -mt-8 opacity-30'>
 					</div>
@@ -109,28 +109,28 @@ export default function PlanCard({ plan, isCurrentPlan, onSelect }: PlanCardProp
 						</div>
 
 						<div class='space-y-2'>
-							{(plan.plan_features?.signup_credits_cents ?? 0) > 0 &&
-								(
-									<div class='flex items-center justify-between'>
-										<span class='text-sm text-gray-700 dark:text-gray-300'>On signup:</span>
-										<span class='font-bold text-emerald-700 dark:text-emerald-300 text-lg'>
-											${formatCents(plan.plan_features.signup_credits_cents)}
-										</span>
-									</div>
-								)}
+							{/* {(plan.plan_features?.signup_credits_cents ?? 0) > 0 && ( */}
+								<div class='flex items-center justify-between'>
+									<span class='text-sm text-gray-700 dark:text-gray-300'>On signup:</span>
+									<span class='font-bold text-emerald-700 dark:text-emerald-300 text-lg'>
+										${formatCents(plan.plan_features.signup_credits_cents)}
+									</span>
+								</div>
+							{/* )} */}
 
-							{(plan.plan_features?.upgrade_credits_cents ?? 0) > 0 && (
+							{/* {(plan.plan_features?.upgrade_credits_cents ?? 0) > 0 && ( */}
 								<div class='flex items-center justify-between'>
 									<span class='text-sm text-gray-700 dark:text-gray-300'>On upgrade:</span>
 									<span class='font-bold text-emerald-700 dark:text-emerald-300 text-lg'>
-										${formatCents(plan.plan_features.upgrade_credits_cents)}
+										{(plan.plan_features?.upgrade_credits_cents ?? 0) > 0 ? '$'+formatCents(plan.plan_features.upgrade_credits_cents) : 'N/A'}
 									</span>
 								</div>
-							)}
+							{/* )} */}
 						</div>
 
 						{/* Total credits display if both exist */}
-						{/* {(plan.plan_features?.signup_credits_cents ?? 0) > 0 &&
+						{
+							/* {(plan.plan_features?.signup_credits_cents ?? 0) > 0 &&
 							(plan.plan_features?.upgrade_credits_cents ?? 0) > 0 &&
 							(
 								<div class='mt-3 pt-2 border-t border-emerald-200 dark:border-emerald-700'>
@@ -146,49 +146,68 @@ export default function PlanCard({ plan, isCurrentPlan, onSelect }: PlanCardProp
 										</span>
 									</div>
 								</div>
-							)} */}
+							)} */
+						}
 					</div>
 				</div>
 			)}
 
 			{/* Enterprise Value Section - For contact plans without credits */}
 			{isContactPlan && !hasCredits && (
-				<div class='mt-6 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-lg border border-purple-200 dark:border-purple-800 relative overflow-hidden'>
+				<div class='mt-4 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-lg border border-purple-200 dark:border-purple-800 relative overflow-hidden'>
 					{/* Background decoration */}
-					<div class='absolute top-0 right-0 w-16 h-16 bg-purple-100 dark:bg-purple-800/30 rounded-full -mr-8 -mt-8 opacity-30'></div>
-					<div class='absolute bottom-0 left-0 w-12 h-12 bg-indigo-100 dark:bg-indigo-800/30 rounded-full -ml-6 -mb-6 opacity-30'></div>
-					
+					<div class='absolute top-0 right-0 w-16 h-16 bg-purple-100 dark:bg-purple-800/30 rounded-full -mr-8 -mt-8 opacity-30'>
+					</div>
+					<div class='absolute bottom-0 left-0 w-12 h-12 bg-indigo-100 dark:bg-indigo-800/30 rounded-full -ml-6 -mb-6 opacity-30'>
+					</div>
+
 					<div class='relative z-10'>
 						<div class='flex items-center gap-2 mb-2'>
-							<svg class='w-5 h-5 text-purple-600 dark:text-purple-400' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-								<path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z' />
+							<svg
+								class='w-5 h-5 text-purple-600 dark:text-purple-400'
+								fill='none'
+								stroke='currentColor'
+								viewBox='0 0 24 24'
+							>
+								<path
+									stroke-linecap='round'
+									stroke-linejoin='round'
+									stroke-width='2'
+									d='M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z'
+								/>
 							</svg>
-							<span class='font-semibold text-purple-800 dark:text-purple-200 text-sm'>Enterprise Value</span>
+							<span class='font-semibold text-purple-800 dark:text-purple-200 text-sm'>
+								Enterprise Value
+							</span>
 						</div>
-						
+
 						<div class='space-y-2'>
-							<div class='flex items-center justify-between'>
+							{
+								/*<div class='flex items-center justify-between'>
 								<span class='text-sm text-gray-700 dark:text-gray-300'>Custom Credits:</span>
 								<span class='font-bold text-purple-700 dark:text-purple-300 text-lg'>Negotiated</span>
-							</div>
-							
+							</div>*/
+							}
+
 							<div class='flex items-center justify-between'>
 								<span class='text-sm text-gray-700 dark:text-gray-300'>Dedicated Support:</span>
 								<span class='font-bold text-purple-700 dark:text-purple-300 text-lg'>24/7</span>
 							</div>
-							
+
 							<div class='flex items-center justify-between'>
 								<span class='text-sm text-gray-700 dark:text-gray-300'>Custom Integrations:</span>
 								<span class='font-bold text-purple-700 dark:text-purple-300 text-lg'>Included</span>
 							</div>
 						</div>
-						
-						<div class='mt-3 pt-2 border-t border-purple-200 dark:border-purple-700'>
+
+						{
+							/*<div class='mt-3 pt-2 border-t border-purple-200 dark:border-purple-700'>
 							<div class='flex items-center justify-between'>
 								<span class='text-sm font-medium text-purple-800 dark:text-purple-200'>Contact for pricing:</span>
 								<span class='font-bold text-purple-700 dark:text-purple-300 text-xl'>Custom</span>
 							</div>
-						</div>
+						</div>*/
+						}
 					</div>
 				</div>
 			)}

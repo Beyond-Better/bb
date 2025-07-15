@@ -12,7 +12,6 @@ import { getConfigManager } from 'shared/config/configManager.ts';
 import { getMCPManager } from 'api/mcp/mcpManager.ts';
 import type { MCPManager } from 'api/mcp/mcpManager.ts';
 import { getProjectPersistenceManager } from 'api/storage/projectPersistenceManager.ts';
-import { getFeatureService, type FeatureService } from 'api/features/featureService.ts';
 import type ProjectPersistence from 'api/storage/projectPersistence.ts';
 import type {
 	DataSourceConnection,
@@ -53,7 +52,6 @@ class ProjectEditor {
 	public eventManager!: EventManager;
 	public mcpManager!: MCPManager;
 	public resourceManager!: ResourceManager;
-	public featureService!: FeatureService;
 	public sessionManager: SessionManager;
 	public projectId: ProjectId;
 	public toolSet: LLMToolManagerToolSetType = 'coding';
@@ -122,9 +120,6 @@ class ProjectEditor {
 			this.eventManager = EventManager.getInstance();
 
 			this.resourceManager = await new ResourceManager(this).init();
-
-			// Initialize feature service with project context
-			this.featureService = await getFeatureService();
 
 			this.orchestratorController = await new OrchestratorController(this).init();
 

@@ -92,7 +92,7 @@ export class FeatureAccessService {
 					p_user_id: userId,
 					p_feature_key: featureKey,
 				});
-			console.log(`FeatureAccessService: checkFeatureAccess: ${featureKey}`, { data, error });
+			//console.log(`FeatureAccessService: checkFeatureAccess: ${featureKey} for user ${userId}`, { data, error });
 
 			if (error) {
 				console.error('Error checking feature access:', error);
@@ -428,7 +428,7 @@ export class FeatureAccessService {
 	 * Helper method to check if user has access to a model
 	 */
 	async hasModelAccess(userId: string, modelKey: string): Promise<boolean> {
-		console.log(`FeatureAccessService: checking for model: ${modelKey}`);
+		//console.log(`FeatureAccessService: checking for model: ${modelKey}`);
 		const resolvedModelKey = modelKey.startsWith('models.') ? modelKey : `models.${modelKey}`;
 		const result = await this.checkFeatureAccess(userId, resolvedModelKey);
 		return result.access_granted;

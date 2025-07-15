@@ -23,8 +23,6 @@ import type { ProjectConfig } from 'shared/config/types.ts';
 import { getBbDir, getGlobalConfigDir } from 'shared/dataDir.ts';
 import type { MCPManager } from 'api/mcp/mcpManager.ts';
 import { getMCPManager } from 'api/mcp/mcpManager.ts';
-import type { FeatureService } from 'api/features/featureService.ts';
-import { getFeatureService } from 'api/features/featureService.ts';
 
 import { CORE_TOOLS } from './tools_manifest.ts';
 
@@ -68,7 +66,6 @@ class LLMToolManager {
 	private globalConfigDir: string | undefined;
 	public toolSet: LLMToolManagerToolSetType | LLMToolManagerToolSetType[];
 	private mcpManager!: MCPManager;
-	private featureService!: FeatureService;
 
 	constructor(
 		projectConfig: ProjectConfig,
@@ -87,7 +84,6 @@ class LLMToolManager {
 		this.globalConfigDir = await getGlobalConfigDir();
 		await this.loadInternalToolsMetadata(this.projectConfig.api?.userToolDirectories || []);
 		this.mcpManager = await getMCPManager();
-		this.featureService = await getFeatureService();
 		await this.loadMCPToolsMetadata(await this.mcpManager.getServers());
 
 		return this;
@@ -187,17 +183,6 @@ class LLMToolManager {
 	private async loadMCPToolsMetadata(serverIds: string[]): Promise<void> {
 		try {
 			logger.debug(`LLMToolManager: Loading tools from ${serverIds.length} MCP servers`);
-
-			// Check if user has access to external MCP tools
-			const mcpAccessCheck = await this.featureService.checkFeature({
-				feature: 'external_mcp_tools',
-				context: { toolManager: 'llm' }
-			});
-
-			if (!mcpAccessCheck.allowed) {
-				logger.info(`LLMToolManager: MCP tools access denied: ${mcpAccessCheck.reason}`);
-				return;
-			}
 
 			// For each MCP server (keyed by mcpServerConfig.id), load its tools
 			for (const serverId of serverIds) {

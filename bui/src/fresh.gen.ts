@@ -31,7 +31,8 @@ import * as $AppSettings_DefaultProjectSettings from './islands/AppSettings/Defa
 import * as $AppSettings_MCPServerItem from './islands/AppSettings/MCPServerItem.tsx';
 import * as $AppSettings_MCPServersSection from './islands/AppSettings/MCPServersSection.tsx';
 import * as $AppSettings_NotificationSettings from './islands/AppSettings/NotificationSettings.tsx';
-import * as $AppSettings_SubscriptionSettings from './islands/AppSettings/SubscriptionSettings.tsx';
+import * as $AppSettings_PlansAndCreditsTab from './islands/AppSettings/PlansAndCreditsTab.tsx';
+import * as $AppSettings_UsageAndHistoryTab from './islands/AppSettings/UsageAndHistoryTab.tsx';
 import * as $AuthContext from './islands/AuthContext.tsx';
 import * as $Chat from './islands/Chat.tsx';
 import * as $Context_appConfig from './islands/Context/appConfig.tsx';
@@ -87,7 +88,8 @@ const manifest = {
 		'./islands/AppSettings/MCPServerItem.tsx': $AppSettings_MCPServerItem,
 		'./islands/AppSettings/MCPServersSection.tsx': $AppSettings_MCPServersSection,
 		'./islands/AppSettings/NotificationSettings.tsx': $AppSettings_NotificationSettings,
-		'./islands/AppSettings/SubscriptionSettings.tsx': $AppSettings_SubscriptionSettings,
+		'./islands/AppSettings/PlansAndCreditsTab.tsx': $AppSettings_PlansAndCreditsTab,
+		'./islands/AppSettings/UsageAndHistoryTab.tsx': $AppSettings_UsageAndHistoryTab,
 		'./islands/AuthContext.tsx': $AuthContext,
 		'./islands/Chat.tsx': $Chat,
 		'./islands/Context/appConfig.tsx': $Context_appConfig,

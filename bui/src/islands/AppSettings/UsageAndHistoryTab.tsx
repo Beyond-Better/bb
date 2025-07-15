@@ -6,13 +6,28 @@ import { PurchaseHistoryFilters } from '../../types/subscription.ts';
 import { formatDateSafe } from 'bui/utils/intl.ts';
 import { CustomSelect, type SelectOption } from '../../components/CustomSelect.tsx';
 
+interface AnalyticsFilters {
+	month: string;
+	models: string;
+	metric: 'cost' | 'tokens' | 'both';
+}
+
+const defaultAnalyticsFilters: AnalyticsFilters = {
+	month: 'current',
+	models: 'all',
+	metric: 'cost',
+};
+
 export default function UsageAndHistoryTab() {
 	const { billingState, loadUsageAnalytics, loadPurchaseHistory } = useBillingState();
-	
+
 	// Track previous active state to detect tab changes
 	const wasActive = useSignal(false);
-	
-	// Filter state
+
+	// Analytics filter state
+	const analyticsFilters = useSignal<AnalyticsFilters>(defaultAnalyticsFilters);
+
+	// Purchase history filter state
 	const historyFilters = useSignal<PurchaseHistoryFilters>({
 		transaction_type: 'all',
 		status: 'all',
@@ -20,19 +35,50 @@ export default function UsageAndHistoryTab() {
 		per_page: 25,
 	});
 
+	const analytics = billingState.value.usageAnalytics;
+	const history = billingState.value.purchaseHistory;
+
 	// Initialize data when tab becomes active
 	useEffect(() => {
 		const isActive = activeTab.value === 'usage-history';
 
 		if (isActive && !wasActive.value) {
-			loadUsageAnalytics();
+			loadUsageAnalyticsWithFilters();
 			loadPurchaseHistory(historyFilters.value);
 		}
 
 		wasActive.value = isActive;
 	}, [activeTab.value]);
 
-	const handleFilterChange = async (newFilters: Partial<PurchaseHistoryFilters>) => {
+	// Load analytics with current filters
+	const loadUsageAnalyticsWithFilters = () => {
+		const filters = analyticsFilters.value;
+		//console.log('UsageAndHistoryTab: loadUsageAnalyticsWithFilters', filters);
+		const params = new URLSearchParams({
+			period: 'month',
+			month: filters.month,
+			metric: filters.metric,
+		});
+		if (filters.models !== 'all') {
+			params.set('models', filters.models);
+		}
+		loadUsageAnalytics(params);
+	};
+
+	// Handle analytics filter changes
+	const handleAnalyticsFilterChange = (newFilters: Partial<AnalyticsFilters>) => {
+		//console.log('UsageAndHistoryTab: handleAnalyticsFilterChange', newFilters);
+		analyticsFilters.value = { ...analyticsFilters.value, ...newFilters };
+		loadUsageAnalyticsWithFilters();
+	};
+
+	// Reset analytics filters
+	const resetAnalyticsFilters = () => {
+		analyticsFilters.value = defaultAnalyticsFilters;
+		loadUsageAnalyticsWithFilters();
+	};
+
+	const handlePurchaseHistoryFilterChange = async (newFilters: Partial<PurchaseHistoryFilters>) => {
 		historyFilters.value = { ...historyFilters.value, ...newFilters, page: 1 };
 		await loadPurchaseHistory(historyFilters.value);
 	};
@@ -42,7 +88,49 @@ export default function UsageAndHistoryTab() {
 		console.log('Export history functionality to be implemented');
 	};
 
-	// Filter options for CustomSelect components
+	// Generate month options (current month + 11 previous months)
+	const generateMonthOptions = (): SelectOption[] => {
+		const options: SelectOption[] = [{ value: 'current', label: 'Current Month' }];
+		const now = new Date();
+
+		for (let i = 0; i < 12; i++) {
+			const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+			const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+			const label = formatDateSafe(date, { year: 'numeric', month: 'long' }, 'Unknown');
+			options.push({ value, label });
+		}
+
+		return options;
+	};
+
+	// Generate model options from analytics data
+	const generateModelOptions = (): SelectOption[] => {
+		const options: SelectOption[] = [{ value: 'all', label: 'All Models' }];
+
+		if (analytics?.model_breakdown) {
+			const uniqueModels = new Set<string>();
+			analytics.model_breakdown.forEach((model) => {
+				uniqueModels.add(model.model_name);
+			});
+
+			Array.from(uniqueModels).sort().forEach((modelName) => {
+				options.push({ value: modelName, label: modelName });
+			});
+		}
+
+		return options;
+	};
+
+	// Analytics filter options
+	const monthOptions = generateMonthOptions();
+	const modelOptions = generateModelOptions();
+	const metricOptions: SelectOption[] = [
+		{ value: 'cost', label: 'Cost (USD)' },
+		{ value: 'tokens', label: 'Token Count' },
+		{ value: 'both', label: 'Cost & Tokens' },
+	];
+
+	// Purchase history filter options
 	const transactionTypeOptions: SelectOption[] = [
 		{ value: 'all', label: 'All Types' },
 		{ value: 'subscription', label: 'Subscription' },
@@ -80,9 +168,46 @@ export default function UsageAndHistoryTab() {
 		);
 	}
 
-	const analytics = billingState.value.usageAnalytics;
-	const history = billingState.value.purchaseHistory;
-console.log('UsageAndHistoryTab', analytics);
+	// Chart helper functions
+	const getBarHeight = (day: any, maxValue: number, metric: string) => {
+		const value = metric === 'cost' ? day.cost_usd : metric === 'tokens'
+			? day.tokens / 1000 // Scale tokens to thousands
+			: day.cost_usd; // Default to cost
+
+		return maxValue > 0 ? Math.max(8, (value / maxValue) * 96) : 8;
+	};
+
+	const getMaxValue = (data: any[], metric: string) => {
+		if (metric === 'cost') {
+			return Math.max(...data.map((d) => d.cost_usd));
+		} else if (metric === 'tokens') {
+			return Math.max(...data.map((d) => d.tokens / 1000));
+		}
+		return Math.max(...data.map((d) => d.cost_usd));
+	};
+
+	const getTooltipContent = (day: any, metric: string) => (
+		<div class='absolute bottom-full mb-2 hidden group-hover:block bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded px-2 py-1 whitespace-nowrap z-10'>
+			<div class='font-medium'>
+				{formatDateSafe(new Date(day.date), { month: 'short', day: 'numeric' }, 'N/A')}
+			</div>
+			{metric === 'both'
+				? (
+					<>
+						<div>${day.cost_usd.toFixed(2)}</div>
+						<div>{(day.tokens / 1000).toFixed(1)}K tokens</div>
+					</>
+				)
+				: metric === 'cost'
+				? <div>${day.cost_usd.toFixed(2)}</div>
+				: <div>{(day.tokens / 1000).toFixed(1)}K tokens</div>}
+			<div class='text-xs opacity-75'>{day.requests} requests</div>
+			{/* Tooltip arrow */}
+			<div class='absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-gray-100'>
+			</div>
+		</div>
+	);
+
 	return (
 		<div class='p-6'>
 			<div class='flex items-center space-x-3 mb-6'>
@@ -98,7 +223,63 @@ console.log('UsageAndHistoryTab', analytics);
 			{analytics && (
 				<div class='mb-8'>
 					<h4 class='text-base font-medium text-gray-700 dark:text-gray-300 mb-4'>Usage Analytics</h4>
-					
+
+					{/* Analytics Filter Bar */}
+					<div class='bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 mb-6'>
+						<div class='grid grid-cols-1 md:grid-cols-4 gap-4'>
+							{/* Month Selection */}
+							<div>
+								<label class='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
+									Time Period
+								</label>
+								<CustomSelect
+									options={monthOptions}
+									value={analyticsFilters.value.month}
+									onChange={(value) => handleAnalyticsFilterChange({ month: value })}
+									className='w-full'
+								/>
+							</div>
+
+							{/* Model Filter */}
+							<div>
+								<label class='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
+									Models
+								</label>
+								<CustomSelect
+									options={modelOptions}
+									value={analyticsFilters.value.models}
+									onChange={(value) => handleAnalyticsFilterChange({ models: value })}
+									className='w-full'
+								/>
+							</div>
+
+							{/* Metric Toggle */}
+							<div>
+								<label class='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
+									Display Metric
+								</label>
+								<CustomSelect
+									options={metricOptions}
+									value={analyticsFilters.value.metric}
+									onChange={(value) =>
+										handleAnalyticsFilterChange({ metric: value as 'cost' | 'tokens' | 'both' })}
+									className='w-full'
+								/>
+							</div>
+
+							{/* Reset Button */}
+							<div class='flex items-end'>
+								<button
+									type='button'
+									onClick={resetAnalyticsFilters}
+									class='w-full px-3 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors'
+								>
+									Reset Filters
+								</button>
+							</div>
+						</div>
+					</div>
+
 					{/* Current Month Summary */}
 					<div class='grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6'>
 						<div class='bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6'>
@@ -109,7 +290,7 @@ console.log('UsageAndHistoryTab', analytics);
 								<div class='text-sm text-gray-500 dark:text-gray-400'>Spent This Month</div>
 							</div>
 						</div>
-						
+
 						<div class='bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6'>
 							<div class='text-center'>
 								<div class='text-3xl font-bold text-green-600 dark:text-green-400 mb-2'>
@@ -118,7 +299,7 @@ console.log('UsageAndHistoryTab', analytics);
 								<div class='text-sm text-gray-500 dark:text-gray-400'>Requests This Month</div>
 							</div>
 						</div>
-						
+
 						<div class='bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6'>
 							<div class='text-center'>
 								<div class='text-3xl font-bold text-purple-600 dark:text-purple-400 mb-2'>
@@ -133,73 +314,86 @@ console.log('UsageAndHistoryTab', analytics);
 					<div class='grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6'>
 						{/* Daily Usage Chart */}
 						<div class='bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6'>
-							<h5 class='text-sm font-medium text-gray-700 dark:text-gray-300 mb-4'>Daily Usage Trends</h5>
+							<h5 class='text-sm font-medium text-gray-700 dark:text-gray-300 mb-4'>
+								Daily Usage Trends
+							</h5>
 							<div class='h-48 p-4 bg-gray-50 dark:bg-gray-700 rounded'>
-								{analytics.usage_trends.daily_usage.length > 0 ? (
-									<div class='h-full flex items-end gap-2' style={`justify-content: ${analytics.usage_trends.daily_usage.length <= 7 ? 'flex-start' : 'space-between'}`}>
-										{(() => {
-											const maxValue = Math.max(...analytics.usage_trends.daily_usage.map(d => d.cost_usd));
-											const minHeight = 8; // Minimum height in percentage for better visibility
-											
-											return analytics.usage_trends.daily_usage.map((day, index) => {
-												const heightPercent = maxValue > 0 
-													? Math.max(minHeight, (day.cost_usd / maxValue) * 96) 
-													: minHeight;
-												const date = new Date(day.date);
-												const dayOfMonth = date.getDate();
-												const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-												
-												return (
-													<div 
-														key={index} 
-														class={`${analytics.usage_trends.daily_usage.length <= 7 ? 'w-12' : 'flex-1'} h-full flex flex-col items-center group relative cursor-pointer`}
-														title={`${day.date}: ${day.cost_usd.toFixed(2)} (${day.requests} requests, ${(day.tokens/1000).toFixed(1)}K tokens)`}
-													>
-														{/* Tooltip */}
-														<div class='absolute bottom-full mb-2 hidden group-hover:block bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded px-2 py-1 whitespace-nowrap z-10'>
-															<div class='font-medium'>{formatDateSafe(date, { month: 'short', day: 'numeric' }, 'N/A')}</div>
-															<div>${day.cost_usd.toFixed(2)}</div>
-															<div class='text-xs opacity-75'>{day.requests} requests</div>
-															<div class='text-xs opacity-75'>{(day.tokens/1000).toFixed(1)}K tokens</div>
-															{/* Tooltip arrow */}
-															<div class='absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-gray-100'></div>
-														</div>
-														
-														{/* Bar Container */}
-														<div class='w-full flex-1 flex items-end relative'>
-															<div 
-																class={`w-full rounded-t transition-all duration-200 group-hover:opacity-80 ${
-																	isWeekend 
-																		? 'bg-purple-400 dark:bg-purple-500 group-hover:bg-purple-500 dark:group-hover:bg-purple-400' 
-																		: 'bg-blue-500 dark:bg-blue-400 group-hover:bg-blue-600 dark:group-hover:bg-blue-300'
-																}`}
-																style={`height: ${heightPercent}%; min-height: 4px;`}
-															/>
-														</div>
-														
-														{/* Date label */}
-														<span class={`text-xs mt-1 transition-colors ${
-															isWeekend 
-																? 'text-purple-600 dark:text-purple-400' 
-																: 'text-gray-500 dark:text-gray-400'
-														}`}>
-															{dayOfMonth}
-														</span>
-													</div>
+								{analytics.usage_trends.daily_usage.length > 0
+									? (
+										<div
+											class='h-full flex items-end gap-2'
+											style={`justify-content: ${
+												analytics.usage_trends.daily_usage.length <= 7
+													? 'flex-start'
+													: 'space-between'
+											}`}
+										>
+											{(() => {
+												const maxValue = getMaxValue(
+													analytics.usage_trends.daily_usage,
+													analyticsFilters.value.metric,
 												);
-											});
-										})()
-									}
-									</div>
-								) : (
-									<div class='h-full flex items-center justify-center text-gray-500 dark:text-gray-400'>
-										<div class='text-center'>
-											<div class='text-sm'>No usage data available</div>
-											<div class='text-xs mt-1'>Usage trends will appear here</div>
+
+												return analytics.usage_trends.daily_usage.map((day, index) => {
+													const heightPercent = getBarHeight(
+														day,
+														maxValue,
+														analyticsFilters.value.metric,
+													);
+													const date = new Date(day.date);
+													const dayOfMonth = date.getDate();
+													const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+
+													return (
+														<div
+															key={index}
+															class={`${
+																analytics.usage_trends.daily_usage.length <= 7
+																	? 'w-12'
+																	: 'flex-1'
+															} h-full flex flex-col items-center group relative cursor-pointer`}
+															// title handled by getTooltipContent function
+														>
+															{/* Tooltip */}
+															{getTooltipContent(day, analyticsFilters.value.metric)}
+
+															{/* Bar Container */}
+															<div class='w-full flex-1 flex items-end relative'>
+																<div
+																	class={`w-full rounded-t transition-all duration-200 group-hover:opacity-80 ${
+																		isWeekend
+																			? 'bg-purple-400 dark:bg-purple-500 group-hover:bg-purple-500 dark:group-hover:bg-purple-400'
+																			: 'bg-blue-500 dark:bg-blue-400 group-hover:bg-blue-600 dark:group-hover:bg-blue-300'
+																	}`}
+																	style={`height: ${heightPercent}%; min-height: 4px;`}
+																/>
+															</div>
+
+															{/* Date label */}
+															<span
+																class={`text-xs mt-1 transition-colors ${
+																	isWeekend
+																		? 'text-purple-600 dark:text-purple-400'
+																		: 'text-gray-500 dark:text-gray-400'
+																}`}
+															>
+																{dayOfMonth}
+															</span>
+														</div>
+													);
+												});
+											})()}
 										</div>
-									</div>
-								)}
-								
+									)
+									: (
+										<div class='h-full flex items-center justify-center text-gray-500 dark:text-gray-400'>
+											<div class='text-center'>
+												<div class='text-sm'>No usage data available</div>
+												<div class='text-xs mt-1'>Usage trends will appear here</div>
+											</div>
+										</div>
+									)}
+
 								{/* Legend */}
 								<div class='mt-3 pt-3 border-t border-gray-200 dark:border-gray-600 flex items-center justify-center gap-4 text-xs'>
 									<div class='flex items-center gap-1'>
@@ -243,7 +437,8 @@ console.log('UsageAndHistoryTab', analytics);
 					</div>
 
 					{/* Feature Breakdown */}
-					{/*
+					{
+						/*
 					<div class='bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 mb-6'>
 						<h5 class='text-sm font-medium text-gray-700 dark:text-gray-300 mb-4'>Usage by Feature</h5>
 						<div class='grid grid-cols-1 md:grid-cols-2 gap-4'>
@@ -271,7 +466,8 @@ console.log('UsageAndHistoryTab', analytics);
 								</div>
 							))}
 						</div>
-					</div> */}
+					</div> */
+					}
 				</div>
 			)}
 
@@ -279,7 +475,9 @@ console.log('UsageAndHistoryTab', analytics);
 			{history && (
 				<div class='mb-8'>
 					<div class='flex items-center justify-between mb-4'>
-						<h4 class='text-base font-medium text-gray-700 dark:text-gray-300'>Purchase & Invoice History</h4>
+						<h4 class='text-base font-medium text-gray-700 dark:text-gray-300'>
+							Purchase & Invoice History
+						</h4>
 						<button
 							type='button'
 							onClick={handleExportHistory}
@@ -299,11 +497,12 @@ console.log('UsageAndHistoryTab', analytics);
 								<CustomSelect
 									options={transactionTypeOptions}
 									value={historyFilters.value.transaction_type || 'all'}
-									onChange={(value) => handleFilterChange({ transaction_type: value as any })}
+									onChange={(value) =>
+										handlePurchaseHistoryFilterChange({ transaction_type: value as any })}
 									className='w-full'
 								/>
 							</div>
-							
+
 							<div>
 								<label class='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
 									Status
@@ -311,11 +510,11 @@ console.log('UsageAndHistoryTab', analytics);
 								<CustomSelect
 									options={statusOptions}
 									value={historyFilters.value.status || 'all'}
-									onChange={(value) => handleFilterChange({ status: value as any })}
+									onChange={(value) => handlePurchaseHistoryFilterChange({ status: value as any })}
 									className='w-full'
 								/>
 							</div>
-							
+
 							<div>
 								<label class='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
 									Date Range
@@ -327,7 +526,7 @@ console.log('UsageAndHistoryTab', analytics);
 										const now = new Date();
 										let date_start = '';
 										let date_end = now.toISOString().split('T')[0];
-										
+
 										if (value === '30days') {
 											const thirtyDaysAgo = new Date(now);
 											thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -340,13 +539,13 @@ console.log('UsageAndHistoryTab', analytics);
 											date_start = '';
 											date_end = '';
 										}
-										
-										handleFilterChange({ date_start, date_end });
+
+										handlePurchaseHistoryFilterChange({ date_start, date_end });
 									}}
 									className='w-full'
 								/>
 							</div>
-							
+
 							<div class='flex items-end'>
 								<button
 									type='button'
@@ -391,31 +590,38 @@ console.log('UsageAndHistoryTab', analytics);
 									</tr>
 								</thead>
 								<tbody class='bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700'>
-									{history.transactions.map((transaction) => (
-										<tr key={transaction.transaction_id}>
+									{history.transactions.map((transaction, index) => (
+										<tr key={`${transaction.transaction_id}-${index}`}>
 											<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100'>
 												{formatDateSafe(
 													new Date(transaction.created_at),
 													{ timeZone: 'UTC', dateStyle: 'short', timeStyle: 'short' },
-													'Unknown'
+													'Unknown',
 												)}
 											</td>
 											<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100'>
-												<span class={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-													transaction.transaction_type === 'subscription' ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200' :
-													transaction.transaction_type === 'credit_purchase' ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200' :
-													'bg-purple-100 dark:bg-purple-900/20 text-purple-800 dark:text-purple-200'
-												}`}>
-													{transaction.transaction_type === 'subscription' ? 'Subscription' :
-													 transaction.transaction_type === 'credit_purchase' ? 'Credit' :
-													 'Auto Top-up'}
+												<span
+													class={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+														transaction.transaction_type === 'subscription'
+															? 'bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200'
+															: transaction.transaction_type === 'credit_purchase'
+															? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200'
+															: 'bg-purple-100 dark:bg-purple-900/20 text-purple-800 dark:text-purple-200'
+													}`}
+												>
+													{transaction.transaction_type === 'subscription'
+														? 'Subscription'
+														: transaction.transaction_type === 'credit_purchase'
+														? 'Credit'
+														: 'Auto Top-up'}
 												</span>
 											</td>
 											<td class='px-6 py-4 text-sm text-gray-900 dark:text-gray-100'>
 												{transaction.description}
 												{transaction.payment_method && (
 													<div class='text-xs text-gray-500 dark:text-gray-400 mt-1'>
-														{transaction.payment_method.brand?.toUpperCase()} •••• {transaction.payment_method.last4}
+														{transaction.payment_method.brand?.toUpperCase()} ••••{' '}
+														{transaction.payment_method.last4}
 													</div>
 												)}
 											</td>
@@ -423,13 +629,19 @@ console.log('UsageAndHistoryTab', analytics);
 												${transaction.amount_usd.toFixed(2)}
 											</td>
 											<td class='px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100'>
-												<span class={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-													transaction.status === 'completed' ? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200' :
-													transaction.status === 'pending' ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200' :
-													transaction.status === 'failed' ? 'bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-200' :
-													'bg-gray-100 dark:bg-gray-900/20 text-gray-800 dark:text-gray-200'
-												}`}>
-													{transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}
+												<span
+													class={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+														transaction.status === 'completed'
+															? 'bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200'
+															: transaction.status === 'pending'
+															? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200'
+															: transaction.status === 'failed'
+															? 'bg-red-100 dark:bg-red-900/20 text-red-800 dark:text-red-200'
+															: 'bg-gray-100 dark:bg-gray-900/20 text-gray-800 dark:text-gray-200'
+													}`}
+												>
+													{transaction.status.charAt(0).toUpperCase() +
+														transaction.status.slice(1)}
 												</span>
 											</td>
 										</tr>
@@ -448,7 +660,10 @@ console.log('UsageAndHistoryTab', analytics);
 								<div class='flex space-x-2'>
 									<button
 										type='button'
-										onClick={() => handleFilterChange({ page: Math.max(1, historyFilters.value.page! - 1) })}
+										onClick={() =>
+											handlePurchaseHistoryFilterChange({
+												page: Math.max(1, historyFilters.value.page! - 1),
+											})}
 										disabled={history.pagination.current_page === 1}
 										class='px-3 py-1 text-sm font-medium text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed'
 									>
@@ -456,7 +671,13 @@ console.log('UsageAndHistoryTab', analytics);
 									</button>
 									<button
 										type='button'
-										onClick={() => handleFilterChange({ page: Math.min(history.pagination.total_pages, historyFilters.value.page! + 1) })}
+										onClick={() =>
+											handlePurchaseHistoryFilterChange({
+												page: Math.min(
+													history.pagination.total_pages,
+													historyFilters.value.page! + 1,
+												),
+											})}
 										disabled={history.pagination.current_page === history.pagination.total_pages}
 										class='px-3 py-1 text-sm font-medium text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed'
 									>

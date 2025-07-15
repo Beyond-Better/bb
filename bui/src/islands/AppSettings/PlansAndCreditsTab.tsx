@@ -22,6 +22,8 @@ export default function PlansAndCreditsTab() {
 	const { billingState, initialize, cancelSubscription, updatePaymentMethods, updateUsageData } = useBillingState();
 	const appState = useAppState();
 
+	//console.log('PlansAndCreditsTab: availablePlans', billingState.value.availablePlans);
+
 	// Track previous active state to detect tab changes
 	const wasActive = useSignal(false);
 
@@ -450,7 +452,7 @@ export default function PlansAndCreditsTab() {
 
 			{/* Available Plans */}
 			<div id='change-plan-section' class='mb-8'>
-				<h4 class='text-base font-medium text-gray-700 dark:text-gray-300 mb-4'>Change Plan</h4>
+				<h4 class='text-base font-medium text-gray-700 dark:text-gray-300 mb-4'>Compare Plans</h4>
 				<div class='flex flex-nowrap gap-6 overflow-x-auto pb-4'>
 					{billingState.value.availablePlans.map((plan) => (
 						<PlanCard

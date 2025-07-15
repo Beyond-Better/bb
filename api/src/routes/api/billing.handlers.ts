@@ -498,6 +498,11 @@ export async function getUsageAnalytics(ctx: Context) {
 		const models = url.searchParams.get('models');
 		const metric = url.searchParams.get('metric') || 'cost';
 
+		// logger.warn(
+		// 	`BillingHandler: getUsageAnalytics: `,
+		// 	{url, period, month, models, metric}
+		// );
+
 		// Validate period parameter
 		if (!['month', 'quarter', 'year'].includes(period)) {
 			ctx.response.status = 400;
@@ -524,10 +529,10 @@ export async function getUsageAnalytics(ctx: Context) {
 		if (models) {
 			queryParams.set('models', models);
 		}
-		
+
 		const { data, error } = await supabaseClient.functions.invoke(
 			`billing-usage-analytics?${queryParams}`,
-			{ method: 'GET' }
+			{ method: 'GET' },
 		);
 
 		if (error) {
@@ -617,10 +622,10 @@ export async function getEnhancedPurchaseHistory(ctx: Context) {
 		if (date_end) queryParams.set('date_end', date_end);
 		queryParams.set('page', page.toString());
 		queryParams.set('per_page', per_page.toString());
-		
+
 		const { data, error } = await supabaseClient.functions.invoke(
 			`billing-invoice-history?${queryParams}`,
-			{ method: 'GET' }
+			{ method: 'GET' },
 		);
 
 		if (error) {

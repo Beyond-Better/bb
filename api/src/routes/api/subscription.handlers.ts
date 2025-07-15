@@ -104,6 +104,7 @@ export async function changePlan(ctx: Context) {
 		});
 
 		if (error) {
+			logger.error(`SubscriptionHandler: changePlan-error:`, { error });
 			ctx.response.status = 400;
 			ctx.response.body = { error: error.message };
 			return;

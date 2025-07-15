@@ -468,9 +468,9 @@ export class ApiClient {
 	// NEW ANALYTICS ENDPOINTS FOR RESTRUCTURED BILLING TABS
 
 	// Usage Analytics for Usage & History tab
-	async getUsageAnalytics(period?: 'month' | 'quarter' | 'year'): Promise<UsageAnalytics | null> {
-		const params = period ? `?period=${period}` : '';
-		const result = await this.get<UsageAnalyticsResults>(`/api/v1/user/billing/usage/analytics${params}`);
+	async getUsageAnalytics(params?: URLSearchParams): Promise<UsageAnalytics | null> {
+		const queryString = params ? `?${params.toString()}` : '';
+		const result = await this.get<UsageAnalyticsResults>(`/api/v1/user/billing/usage/analytics${queryString}`);
 		return result?.analytics || null;
 	}
 
