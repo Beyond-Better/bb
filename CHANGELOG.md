@@ -17,6 +17,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.8.11] - 2025-07-16
+
+### Notes
+
+Beyond Better has a major update to subscription plans and billing system.  See Pricing page for more details.
+
+- https://beyondbetter.app/pricing
+
+### BREAKING CHANGES
+
+- The billing system has been completely replaced to support new subscription plans. There should be no risk of breaking local project configs, but users should be aware of new subscription plans and token credit system.
+
+### Added
+
+- New subscription plans and billing system
+- Features system to support new plans
+- Credit auto top-up option
+- Invoice history and token usage tab in Settings
+
+### Changed
+
+- Plans and Tokens tab updated for new billing system
+
+### Fixed
+
+- Billing calculation errors
+
+
 ## [0.8.10] - 2025-07-04
 
 ### Added
