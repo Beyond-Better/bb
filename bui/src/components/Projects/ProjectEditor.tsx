@@ -1028,6 +1028,7 @@ export function ProjectEditor({
 											defaultModelsOrchestrator.value.global
 										}`}
 										apiClient={appState.value.apiClient!}
+										showAccessStatus
 										context='project'
 										role='orchestrator'
 										value={defaultModelsOrchestrator.value}
@@ -1058,6 +1059,7 @@ export function ProjectEditor({
 											defaultModelsAgent.value.project || defaultModelsAgent.value.global
 										}`}
 										apiClient={appState.value.apiClient!}
+										showAccessStatus
 										context='project'
 										role='agent'
 										value={defaultModelsAgent.value}
@@ -1088,6 +1090,7 @@ export function ProjectEditor({
 											defaultModelsChat.value.project || defaultModelsChat.value.global
 										}`}
 										apiClient={appState.value.apiClient!}
+										showAccessStatus
 										context='project'
 										role='chat'
 										value={defaultModelsChat.value}

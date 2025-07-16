@@ -69,7 +69,7 @@ export class FeatureAccessService {
 	async checkFeatureAccess(
 		userId: string,
 		featureKey: string,
-		useCache: boolean = true,
+		useCache: boolean = false,
 	): Promise<FeatureAccessResult> {
 		try {
 			// Try cache first if enabled
