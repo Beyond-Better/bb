@@ -453,6 +453,15 @@ export function useBillingState() {
 			// Payment intent is automatically created by Stripe when the subscription is created
 			// with proration_behavior: 'create_prorations' in the backend
 
+			// Refresh feature cache to ensure immediate access to new features
+			try {
+				const cacheResult = await apiClient.post('/api/v1/user/features/cache/refresh', {});
+				console.log('useBillingState: refreshed feature cache after plan change:', cacheResult);
+			} catch (cacheError) {
+				console.warn('useBillingState: failed to refresh feature cache after plan change:', cacheError);
+				// Don't fail the entire operation if cache refresh fails
+			}
+
 			billingState.value = {
 				...billingState.value,
 				subscription: newSubscription || null,

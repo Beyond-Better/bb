@@ -23,6 +23,7 @@ import type { ProjectConfig } from 'shared/config/types.ts';
 import { getBbDir, getGlobalConfigDir } from 'shared/dataDir.ts';
 import type { MCPManager } from 'api/mcp/mcpManager.ts';
 import { getMCPManager } from 'api/mcp/mcpManager.ts';
+import type { SessionManager } from 'api/auth/session.ts';
 
 import { CORE_TOOLS } from './tools_manifest.ts';
 
@@ -66,12 +67,15 @@ class LLMToolManager {
 	private globalConfigDir: string | undefined;
 	public toolSet: LLMToolManagerToolSetType | LLMToolManagerToolSetType[];
 	private mcpManager!: MCPManager;
+	private sessionManager: SessionManager;
 
 	constructor(
 		projectConfig: ProjectConfig,
+		sessionManager: SessionManager,
 		toolSet: LLMToolManagerToolSetType | LLMToolManagerToolSetType[] = 'core',
 	) {
 		this.projectConfig = projectConfig;
+		this.sessionManager = sessionManager;
 		this.toolSet = toolSet;
 	}
 
@@ -183,6 +187,14 @@ class LLMToolManager {
 	private async loadMCPToolsMetadata(serverIds: string[]): Promise<void> {
 		try {
 			logger.debug(`LLMToolManager: Loading tools from ${serverIds.length} MCP servers`);
+
+			// Check if user has access to external MCP tools
+			const mcpAccessCheck = await this.sessionManager.hasExternalToolsAccess();
+
+			if (!mcpAccessCheck) {
+				logger.info(`LLMToolManager: MCP tools access denied`);
+				return;
+			}
 
 			// For each MCP server (keyed by mcpServerConfig.id), load its tools
 			for (const serverId of serverIds) {

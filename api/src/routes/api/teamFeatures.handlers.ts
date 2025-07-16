@@ -9,18 +9,18 @@ import type { Context } from '@oak/oak';
 import { logger } from 'shared/logger.ts';
 import type { SessionManager } from 'api/auth/session.ts';
 import {
+	CacheManagement,
 	checkFeatureAccess,
+	DatasourceAccess,
+	FEATURE_KEYS,
 	getFeatureAccess,
 	getUserFeatureProfile as getUserFeatureProfileFromUtils,
 	ModelAccess,
-	DatasourceAccess,
-	ToolsAccess,
 	RateLimits,
 	SupportAccess,
-	CacheManagement,
-	FEATURE_KEYS,
-} from 'shared/utils/features.utils.ts';
-import type { SupabaseClientWithSchema } from 'shared/types/supabase.types.ts';
+	ToolsAccess,
+} from 'shared/features.ts';
+import type { SupabaseClientWithSchema } from 'shared/types/supabase.ts';
 
 export interface TeamFeatureProfile {
 	teamId: string;
@@ -47,7 +47,7 @@ async function getSupabaseClients(sessionManager: SessionManager): Promise<{
 	coreClient: SupabaseClientWithSchema<'abi_core'>;
 	billingClient: SupabaseClientWithSchema<'abi_billing'>;
 }> {
-	const coreClient = sessionManager.getClient() as SupabaseClientWithSchema<'abi_core'>;
+	const coreClient = sessionManager.getCoreClient() as SupabaseClientWithSchema<'abi_core'>;
 	const billingClient = sessionManager.getBillingClient() as SupabaseClientWithSchema<'abi_billing'>;
 	return { coreClient, billingClient };
 }
@@ -117,7 +117,7 @@ async function checkTeamAccess(
  *       500:
  *         description: Internal server error
  */
-export async function getTeamFeatureProfile(ctx: Context) {
+export async function getTeamFeatureProfile(ctx: Context & { params: { teamId: string } }) {
 	try {
 		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
 		if (!sessionManager) {
@@ -228,7 +228,7 @@ export async function getTeamFeatureProfile(ctx: Context) {
  *       500:
  *         description: Internal server error
  */
-export async function checkTeamFeatureAccess(ctx: Context) {
+export async function checkTeamFeatureAccess(ctx: Context & { params: { teamId: string } }) {
 	try {
 		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
 		if (!sessionManager) {
@@ -335,7 +335,7 @@ export async function checkTeamFeatureAccess(ctx: Context) {
  *       500:
  *         description: Internal server error
  */
-export async function getTeamAvailableModels(ctx: Context) {
+export async function getTeamAvailableModels(ctx: Context & { params: { teamId: string } }) {
 	try {
 		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
 		if (!sessionManager) {

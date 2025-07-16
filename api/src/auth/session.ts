@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { fetchSupabaseConfig } from './config.ts';
 import { logger } from 'shared/logger.ts';
 import { KVStorage } from 'shared/kvStorage.ts';
+import { ToolsAccess } from 'shared/features.ts';
 import type { Session, SupabaseConfig } from '../types/auth.ts';
 import type {
 	SupabaseClientAuth,
@@ -35,12 +36,14 @@ export class SupabaseClientFactory {
 	 * @param useAuth - Whether to include auth configuration (default: false)
 	 * @returns Configured Supabase client
 	 */
-	static async createClient<T extends 'abi_billing' | 'abi_llm' | 'abi_auth' | 'abi_core' | 'abi_marketing' | 'public'>(
+	static async createClient<
+		T extends 'abi_billing' | 'abi_llm' | 'abi_auth' | 'abi_core' | 'abi_marketing' | 'public',
+	>(
 		schema: T,
-		useAuth = false
+		useAuth = false,
 	): Promise<SupabaseClientWithSchema<T>> {
 		await SupabaseClientFactory.initialize();
-		
+
 		if (!SupabaseClientFactory.config) {
 			throw new Error('SupabaseClientFactory: Configuration not initialized');
 		}
@@ -76,7 +79,7 @@ export class SupabaseClientFactory {
 		const client = createClient(
 			SupabaseClientFactory.config.url,
 			SupabaseClientFactory.config.anonKey,
-			clientOptions
+			clientOptions,
 		) as SupabaseClientWithSchema<T>;
 
 		// Cache the client
@@ -108,6 +111,8 @@ export class SupabaseClientFactory {
  */
 export class SessionManager {
 	private supabaseClient: SupabaseClientWithSchema<'public'> | null = null;
+	private supabaseClientBilling: SupabaseClientWithSchema<'abi_billing'> | null = null;
+	private supabaseClientCore: SupabaseClientWithSchema<'abi_core'> | null = null;
 	private config: SupabaseConfig | null = null;
 	private storage: KVStorage;
 
@@ -135,6 +140,8 @@ export class SessionManager {
 			await SupabaseClientFactory.initialize();
 			this.config = SupabaseClientFactory.getConfig();
 			this.supabaseClient = await SupabaseClientFactory.createClient('public', true);
+			this.supabaseClientBilling = await SupabaseClientFactory.createClient('abi_billing', true);
+			this.supabaseClientCore = await SupabaseClientFactory.createClient('abi_core', true);
 
 			// Enable auto refresh
 			if (this.supabaseClient) {
@@ -188,6 +195,22 @@ export class SessionManager {
 	}
 
 	/**
+	 * Check whether user is allowed access with external tools feature
+	 */
+	async hasExternalToolsAccess(): Promise<boolean> {
+		if (!this.supabaseClientCore || !this.supabaseClientBilling) {
+			throw new Error('SessionManager not initialized');
+		}
+
+		const session = await this.getSession();
+		if (!session?.user?.id) {
+			throw new Error('SessionManager has no valid user in session');
+		}
+
+		return await ToolsAccess.hasExternalTools(this.supabaseClientCore, this.supabaseClientBilling, session.user.id);
+	}
+
+	/**
 	 * Clean up resources
 	 */
 	async destroy(): Promise<void> {
@@ -220,5 +243,17 @@ export class SessionManager {
 			throw new Error('SessionManager not initialized');
 		}
 		return this.supabaseClient;
+	}
+	getBillingClient(): SupabaseClientWithSchema<'abi_billing'> {
+		if (!this.supabaseClientBilling) {
+			throw new Error('SessionManager not initialized');
+		}
+		return this.supabaseClientBilling;
+	}
+	getCoreClient(): SupabaseClientWithSchema<'abi_core'> {
+		if (!this.supabaseClientCore) {
+			throw new Error('SessionManager not initialized');
+		}
+		return this.supabaseClientCore;
 	}
 }

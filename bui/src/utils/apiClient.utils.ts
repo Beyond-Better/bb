@@ -1090,6 +1090,85 @@ export class ApiClient {
 	async getModelCapabilities(modelName: string): Promise<ModelResponse | null> {
 		return await this.get<ModelResponse>(`/api/v1/model/${encodeURIComponent(modelName)}`);
 	}
+
+	// Feature Access Methods
+	async checkExternalToolsAccess(): Promise<{ hasAccess: boolean; reason: string } | null> {
+		return await this.get<{ hasAccess: boolean; reason: string }>('/api/v1/user/features/external-tools');
+	}
+
+	async getUserFeatures(): Promise<{
+		profile: {
+			models: string[];
+			datasources: { name: string; read: boolean; write: boolean }[];
+			tools: string[];
+			limits: { tokensPerMinute: number; requestsPerMinute: number };
+			support: {
+				community: boolean;
+				email: boolean;
+				priorityQueue: boolean;
+				earlyAccess: boolean;
+				workspaceIsolation: boolean;
+				sso: boolean;
+				dedicatedCSM: boolean;
+				onPremises: boolean;
+			};
+		};
+	} | null> {
+		return await this.get<{
+			profile: {
+				models: string[];
+				datasources: { name: string; read: boolean; write: boolean }[];
+				tools: string[];
+				limits: { tokensPerMinute: number; requestsPerMinute: number };
+				support: {
+					community: boolean;
+					email: boolean;
+					priorityQueue: boolean;
+					earlyAccess: boolean;
+					workspaceIsolation: boolean;
+					sso: boolean;
+					dedicatedCSM: boolean;
+					onPremises: boolean;
+				};
+			};
+		}>('/api/v1/user/features');
+	}
+
+	async checkFeatureAccess(featureKey: string): Promise<{
+		result: {
+			access_granted: boolean;
+			feature_value: any;
+			access_reason: string;
+			resolved_from: string;
+		};
+	} | null> {
+		return await this.post<{
+			result: {
+				access_granted: boolean;
+				feature_value: any;
+				access_reason: string;
+				resolved_from: string;
+			};
+		}>('/api/v1/user/features/check', { featureKey });
+	}
+
+	async batchCheckFeatureAccess(featureKeys: string[]): Promise<{
+		results: Record<string, {
+			access_granted: boolean;
+			feature_value: any;
+			access_reason: string;
+			resolved_from: string;
+		}>;
+	} | null> {
+		return await this.post<{
+			results: Record<string, {
+				access_granted: boolean;
+				feature_value: any;
+				access_reason: string;
+				resolved_from: string;
+			}>;
+		}>('/api/v1/user/features/batch', { featureKeys });
+	}
 }
 
 export function createApiClientManager(url: string): ApiClient {

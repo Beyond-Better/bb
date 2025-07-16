@@ -9,18 +9,18 @@ import type { Context } from '@oak/oak';
 import { logger } from 'shared/logger.ts';
 import type { SessionManager } from 'api/auth/session.ts';
 import {
+	CacheManagement,
 	checkFeatureAccess,
+	DatasourceAccess,
+	FEATURE_KEYS,
 	getFeatureAccess,
 	getUserFeatureProfile as getUserFeatureProfileFromUtils,
 	ModelAccess,
-	DatasourceAccess,
-	ToolsAccess,
 	RateLimits,
 	SupportAccess,
-	CacheManagement,
-	FEATURE_KEYS,
-} from 'shared/utils/features.utils.ts';
-import type { SupabaseClientWithSchema } from 'shared/types/supabase.types.ts';
+	ToolsAccess,
+} from 'shared/features.ts';
+import type { SupabaseClientWithSchema } from 'shared/types/supabase.ts';
 
 export interface FeatureCheckRequest {
 	featureKey: string;
@@ -63,7 +63,7 @@ async function getSupabaseClients(sessionManager: SessionManager): Promise<{
 	coreClient: SupabaseClientWithSchema<'abi_core'>;
 	billingClient: SupabaseClientWithSchema<'abi_billing'>;
 }> {
-	const coreClient = sessionManager.getClient() as SupabaseClientWithSchema<'abi_core'>;
+	const coreClient = sessionManager.getCoreClient() as SupabaseClientWithSchema<'abi_core'>;
 	const billingClient = sessionManager.getBillingClient() as SupabaseClientWithSchema<'abi_billing'>;
 	return { coreClient, billingClient };
 }
@@ -460,6 +460,71 @@ export async function getUserRateLimits(ctx: Context) {
 		ctx.response.body = { limits };
 	} catch (error) {
 		logger.error('FeaturesHandler: getUserRateLimits error:', error);
+		ctx.response.status = 500;
+		ctx.response.body = { error: 'Internal server error' };
+	}
+}
+
+/**
+ * @openapi
+ * /api/v1/user/features/external-tools:
+ *   get:
+ *     summary: Check external tools access
+ *     description: Checks if the authenticated user has access to external tools (MCP)
+ *     tags:
+ *       - Features
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: External tools access check completed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 hasAccess:
+ *                   type: boolean
+ *                   description: Whether user has external tools access
+ *                   example: true
+ *                 reason:
+ *                   type: string
+ *                   description: Access reason
+ *                   example: plan_feature
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
+export async function getUserHasExternalTools(ctx: Context) {
+	try {
+		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
+		if (!sessionManager) {
+			logger.warn('FeaturesHandler: getUserHasExternalTools: No session manager configured');
+			ctx.response.status = 400;
+			ctx.response.body = { error: 'No session manager configured' };
+			return;
+		}
+
+		const session = await sessionManager.getSession();
+		if (!session?.user?.id) {
+			ctx.response.status = 401;
+			ctx.response.body = { error: 'Unauthorized' };
+			return;
+		}
+
+		const { coreClient, billingClient } = await getSupabaseClients(sessionManager);
+		const hasAccess = await ToolsAccess.hasExternalTools(coreClient, billingClient, session.user.id);
+		const result = await getFeatureAccess(coreClient, billingClient, session.user.id, FEATURE_KEYS.TOOLS.EXTERNAL);
+		//console.log('FeaturesHandler: getUserHasExternalTools:', { hasAccess, result });
+
+		ctx.response.status = 200;
+		ctx.response.body = {
+			hasAccess,
+			reason: result.access_reason,
+		};
+	} catch (error) {
+		logger.error('FeaturesHandler: getUserHasExternalTools error:', error);
 		ctx.response.status = 500;
 		ctx.response.body = { error: 'Internal server error' };
 	}

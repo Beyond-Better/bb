@@ -9,6 +9,9 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { SupabaseClientWithSchema } from '../types/supabase.types.ts';
 import { FeatureAccessService, FEATURE_KEYS } from './feature_access_service.utils.ts';
 
+// Export feature keys for convenience
+export { FEATURE_KEYS };
+
 // Cache for service instances per client pair to maintain caching benefits
 // Use Map with composite key since WeakMap doesn't work with multiple keys
 const serviceCache = new Map<string, { service: FeatureAccessService; coreRef: WeakRef<any>; billingRef: WeakRef<any> }>();
@@ -562,6 +565,20 @@ export const requireDatasourceAccess = (datasourceKey: string, operation: 'read'
 };
 
 /**
+ * Middleware Helper for Datasource Access
+ */
+export const requireExternalToolsAccess = () => {
+  return async (coreClient: SupabaseClientWithSchema<'abi_core'>, billingClient: SupabaseClientWithSchema<'abi_billing'>, userId: string): Promise<boolean> => {
+    const service = getFeatureService(coreClient, billingClient);
+    const hasAccess = await service.hasExternalToolsAccess(userId);
+    if (!hasAccess) {
+      throw new Error(`ExternalTools access is not available on your current plan`);
+    }
+    return true;
+  };
+};
+
+/**
  * Manual cleanup for service cache in long-running processes
  * This complements automatic cleanup when clients are garbage collected
  */
@@ -672,6 +689,3 @@ export const getFeatureServiceCacheStats = () => {
     maxClientAge: MAX_CLIENT_AGE
   };
 };
-
-// Export feature keys for convenience
-export { FEATURE_KEYS };

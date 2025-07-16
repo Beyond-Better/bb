@@ -7,6 +7,7 @@ import {
 	getUserAvailableDatasources,
 	getUserRateLimits,
 	refreshUserFeatureCache,
+	getUserHasExternalTools,
 } from './features.handlers.ts';
 
 const featuresRouter = new Router();
@@ -156,6 +157,8 @@ featuresRouter
 	.get('/datasources', getUserAvailableDatasources)
 	// Get user rate limits
 	.get('/limits', getUserRateLimits)
+	// Check external tools access
+	.get('/external-tools', getUserHasExternalTools)
 	// Refresh feature cache
 	.post('/cache/refresh', refreshUserFeatureCache);
 
