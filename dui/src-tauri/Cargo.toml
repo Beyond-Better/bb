@@ -1,6 +1,6 @@
 [package]
 name = "beyond-better"
-version = "0.8.10"
+version = "0.8.11"
 description = "Beyond Better Desktop App"
 authors = ["cngarrison"]
 edition = "2021"

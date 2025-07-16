@@ -247,6 +247,8 @@ export class ModelRegistryService {
 						currency: 'USD',
 						effectiveDate: new Date().toISOString().split('T')[0],
 					},
+					// Add feature key for access control
+					featureKey: 'models.ollama',
 					// Try to infer some capabilities from model details
 					contextWindow: model.details?.parameter_size ? Math.min(32768, 8192) : 4096,
 					maxOutputTokens: model.details?.parameter_size ? Math.min(8192, 4096) : 2048,

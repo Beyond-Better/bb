@@ -57,6 +57,7 @@ export async function authMiddleware(ctx: Context<BbState>, next: Next) {
 export function requireAuth(paths: string[]) {
 	return async (ctx: Context<BbState>, next: Next) => {
 		// Check if the current path requires authentication
+		//console.log(`check auth for: ${ctx.request.url.pathname}`);
 		const requiresAuth = paths.some((path) => {
 			if (path.endsWith('*')) {
 				// Handle wildcard paths (e.g., "/api/v1/protected/*")

@@ -18,9 +18,9 @@ const customAmount = signal<string>('');
 const selectedAmount = signal<number | null>(null);
 const selectedPaymentMethod = signal<string | null>(null);
 
-const PREDEFINED_AMOUNTS = [10, 20, 50, 100];
+const PREDEFINED_AMOUNTS = [10, 20, 50, 100, 200];
 const MIN_AMOUNT = 5;
-const MAX_AMOUNT = 100;
+const MAX_AMOUNT = 500;
 
 export default function UsageBlockDialog({ isOpen, onClose, existingPaymentMethod }: UsageBlockDialogProps) {
 	const { billingState, purchaseUsageBlock, updatePaymentMethods } = useBillingState();
@@ -179,6 +179,7 @@ export default function UsageBlockDialog({ isOpen, onClose, existingPaymentMetho
 	const CloseButton = () => {
 		return (
 			<button
+				type='button'
 				onClick={handleOnClose}
 				class='text-gray-400 hover:text-gray-500 dark:text-gray-500 dark:hover:text-gray-400'
 			>
@@ -220,6 +221,7 @@ export default function UsageBlockDialog({ isOpen, onClose, existingPaymentMetho
 							<div class='grid grid-cols-4 gap-4'>
 								{PREDEFINED_AMOUNTS.map((amount) => (
 									<button
+										type='button'
 										key={amount}
 										onClick={() => handleAmountSelect(amount)}
 										class='px-4 py-2 text-sm font-medium text-white bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 rounded-md'
@@ -249,12 +251,14 @@ export default function UsageBlockDialog({ isOpen, onClose, existingPaymentMetho
 								</div>
 								<div class='flex gap-3 mt-2'>
 									<button
+										type='button'
 										onClick={handleOnClose}
 										class='flex-1 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md'
 									>
 										Cancel
 									</button>
 									<button
+										type='button'
 										onClick={handleCustomAmountSubmit}
 										class='flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 rounded-md'
 									>
@@ -299,12 +303,14 @@ export default function UsageBlockDialog({ isOpen, onClose, existingPaymentMetho
 						</div>
 						<div class='mt-6 flex justify-end space-x-3'>
 							<button
+								type='button'
 								onClick={() => usageBlockStep.value = 'amount'}
 								class='px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md'
 							>
 								Back
 							</button>
 							<button
+								type='button'
 								onClick={handleConfirm}
 								class='px-4 py-2 text-sm font-medium text-white bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 rounded-md'
 							>

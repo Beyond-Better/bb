@@ -3,10 +3,13 @@ import { loadStripe } from '@stripe/stripe-js';
 import type { Stripe, StripeElements, StripeElementsOptions } from '@stripe/stripe-js';
 import type {
 	BillingPreviewWithUsage,
+	EnhancedPurchaseHistory,
 	PaymentMethod,
 	Plan,
+	PurchaseHistoryFilters,
 	PurchasesBalance,
-	SubscriptionWithUsage,
+	Subscription,
+	UsageAnalytics,
 } from '../types/subscription.ts';
 import { useAppState } from './useAppState.ts';
 
@@ -44,6 +47,8 @@ interface BillingLoadingState {
 	plans: boolean;
 	paymentMethods: boolean;
 	purchasesBalance: boolean;
+	analytics: boolean;
+	history: boolean;
 	preview: boolean;
 	planChange: boolean;
 	paymentSetup: boolean;
@@ -51,13 +56,16 @@ interface BillingLoadingState {
 
 // Main State Interface
 interface BillingState {
-	subscription: SubscriptionWithUsage | null;
+	subscription: Subscription | null;
+	futureSubscription: Subscription | null;
 	availablePlans: Plan[];
 	purchasesBalance: PurchasesBalance | null;
 	selectedPlan: Plan | null;
 	paymentMethods: PaymentMethod[];
 	defaultPaymentMethod: PaymentMethod | null;
 	billingPreview: BillingPreviewWithUsage | null;
+	usageAnalytics: UsageAnalytics | null;
+	purchaseHistory: EnhancedPurchaseHistory | null;
 	loading: BillingLoadingState;
 	paymentFlowError: PaymentFlowError | null;
 	stripe: Stripe | null;
@@ -69,6 +77,8 @@ const initialLoadingState: BillingLoadingState = {
 	plans: false,
 	paymentMethods: false,
 	purchasesBalance: false,
+	analytics: false,
+	history: false,
 	preview: false,
 	planChange: false,
 	paymentSetup: false,
@@ -76,12 +86,15 @@ const initialLoadingState: BillingLoadingState = {
 
 const initialBillingState: BillingState = {
 	subscription: null,
+	futureSubscription: null,
 	availablePlans: [],
 	purchasesBalance: null,
 	selectedPlan: null,
 	paymentMethods: [],
 	defaultPaymentMethod: null,
 	billingPreview: null,
+	usageAnalytics: null,
+	purchaseHistory: null,
 	loading: initialLoadingState,
 	paymentFlowError: null,
 	stripe: null,
@@ -90,6 +103,8 @@ const initialBillingState: BillingState = {
 
 const billingState = signal<BillingState>(initialBillingState);
 let isInitialized = false;
+
+
 
 export function useBillingState() {
 	const appState = useAppState();
@@ -159,14 +174,18 @@ export function useBillingState() {
 				paymentFlowError: null,
 			};
 
-			const [subscription, plans, paymentMethods, purchasesBalance] = await Promise.all([
+			const [subscriptionResponse, plans, purchasesBalance] = await Promise.all([
 				apiClient.getCurrentSubscription(),
 				apiClient.getAvailablePlans(),
-				apiClient.listPaymentMethods(),
 				apiClient.listUsageBlocks(),
 			]);
-			console.log('useBillingState: subscription', subscription);
+			console.log('useBillingState: subscriptionResponse', subscriptionResponse);
 			console.log('useBillingState: purchasesBalance', purchasesBalance);
+
+			// Extract subscription, futureSubscription, and paymentMethods from API response
+			const subscription = subscriptionResponse?.subscription || null;
+			const futureSubscription = subscriptionResponse?.futureSubscription || null;
+			const paymentMethods = subscriptionResponse?.paymentMethods || [];
 
 			const defaultPaymentMethod = paymentMethods?.find((pm: PaymentMethod) => pm.is_default) || null;
 			console.log('useBillingState: paymentMethods', paymentMethods);
@@ -175,6 +194,7 @@ export function useBillingState() {
 			billingState.value = {
 				...billingState.value,
 				subscription: subscription || null,
+				futureSubscription: futureSubscription || null,
 				availablePlans: plans || [],
 				purchasesBalance,
 				paymentMethods: paymentMethods || [],
@@ -276,6 +296,58 @@ export function useBillingState() {
 		}
 	};
 
+	// NEW METHODS FOR ANALYTICS FEATURES
+
+	const loadUsageAnalytics = async (params?: URLSearchParams): Promise<void> => {
+		try {
+			billingState.value = {
+				...billingState.value,
+				loading: { ...billingState.value.loading, analytics: true },
+				paymentFlowError: null,
+			};
+
+			const apiClient = getApiClient();
+			const analytics = await apiClient.getUsageAnalytics(params);
+
+			billingState.value = {
+				...billingState.value,
+				usageAnalytics: analytics,
+				loading: { ...billingState.value.loading, analytics: false },
+			};
+		} catch (error) {
+			billingState.value = {
+				...billingState.value,
+				loading: { ...billingState.value.loading, analytics: false },
+				paymentFlowError: handleError(error, 'Failed to load usage analytics', 'api_error'),
+			};
+		}
+	};
+
+	const loadPurchaseHistory = async (filters?: PurchaseHistoryFilters): Promise<void> => {
+		try {
+			billingState.value = {
+				...billingState.value,
+				loading: { ...billingState.value.loading, history: true },
+				paymentFlowError: null,
+			};
+
+			const apiClient = getApiClient();
+			const history = await apiClient.getEnhancedPurchaseHistory(filters);
+
+			billingState.value = {
+				...billingState.value,
+				purchaseHistory: history,
+				loading: { ...billingState.value.loading, history: false },
+			};
+		} catch (error) {
+			billingState.value = {
+				...billingState.value,
+				loading: { ...billingState.value.loading, history: false },
+				paymentFlowError: handleError(error, 'Failed to load purchase history', 'api_error'),
+			};
+		}
+	};
+
 	// Create Stripe Elements for new payment method collection only
 	const createPaymentElements = async (): Promise<void> => {
 		const { stripe } = billingState.value;
@@ -363,8 +435,15 @@ export function useBillingState() {
 
 			console.log('useBillingState: changing plan with paymentMethodId: ', paymentMethodId);
 
-			if (!paymentMethodId) {
-				throw new PaymentFlowError('A payment method is required', 'payment_method_required');
+			// For upgrades, payment method is required; for downgrades, it's optional
+			const isUpgrade = billingState.value.billingPreview?.changeType === 'upgrade';
+			const isDowngrade = billingState.value.billingPreview?.changeType === 'downgrade';
+			if (isUpgrade && !paymentMethodId) {
+				throw new PaymentFlowError('A payment method is required for upgrades', 'payment_method_required');
+			}
+			// For downgrades, payment method is optional since there's no immediate charge
+			if (isDowngrade && !paymentMethodId) {
+				console.log('Downgrade without payment method - this is allowed');
 			}
 
 			// Change plan - ABI will handle the payment success via webhook
@@ -373,6 +452,15 @@ export function useBillingState() {
 
 			// Payment intent is automatically created by Stripe when the subscription is created
 			// with proration_behavior: 'create_prorations' in the backend
+
+			// Refresh feature cache to ensure immediate access to new features
+			try {
+				const cacheResult = await apiClient.post('/api/v1/user/features/cache/refresh', {});
+				console.log('useBillingState: refreshed feature cache after plan change:', cacheResult);
+			} catch (cacheError) {
+				console.warn('useBillingState: failed to refresh feature cache after plan change:', cacheError);
+				// Don't fail the entire operation if cache refresh fails
+			}
 
 			billingState.value = {
 				...billingState.value,
@@ -462,6 +550,8 @@ export function useBillingState() {
 		loadBillingData,
 		updateUsageData,
 		updatePaymentMethods,
+		loadUsageAnalytics,
+		loadPurchaseHistory,
 		createPaymentElements,
 		previewPlanChange,
 		changePlan,

@@ -8,15 +8,20 @@ export interface Plan {
 	//interval: 'month' | 'year';
 	plan_features: {
 		features: string[];
+		proposition?: string; // Marketing content for upgrade encouragement
+		target_user?: string; // Target user description for upgrade encouragement
+		signup_credits_cents: number;
+		upgrade_credits_cents?: number; // Credits to encourage upgrades
+		contact_for_signup?: boolean; // Enterprise plans that require contact
 	};
-	plan_limits?: {
-		max_conversations?: number;
-		monthly_tokens?: number;
-		rate_limits: {
-			tokens_per_minute: number;
-			requests_per_minute: number;
-		};
-	};
+	//plan_limits?: {
+	//	max_conversations?: number;
+	//	monthly_tokens?: number;
+	//	rate_limits: {
+	//		tokens_per_minute: number;
+	//		requests_per_minute: number;
+	//	};
+	//};
 }
 export interface PlanResults {
 	plans: Array<Plan>;
@@ -35,11 +40,6 @@ export interface Subscription {
 	paymentMethod?: PaymentMethod;
 }
 export interface SubscriptionUsage {
-	currentUsage: {
-		costUsd: number;
-		tokenCount: number;
-		requestCount: number;
-	};
 	quotaLimits: {
 		base_cost_monthly: number; //Base monthly cost limit in USD
 		max_cost_monthly: number; //Maximum monthly cost limit (usage plans only)
@@ -49,7 +49,7 @@ export interface SubscriptionUsage {
 }
 export interface SubscriptionResults {
 	subscription: Subscription;
-	usage: SubscriptionUsage;
+	futureSubscription: Subscription | null;
 	paymentMethods: PaymentMethod[];
 }
 
@@ -62,18 +62,21 @@ export interface BillingPreview {
 	periodStart: string; // iso8601
 	periodEnd: string; // iso8601
 	nextPeriodStart?: string; // iso8601
+	nextPeriodEnd?: string; // iso8601
 	currentPlan: Plan;
 	newPlan: Plan;
+	// New fields for upgrade/downgrade differentiation
+	changeType?: 'upgrade' | 'downgrade';
+	immediateChange?: boolean;
+	effectiveDate?: string; // iso8601
+	description?: string;
 }
 export interface BillingPreviewResults {
 	preview: BillingPreview;
 	usage: SubscriptionUsage;
 }
 
-export interface SubscriptionWithUsage extends Subscription {
-	usage?: SubscriptionUsage;
-}
-export interface SubscriptionWithUsageWithPaymentMethods extends SubscriptionWithUsage {
+export interface SubscriptionWithPaymentMethods extends Subscription {
 	payment_methods: PaymentMethod[];
 }
 
@@ -118,18 +121,104 @@ export interface BlockPurchaseResults {
 
 export interface PurchasesBalance {
 	balance: {
-		// Allowances
-		subscription_allowance_usd: number; // Monthly subscription allowance amount
-		purchased_allowance_usd: number; // Total purchased block allowance
-		total_allowance_usd: number; // Total available allowance (subscription + blocks)
-
-		// Usage
-		subscription_used_usd: number; // Amount used from subscription allowance
-		purchased_used_usd: number; // Amount used from purchased blocks
-		total_used_usd: number; // Total usage across all sources
-
-		// Balance
-		remaining_balance_usd: number; // Total remaining balance
+		current_balance_usd: number; // Current token balance
+		last_updated: string; // When balance was last updated
+		usage_since_update_usd: number; // Usage since last update
 	};
 	purchases: Array<BlockPurchase>;
+}
+
+// NEW INTERFACES FOR ANALYTICS FEATURES
+
+// Usage Analytics for the Usage & History tab
+export interface UsageAnalytics {
+	current_month: {
+		total_cost_usd: number;
+		total_requests: number;
+		total_tokens: number;
+		period_start: string; // iso8601
+		period_end: string; // iso8601
+	};
+	usage_trends: {
+		daily_usage: Array<{
+			date: string; // iso8601 date
+			cost_usd: number;
+			requests: number;
+			tokens: number;
+		}>;
+		weekly_usage: Array<{
+			week_start: string; // iso8601 date
+			week_end: string; // iso8601 date
+			cost_usd: number;
+			requests: number;
+			tokens: number;
+		}>;
+	};
+	model_breakdown: Array<{
+		model_name: string;
+		provider: string;
+		cost_usd: number;
+		requests: number;
+		tokens: number;
+		percentage_of_total: number;
+	}>;
+	feature_breakdown: Array<{
+		feature_type: 'chat' | 'code' | 'file_operations' | 'search' | 'other';
+		feature_name: string;
+		cost_usd: number;
+		requests: number;
+		tokens: number;
+		percentage_of_total: number;
+	}>;
+}
+
+// Enhanced Purchase History for combined subscription + credit transactions
+export interface EnhancedPurchaseHistory {
+	transactions: Array<{
+		transaction_id: string;
+		transaction_type: 'subscription' | 'credit_purchase' | 'auto_topup';
+		amount_usd: number;
+		description: string;
+		status: 'pending' | 'completed' | 'failed' | 'refunded';
+		created_at: string; // iso8601
+		payment_method?: {
+			type: string;
+			last4?: string;
+			brand?: string;
+		};
+		subscription_details?: {
+			plan_name: string;
+			period_start: string;
+			period_end: string;
+		};
+		credit_details?: {
+			credits_added_usd: number;
+			auto_triggered: boolean;
+		};
+	}>;
+	pagination: {
+		total_items: number;
+		current_page: number;
+		total_pages: number;
+		per_page: number;
+	};
+}
+
+// Results interfaces for API responses
+export interface UsageAnalyticsResults {
+	analytics: UsageAnalytics;
+}
+
+export interface EnhancedPurchaseHistoryResults {
+	history: EnhancedPurchaseHistory;
+}
+
+// Filter parameters for the purchase history API
+export interface PurchaseHistoryFilters {
+	transaction_type?: 'all' | 'subscription' | 'credit_purchase' | 'auto_topup';
+	date_start?: string; // iso8601
+	date_end?: string; // iso8601
+	status?: 'all' | 'pending' | 'completed' | 'failed' | 'refunded';
+	page?: number;
+	per_page?: number;
 }

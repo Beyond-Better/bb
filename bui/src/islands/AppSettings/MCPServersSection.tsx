@@ -3,6 +3,7 @@ import { useEffect, useState } from 'preact/hooks';
 import { useAppState } from '../../hooks/useAppState.ts';
 import { MCPServerConfig } from 'shared/config/types.ts';
 import MCPServerItem from './MCPServerItem.tsx';
+import { activeTab } from '../AppSettings.tsx';
 
 // This component used to handle both global and project-level MCP server configs; now it's global only
 // It could be simplified, or even lifted into AppSettings, but it's working and not too messy.
@@ -34,6 +35,8 @@ export default function MCPServersSection() {
 	const [formState, setFormState] = useState<MCPServersFormState>({
 		globalServers: [],
 	});
+	const [hasExternalToolsAccess, setHasExternalToolsAccess] = useState<boolean | null>(null);
+	const [accessCheckLoading, setAccessCheckLoading] = useState(true);
 	const [isEditing, setIsEditing] = useState<{ global: Record<string, boolean> }>({
 		global: {},
 	});
@@ -49,6 +52,23 @@ export default function MCPServersSection() {
 	const [newServer, setNewServer] = useState<{ global: MCPServerConfig }>({
 		global: { id: '', name: '', command: '', args: [], env: {} },
 	});
+
+	// Check external tools access
+	useEffect(() => {
+		const checkAccess = async () => {
+			try {
+				const accessResult = await appState.value.apiClient?.checkExternalToolsAccess();
+				setHasExternalToolsAccess(accessResult?.hasAccess ?? false);
+			} catch (error) {
+				console.error('Failed to check external tools access:', error);
+				setHasExternalToolsAccess(false);
+			} finally {
+				setAccessCheckLoading(false);
+			}
+		};
+
+		checkAccess();
+	}, [appState.value.apiClient]);
 
 	// Load initial config
 	useEffect(() => {
@@ -179,7 +199,7 @@ export default function MCPServersSection() {
 		return formState.globalServers;
 	};
 
-	if (loading.value) {
+	if (loading.value || accessCheckLoading) {
 		return (
 			<div class='mb-8'>
 				<div class='animate-pulse space-y-4'>
@@ -193,8 +213,46 @@ export default function MCPServersSection() {
 		);
 	}
 
+	// Check if user has access to external tools
+	const isAccessDenied = hasExternalToolsAccess === false;
+	const containerClasses = isAccessDenied ? 'opacity-50 pointer-events-none' : '';
+
 	return (
-		<div class='m-8'>
+		<div class='m-8 pt-8'>
+			{isAccessDenied && (
+				<div class='mb-6 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg'>
+					<div class='flex items-start space-x-3'>
+						<div class='flex-shrink-0'>
+							<svg class='h-5 w-5 text-amber-400' fill='currentColor' viewBox='0 0 20 20'>
+								<path fillRule='evenodd' d='M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z' clipRule='evenodd' />
+							</svg>
+						</div>
+						<div class='flex-1'>
+							<h3 class='text-sm font-medium text-amber-800 dark:text-amber-200'>
+								External Tools Access Required
+							</h3>
+							<p class='mt-1 text-sm text-amber-700 dark:text-amber-300'>
+								MCP (Model Context Protocol) servers require external tools access. Please upgrade your plan to configure and use MCP servers.
+							</p>
+							<div class='mt-3'>
+								<a
+									href='/app/settings?tab=plans-credits'
+									onClick={(e) => {
+										e.preventDefault();
+										activeTab.value = 'plans-credits';
+										history.pushState(null, '', '/app/settings?tab=plans-credits');
+									}}
+									class='text-sm font-medium text-amber-800 dark:text-amber-200 hover:text-amber-900 dark:hover:text-amber-100 underline'
+								>
+									Upgrade Plan →
+								</a>
+							</div>
+						</div>
+					</div>
+				</div>
+			)}
+
+			<div class={containerClasses}>
 			{/* Global MCP Servers Section */}
 			<div class='mb-6 pt-4'>
 				<h3 class='text-base font-medium text-gray-900 dark:text-gray-100 mb-2'>MCP Servers Configuration</h3>
@@ -643,6 +701,7 @@ export default function MCPServersSection() {
 							No MCP servers configured
 						</div>
 					)}
+			</div>
 			</div>
 		</div>
 	);

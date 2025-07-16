@@ -27,14 +27,19 @@ import type {
 	BillingPreviewWithUsage,
 	BlockPurchase,
 	BlockPurchaseResults,
+	EnhancedPurchaseHistory,
+	EnhancedPurchaseHistoryResults,
 	PaymentMethod,
 	PaymentMethodResults,
 	Plan,
 	PlanResults,
+	PurchaseHistoryFilters,
 	PurchasesBalance,
 	SubscriptionResults,
-	SubscriptionWithUsage,
-	SubscriptionWithUsageWithPaymentMethods,
+	Subscription,
+	SubscriptionWithPaymentMethods,
+	UsageAnalytics,
+	UsageAnalyticsResults,
 } from '../types/subscription.ts';
 import { savePreferredProtocol } from './connectionManager.utils.ts';
 
@@ -396,11 +401,15 @@ export class ApiClient {
 	}
 
 	// Subscription Methods
-	async getCurrentSubscription(): Promise<SubscriptionWithUsageWithPaymentMethods | null> {
+	async getCurrentSubscription(): Promise<SubscriptionResults | null> {
 		const results = await this.get<SubscriptionResults>('/api/v1/user/subscription/current');
 		console.log('APIClient: getCurrentSubscription', results);
 		return results
-			? { ...results?.subscription, usage: results?.usage, payment_methods: results?.paymentMethods }
+			? {
+					subscription: results?.subscription,
+					futureSubscription: results?.futureSubscription,
+					paymentMethods: results?.paymentMethods || [],
+				}
 			: null;
 	}
 
@@ -413,7 +422,7 @@ export class ApiClient {
 	async changePlan(
 		planId: string,
 		paymentMethodId: string | null,
-	): Promise<SubscriptionWithUsageWithPaymentMethods | null> {
+	): Promise<SubscriptionWithPaymentMethods | null> {
 		const data: { planId: string; payment_method_id: string | null; paymentMethodId: string | null } = {
 			planId,
 			payment_method_id: paymentMethodId, // Original format - may be expected by some endpoints
@@ -421,18 +430,18 @@ export class ApiClient {
 		};
 		const results = await this.post<SubscriptionResults>('/api/v1/user/subscription/change', data);
 		return results
-			? { ...results?.subscription, usage: results?.usage, payment_methods: results?.paymentMethods }
+			? { ...results?.subscription, payment_methods: results?.paymentMethods }
 			: null;
 	}
 
 	async cancelSubscription(
 		immediate: boolean = false,
-	): Promise<{ success: boolean; subscription: SubscriptionWithUsage }> {
-		const result = await this.post<{ success: boolean; subscription: SubscriptionWithUsage }>(
+	): Promise<{ success: boolean; subscription: Subscription }> {
+		const result = await this.post<{ success: boolean; subscription: Subscription }>(
 			'/api/v1/user/subscription/cancel',
 			{ immediate },
 		);
-		return result ?? { success: false, subscription: {} as SubscriptionWithUsage };
+		return result ?? { success: false, subscription: {} as Subscription };
 	}
 
 	async getBillingPreview(planId: string): Promise<BillingPreviewWithUsage | null> {
@@ -454,6 +463,112 @@ export class ApiClient {
 	// Usage Block List
 	async listUsageBlocks(): Promise<PurchasesBalance | null> {
 		return await this.get<PurchasesBalance>('/api/v1/user/billing/usage/blocks');
+	}
+
+	// NEW ANALYTICS ENDPOINTS FOR RESTRUCTURED BILLING TABS
+
+	// Usage Analytics for Usage & History tab
+	async getUsageAnalytics(params?: URLSearchParams): Promise<UsageAnalytics | null> {
+		const queryString = params ? `?${params.toString()}` : '';
+		const result = await this.get<UsageAnalyticsResults>(`/api/v1/user/billing/usage/analytics${queryString}`);
+		return result?.analytics || null;
+	}
+
+	// Enhanced Purchase History with filtering for Usage & History tab
+	async getEnhancedPurchaseHistory(filters?: PurchaseHistoryFilters): Promise<EnhancedPurchaseHistory | null> {
+		let endpoint = '/api/v1/user/billing/history/enhanced';
+		
+		if (filters) {
+			const params = new URLSearchParams();
+			if (filters.transaction_type && filters.transaction_type !== 'all') {
+				params.append('type', filters.transaction_type);
+			}
+			if (filters.date_start) params.append('date_start', filters.date_start);
+			if (filters.date_end) params.append('date_end', filters.date_end);
+			if (filters.status && filters.status !== 'all') {
+				params.append('status', filters.status);
+			}
+			if (filters.page) params.append('page', filters.page.toString());
+			if (filters.per_page) params.append('per_page', filters.per_page.toString());
+			
+			const queryString = params.toString();
+			if (queryString) {
+				endpoint += `?${queryString}`;
+			}
+		}
+		
+		const result = await this.get<EnhancedPurchaseHistoryResults>(endpoint);
+		return result?.history || null;
+	}
+
+	// Auto Top-up Methods
+	async getAutoTopupStatus(): Promise<{
+		settings: {
+			enabled: boolean;
+			min_balance_cents: number;
+			purchase_amount_cents: number;
+			max_per_day_cents: number;
+		};
+		rate_limits: {
+			daily_topup_count: number;
+			daily_topup_amount_cents: number;
+			failure_count: number;
+			temporary_disable_until: string | null;
+		};
+		recent_purchases: Array<{
+			purchase_id: string;
+			amount_usd: number;
+			purchase_status: string;
+			auto_triggered: boolean;
+			created_at: string;
+		}>;
+	} | null> {
+		return await this.get<{
+			settings: {
+				enabled: boolean;
+				min_balance_cents: number;
+				purchase_amount_cents: number;
+				max_per_day_cents: number;
+			};
+			rate_limits: {
+				daily_topup_count: number;
+				daily_topup_amount_cents: number;
+				failure_count: number;
+				temporary_disable_until: string | null;
+			};
+			recent_purchases: Array<{
+				purchase_id: string;
+				amount_usd: number;
+				purchase_status: string;
+				auto_triggered: boolean;
+				created_at: string;
+			}>;
+		}>('/api/v1/user/billing/auto-topup');
+	}
+
+	async updateAutoTopupSettings(settings: {
+		enabled: boolean;
+		min_balance_cents: number;
+		purchase_amount_cents: number;
+		max_per_day_cents: number;
+	}): Promise<{ success: boolean; message: string } | null> {
+		return await this.put<{ success: boolean; message: string }>('/api/v1/user/billing/auto-topup', settings);
+	}
+
+	async triggerAutoTopup(): Promise<{
+		success: boolean;
+		purchase_id?: string;
+		amount_cents?: number;
+		message: string;
+		retry_after_seconds?: number;
+	} | null> {
+		return await this.post<{
+			success: boolean;
+			purchase_id?: string;
+			amount_cents?: number;
+			message: string;
+			retry_after_seconds?: number;
+		}>('/api/v1/user/billing/auto-topup', {});
 	}
 
 	// Auth Methods
@@ -974,6 +1089,85 @@ export class ApiClient {
 	// Get model capabilities from the API
 	async getModelCapabilities(modelName: string): Promise<ModelResponse | null> {
 		return await this.get<ModelResponse>(`/api/v1/model/${encodeURIComponent(modelName)}`);
+	}
+
+	// Feature Access Methods
+	async checkExternalToolsAccess(): Promise<{ hasAccess: boolean; reason: string } | null> {
+		return await this.get<{ hasAccess: boolean; reason: string }>('/api/v1/user/features/external-tools');
+	}
+
+	async getUserFeatures(): Promise<{
+		profile: {
+			models: string[];
+			datasources: { name: string; read: boolean; write: boolean }[];
+			tools: string[];
+			limits: { tokensPerMinute: number; requestsPerMinute: number };
+			support: {
+				community: boolean;
+				email: boolean;
+				priorityQueue: boolean;
+				earlyAccess: boolean;
+				workspaceIsolation: boolean;
+				sso: boolean;
+				dedicatedCSM: boolean;
+				onPremises: boolean;
+			};
+		};
+	} | null> {
+		return await this.get<{
+			profile: {
+				models: string[];
+				datasources: { name: string; read: boolean; write: boolean }[];
+				tools: string[];
+				limits: { tokensPerMinute: number; requestsPerMinute: number };
+				support: {
+					community: boolean;
+					email: boolean;
+					priorityQueue: boolean;
+					earlyAccess: boolean;
+					workspaceIsolation: boolean;
+					sso: boolean;
+					dedicatedCSM: boolean;
+					onPremises: boolean;
+				};
+			};
+		}>('/api/v1/user/features');
+	}
+
+	async checkFeatureAccess(featureKey: string): Promise<{
+		result: {
+			access_granted: boolean;
+			feature_value: any;
+			access_reason: string;
+			resolved_from: string;
+		};
+	} | null> {
+		return await this.post<{
+			result: {
+				access_granted: boolean;
+				feature_value: any;
+				access_reason: string;
+				resolved_from: string;
+			};
+		}>('/api/v1/user/features/check', { featureKey });
+	}
+
+	async batchCheckFeatureAccess(featureKeys: string[]): Promise<{
+		results: Record<string, {
+			access_granted: boolean;
+			feature_value: any;
+			access_reason: string;
+			resolved_from: string;
+		}>;
+	} | null> {
+		return await this.post<{
+			results: Record<string, {
+				access_granted: boolean;
+				feature_value: any;
+				access_reason: string;
+				resolved_from: string;
+			}>;
+		}>('/api/v1/user/features/batch', { featureKeys });
 	}
 }
 

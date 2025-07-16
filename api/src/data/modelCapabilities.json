@@ -1,6 +1,6 @@
 {
 	"_metadata": {
-		"generatedAt": "2025-06-12T06:13:54.480Z",
+		"generatedAt": "2025-07-13T07:12:27.729Z",
 		"generatedBy": "update_model_capabilities.ts",
 		"sourceFiles": "api/src/data/model_sources/*.json",
 		"totalProviders": 6,
@@ -22,6 +22,7 @@
 				"currency": "USD",
 				"effectiveDate": "2024-10-22"
 			},
+			"featureKey": "models.claude.haiku",
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -62,6 +63,7 @@
 				"currency": "USD",
 				"effectiveDate": "2024-10-22"
 			},
+			"featureKey": "models.claude.sonnet",
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -102,6 +104,7 @@
 				"currency": "USD",
 				"effectiveDate": "2025-02-19"
 			},
+			"featureKey": "models.claude.sonnet",
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -142,6 +145,7 @@
 				"currency": "USD",
 				"effectiveDate": "2024-03-07"
 			},
+			"featureKey": "models.claude.haiku",
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -182,6 +186,7 @@
 				"currency": "USD",
 				"effectiveDate": "2024-02-29"
 			},
+			"featureKey": "models.claude.opus",
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -222,6 +227,7 @@
 				"currency": "USD",
 				"effectiveDate": "2025-05-23"
 			},
+			"featureKey": "models.claude.opus",
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -262,6 +268,7 @@
 				"currency": "USD",
 				"effectiveDate": "2025-05-23"
 			},
+			"featureKey": "models.claude.sonnet",
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -302,6 +309,7 @@
 				"currency": "USD",
 				"effectiveDate": "2024-12-27"
 			},
+			"featureKey": "models.deepseek",
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -340,6 +348,7 @@
 				"currency": "USD",
 				"effectiveDate": "2025-05-28"
 			},
+			"featureKey": "models.deepseek",
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -381,6 +390,7 @@
 				"currency": "USD",
 				"effectiveDate": "2024-09-01"
 			},
+			"featureKey": "models.gemini",
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -420,6 +430,7 @@
 				"currency": "USD",
 				"effectiveDate": "2024-10-01"
 			},
+			"featureKey": "models.gemini",
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -459,6 +470,7 @@
 				"currency": "USD",
 				"effectiveDate": "2024-09-01"
 			},
+			"featureKey": "models.gemini",
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -498,6 +510,7 @@
 				"currency": "USD",
 				"effectiveDate": "2025-02-01"
 			},
+			"featureKey": "models.gemini",
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -536,6 +549,7 @@
 				"currency": "USD",
 				"effectiveDate": "2025-02-01"
 			},
+			"featureKey": "models.gemini",
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -575,6 +589,7 @@
 				"currency": "USD",
 				"effectiveDate": "2025-05-01"
 			},
+			"featureKey": "models.gemini",
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -614,6 +629,7 @@
 				"currency": "USD",
 				"effectiveDate": "2025-05-01"
 			},
+			"featureKey": "models.gemini",
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -654,6 +670,7 @@
 				"currency": "USD",
 				"effectiveDate": "2024-06-01"
 			},
+			"featureKey": "models.groq",
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -692,6 +709,7 @@
 				"currency": "USD",
 				"effectiveDate": "2024-07-01"
 			},
+			"featureKey": "models.groq",
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -730,6 +748,7 @@
 				"currency": "USD",
 				"effectiveDate": "2024-12-01"
 			},
+			"featureKey": "models.groq",
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -768,6 +787,7 @@
 				"currency": "USD",
 				"effectiveDate": "2024-04-18"
 			},
+			"featureKey": "models.groq",
 			"supportedFeatures": {
 				"functionCalling": false,
 				"json": true,
@@ -806,6 +826,7 @@
 				"currency": "USD",
 				"effectiveDate": "2024-04-18"
 			},
+			"featureKey": "models.groq",
 			"supportedFeatures": {
 				"functionCalling": false,
 				"json": true,
@@ -844,8 +865,9 @@
 			},
 			"pricing_metadata": {
 				"currency": "USD",
-				"effectiveDate": "2025-06-12"
+				"effectiveDate": "2025-07-13"
 			},
+			"featureKey": "models.ollama",
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -882,8 +904,9 @@
 			},
 			"pricing_metadata": {
 				"currency": "USD",
-				"effectiveDate": "2025-06-12"
+				"effectiveDate": "2025-07-13"
 			},
+			"featureKey": "models.ollama",
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -920,8 +943,9 @@
 			},
 			"pricing_metadata": {
 				"currency": "USD",
-				"effectiveDate": "2025-06-12"
+				"effectiveDate": "2025-07-13"
 			},
+			"featureKey": "models.ollama",
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -958,8 +982,9 @@
 			},
 			"pricing_metadata": {
 				"currency": "USD",
-				"effectiveDate": "2025-06-12"
+				"effectiveDate": "2025-07-13"
 			},
+			"featureKey": "models.ollama",
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -996,8 +1021,9 @@
 			},
 			"pricing_metadata": {
 				"currency": "USD",
-				"effectiveDate": "2025-06-12"
+				"effectiveDate": "2025-07-13"
 			},
+			"featureKey": "models.ollama",
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -1034,8 +1060,9 @@
 			},
 			"pricing_metadata": {
 				"currency": "USD",
-				"effectiveDate": "2025-06-12"
+				"effectiveDate": "2025-07-13"
 			},
+			"featureKey": "models.ollama",
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -1072,8 +1099,9 @@
 			},
 			"pricing_metadata": {
 				"currency": "USD",
-				"effectiveDate": "2025-06-12"
+				"effectiveDate": "2025-07-13"
 			},
+			"featureKey": "models.ollama",
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -1114,6 +1142,7 @@
 				"currency": "USD",
 				"effectiveDate": "2023-11-06"
 			},
+			"featureKey": "models.openai.gpt3",
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -1153,6 +1182,7 @@
 				"currency": "USD",
 				"effectiveDate": "2025-04-14"
 			},
+			"featureKey": "models.openai.gpt4",
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -1192,6 +1222,7 @@
 				"currency": "USD",
 				"effectiveDate": "2025-04-14"
 			},
+			"featureKey": "models.openai.gpt4",
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -1231,6 +1262,7 @@
 				"currency": "USD",
 				"effectiveDate": "2025-04-14"
 			},
+			"featureKey": "models.openai.gpt4",
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -1270,6 +1302,7 @@
 				"currency": "USD",
 				"effectiveDate": "2024-05-13"
 			},
+			"featureKey": "models.openai.gpt4",
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -1309,6 +1342,7 @@
 				"currency": "USD",
 				"effectiveDate": "2024-07-18"
 			},
+			"featureKey": "models.openai.gpt4",
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -1348,6 +1382,7 @@
 				"currency": "USD",
 				"effectiveDate": "2025-04-16"
 			},
+			"featureKey": "models.openai.o3",
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -1387,6 +1422,7 @@
 				"currency": "USD",
 				"effectiveDate": "2025-04-16"
 			},
+			"featureKey": "models.openai.o4",
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,

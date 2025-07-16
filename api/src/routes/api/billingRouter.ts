@@ -3,12 +3,17 @@ import {
 	createCustomerSession,
 	createPaymentIntent,
 	createSetupIntent,
+	getAutoTopupStatus,
 	getBillingConfig,
+	getEnhancedPurchaseHistory,
+	getUsageAnalytics,
 	listPaymentMethods,
 	listUsageBlocks,
 	purchaseUsageBlock,
 	removePaymentMethod,
 	setDefaultPaymentMethod,
+	triggerAutoTopup,
+	updateAutoTopupSettings,
 } from './billing.handlers.ts';
 
 const billingRouter = new Router();
@@ -22,6 +27,11 @@ billingRouter
 	.post('/payment-methods/default', setDefaultPaymentMethod)
 	.delete('/payment-methods/:id', removePaymentMethod)
 	.post('/usage/purchase', purchaseUsageBlock)
-	.get('/usage/blocks', listUsageBlocks);
+	.get('/usage/blocks', listUsageBlocks)
+	.get('/usage/analytics', getUsageAnalytics)
+	.get('/history/enhanced', getEnhancedPurchaseHistory)
+	.get('/auto-topup', getAutoTopupStatus)
+	.put('/auto-topup', updateAutoTopupSettings)
+	.post('/auto-topup', triggerAutoTopup);
 
 export default billingRouter;

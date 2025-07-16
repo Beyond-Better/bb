@@ -1,6 +1,6 @@
 import type { Context } from '@oak/oak';
 import type { BillingPreview, Plan, Subscription } from 'shared/types/subscription.ts';
-import type { SessionManager } from '../../auth/session.ts';
+import type { SessionManager } from 'api/auth/session.ts';
 import { logger } from 'shared/logger.ts';
 
 export async function getCurrentSubscription(ctx: Context) {
@@ -19,6 +19,10 @@ export async function getCurrentSubscription(ctx: Context) {
 		const { data, error } = await supabaseClient.functions.invoke('user-subscription', {
 			method: 'GET',
 		});
+		//logger.warn(
+		//	`SubscriptionHandler: getCurrentSubscription: `,
+		//	{ data, error },
+		//);
 
 		if (error) {
 			ctx.response.status = 400;
@@ -91,7 +95,7 @@ export async function changePlan(ctx: Context) {
 		}
 
 		// Log the request details
-		logger.info(`SubscriptionHandler: changePlan:`, { planId, paymentMethodId });
+		//logger.info(`SubscriptionHandler: changePlan:`, { planId, paymentMethodId });
 
 		// Pass both planId and paymentMethodId to the edge function
 		const { data, error } = await supabaseClient.functions.invoke('user-subscription', {
@@ -100,6 +104,7 @@ export async function changePlan(ctx: Context) {
 		});
 
 		if (error) {
+			logger.error(`SubscriptionHandler: changePlan-error:`, { error });
 			ctx.response.status = 400;
 			ctx.response.body = { error: error.message };
 			return;
@@ -128,10 +133,7 @@ export async function getPreview(ctx: Context) {
 
 		const body = await ctx.request.body.json();
 		const planId = body.planId;
-		logger.info(
-			`SubscriptionHandler: createPaymentIntent: args`,
-			{ planId },
-		);
+		//logger.info( `SubscriptionHandler: createPaymentIntent: args`, { planId });
 
 		if (!planId) {
 			ctx.response.status = 400;
@@ -143,10 +145,7 @@ export async function getPreview(ctx: Context) {
 			method: 'POST',
 			body: { planId, preview: true },
 		});
-		logger.info(
-			`SubscriptionHandler: createPaymentIntent: data`,
-			{ data, error },
-		);
+		//logger.info(`SubscriptionHandler: createPaymentIntent: data`, { data, error });
 
 		if (error) {
 			ctx.response.status = 400;

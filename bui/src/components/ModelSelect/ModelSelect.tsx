@@ -9,6 +9,7 @@ export interface SelectOption {
 	value: string;
 	label: string | JSX.Element;
 	isHeader?: boolean;
+	disabled?: boolean;
 }
 
 interface ModelSelectProps {
@@ -66,7 +67,7 @@ export function ModelSelect({
 		if (!isOpen.value) return;
 
 		const handleKeyDown = (e: KeyboardEvent) => {
-			const validOptions = displayedOptions.value.filter((opt) => !opt.isHeader);
+			const validOptions = displayedOptions.value.filter((opt) => !opt.isHeader && !opt.disabled);
 
 			switch (e.key) {
 				case 'ArrowDown':
@@ -82,7 +83,7 @@ export function ModelSelect({
 				case 'Enter': {
 					e.preventDefault();
 					const selectedOpt = validOptions[selectedIndex.value];
-					if (selectedOpt && !selectedOpt.isHeader) {
+					if (selectedOpt && !selectedOpt.isHeader && !selectedOpt.disabled) {
 						onChange(selectedOpt.value);
 						isOpen.value = false;
 					}
