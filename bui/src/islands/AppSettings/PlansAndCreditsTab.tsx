@@ -100,10 +100,10 @@ export default function PlansAndCreditsTab() {
 
 		const currentPlan = billingState.value.subscription.plan;
 		const availablePlans = billingState.value.availablePlans
-			.filter(plan => !plan.plan_features?.contact_for_signup) // Exclude enterprise plans
+			.filter((plan) => !plan.plan_features?.contact_for_signup) // Exclude enterprise plans
 			.sort((a, b) => a.plan_price_monthly - b.plan_price_monthly); // Sort by price
 
-		const currentIndex = availablePlans.findIndex(plan => plan.plan_id === currentPlan.plan_id);
+		const currentIndex = availablePlans.findIndex((plan) => plan.plan_id === currentPlan.plan_id);
 		if (currentIndex === -1 || currentIndex === availablePlans.length - 1) {
 			return null; // No next plan available
 		}
@@ -185,52 +185,61 @@ export default function PlansAndCreditsTab() {
 							</button>
 						</div>
 
-						{billingState.value.purchasesBalance?.balance ? (
-							<div class='text-center'>
-								<div class='text-3xl font-bold text-green-600 dark:text-green-400 mb-2'>
-									${billingState.value.purchasesBalance.balance.current_balance_usd?.toFixed(2)}
+						{billingState.value.purchasesBalance?.balance
+							? (
+								<div class='text-center'>
+									<div class='text-3xl font-bold text-green-600 dark:text-green-400 mb-2'>
+										${billingState.value.purchasesBalance.balance.current_balance_usd?.toFixed(2)}
+									</div>
+									<div class='text-sm text-gray-500 dark:text-gray-400 mb-4'>Remaining Balance</div>
+
+									<div class='space-y-2 text-xs text-gray-500 dark:text-gray-400'>
+										{billingState.value.purchasesBalance.purchases?.length > 0 && (
+											<div>
+												<span>
+													Recent: ${billingState.value.purchasesBalance.purchases[0]
+														.amount_usd?.toFixed(2)} on
+												</span>
+												<span>
+													{formatDateSafe(
+														new Date(
+															billingState.value.purchasesBalance.purchases[0].created_at,
+														),
+														{ timeZone: 'UTC', dateStyle: 'short' },
+														'Unknown',
+													)}
+												</span>
+											</div>
+										)}
+									</div>
+
+									<button
+										type='button'
+										onClick={() => showUsageBlockDialog.value = true}
+										class='mt-4 w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 rounded-md'
+									>
+										Buy Credits
+									</button>
 								</div>
-								<div class='text-sm text-gray-500 dark:text-gray-400 mb-4'>Remaining Balance</div>
-								
-								<div class='space-y-2 text-xs text-gray-500 dark:text-gray-400'>
-									{billingState.value.purchasesBalance.purchases?.length > 0 && (
-										<div>
-											<span>Recent: ${billingState.value.purchasesBalance.purchases[0].amount_usd?.toFixed(2)} on </span>
-											<span>{formatDateSafe(
-												new Date(billingState.value.purchasesBalance.purchases[0].created_at),
-												{ timeZone: 'UTC', dateStyle: 'short' },
-												'Unknown'
-											)}</span>
-										</div>
-									)}
+							)
+							: (
+								<div class='text-center'>
+									<div class='text-gray-500 dark:text-gray-400 mb-4'>No credits available</div>
+									<button
+										type='button'
+										onClick={() => showUsageBlockDialog.value = true}
+										class='px-4 py-2 text-sm font-medium text-white bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 rounded-md'
+									>
+										Buy Credits
+									</button>
 								</div>
-								
-								<button
-									type='button'
-									onClick={() => showUsageBlockDialog.value = true}
-									class='mt-4 w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 rounded-md'
-								>
-									Buy Credits
-								</button>
-							</div>
-						) : (
-							<div class='text-center'>
-								<div class='text-gray-500 dark:text-gray-400 mb-4'>No credits available</div>
-								<button
-									type='button'
-									onClick={() => showUsageBlockDialog.value = true}
-									class='px-4 py-2 text-sm font-medium text-white bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 rounded-md'
-								>
-									Buy Credits
-								</button>
-							</div>
-						)}
+							)}
 					</div>
 
 					{/* Current Plan Card */}
 					<div class='bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6'>
 						<h5 class='text-base font-medium text-gray-700 dark:text-gray-300 mb-4'>Current Plan</h5>
-						
+
 						<div class='text-center'>
 							<div class='text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2'>
 								{billingState.value.subscription?.plan.plan_name}
@@ -239,10 +248,10 @@ export default function PlansAndCreditsTab() {
 								Active until {formatDateSafe(
 									new Date(billingState.value.subscription?.subscription_period_end || ''),
 									{ timeZone: 'UTC', dateStyle: 'short' },
-									'Not scheduled'
+									'Not scheduled',
 								)}
 							</div>
-							
+
 							<span
 								class={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mb-4 ${
 									billingState.value.subscription?.subscription_status === 'ACTIVE'
@@ -254,65 +263,78 @@ export default function PlansAndCreditsTab() {
 							</span>
 
 							{/* Plan Change Notice: Cancellation and Future Subscription */}
-							{billingState.value.subscription?.subscription_cancel_at ? (
-								<div class='mt-4 space-y-3'>
-									{/* Current Plan Cancellation */}
-									<div class='p-3 bg-amber-50 dark:bg-amber-900/20 rounded border border-amber-200 dark:border-amber-700'>
-										<div class='text-sm text-amber-600 dark:text-amber-400 font-medium'>
-											{billingState.value.subscription.plan.plan_name} ends on {formatDateSafe(
-												new Date(billingState.value.subscription.subscription_cancel_at),
-												{ timeZone: 'UTC', dateStyle: 'short' },
-												'Not scheduled'
-											)}
-										</div>
-									</div>
-									
-									{/* Future Subscription */}
-									{billingState.value.futureSubscription && (
-										<div class='p-3 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-700'>
-											<div class='text-sm text-blue-700 dark:text-blue-300 font-medium mb-1'>
-												📅 Switching to {billingState.value.futureSubscription.plan.plan_name}
-											</div>
-											<div class='text-xs text-blue-600 dark:text-blue-400'>
-												Starts {formatDateSafe(
-													new Date(billingState.value.futureSubscription.subscription_period_start),
+							{billingState.value.subscription?.subscription_cancel_at
+								? (
+									<div class='mt-4 space-y-3'>
+										{/* Current Plan Cancellation */}
+										<div class='p-3 bg-amber-50 dark:bg-amber-900/20 rounded border border-amber-200 dark:border-amber-700'>
+											<div class='text-sm text-amber-600 dark:text-amber-400 font-medium'>
+												{billingState.value.subscription.plan.plan_name} ends on{' '}
+												{formatDateSafe(
+													new Date(billingState.value.subscription.subscription_cancel_at),
 													{ timeZone: 'UTC', dateStyle: 'short' },
-													'Not scheduled'
+													'Not scheduled',
 												)}
 											</div>
 										</div>
-									)}
-								</div>
-							) : (
-								<div class='mt-4'>
-									{/* Upgrade Encouragement or Congratulations */}
-									{nextPlan ? (
-										<div class='p-3 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-700'>
-											<div class='text-sm text-blue-700 dark:text-blue-300 mb-2'>
-												🚀 Upgrade to {nextPlan.plan_name}
-												{nextPlan.plan_features?.proposition && (
-													<span class='block mt-1'>{nextPlan.plan_features.proposition}</span>
-												)}
+
+										{/* Future Subscription */}
+										{billingState.value.futureSubscription && (
+											<div class='p-3 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-700'>
+												<div class='text-sm text-blue-700 dark:text-blue-300 font-medium mb-1'>
+													📅 Switching to{' '}
+													{billingState.value.futureSubscription.plan.plan_name}
+												</div>
+												<div class='text-xs text-blue-600 dark:text-blue-400'>
+													Starts {formatDateSafe(
+														new Date(
+															billingState.value.futureSubscription
+																.subscription_period_start,
+														),
+														{ timeZone: 'UTC', dateStyle: 'short' },
+														'Not scheduled',
+													)}
+												</div>
 											</div>
-											<button
-												type='button'
-												onClick={handleExploreUpgrade}
-												class='text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors'
-											>
-												Explore {nextPlan.plan_name} →
-											</button>
-										</div>
-									) : (
-										<div class='p-3 bg-green-50 dark:bg-green-900/20 rounded border border-green-200 dark:border-green-700'>
-											<div class='text-sm text-green-700 dark:text-green-300 text-center'>
-												🎉 Congratulations! You're on our most powerful plan.
-												<br />
-												<span class='text-xs'>Thank you for being a premium subscriber!</span>
-											</div>
-										</div>
-									)}
-								</div>
-							)}
+										)}
+									</div>
+								)
+								: (
+									<div class='mt-4'>
+										{/* Upgrade Encouragement or Congratulations */}
+										{nextPlan
+											? (
+												<div class='p-3 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-700'>
+													<div class='text-sm text-blue-700 dark:text-blue-300 mb-2'>
+														🚀 Upgrade to {nextPlan.plan_name}
+														{nextPlan.plan_features?.proposition && (
+															<span class='block mt-1'>
+																{nextPlan.plan_features.proposition}
+															</span>
+														)}
+													</div>
+													<button
+														type='button'
+														onClick={handleExploreUpgrade}
+														class='text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium transition-colors'
+													>
+														Explore {nextPlan.plan_name} →
+													</button>
+												</div>
+											)
+											: (
+												<div class='p-3 bg-green-50 dark:bg-green-900/20 rounded border border-green-200 dark:border-green-700'>
+													<div class='text-sm text-green-700 dark:text-green-300 text-center'>
+														🎉 Congratulations! You're on our most powerful plan.
+														<br />
+														<span class='text-xs'>
+															Thank you for being a premium subscriber!
+														</span>
+													</div>
+												</div>
+											)}
+									</div>
+								)}
 
 							<button
 								type='button'
@@ -332,7 +354,7 @@ export default function PlansAndCreditsTab() {
 					{/* Quick Actions */}
 					<div class='bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6'>
 						<h4 class='text-base font-medium text-gray-700 dark:text-gray-300 mb-4'>Quick Actions</h4>
-						
+
 						<div class='space-y-3'>
 							<button
 								type='button'
@@ -340,22 +362,32 @@ export default function PlansAndCreditsTab() {
 								class='w-full px-4 py-3 text-sm font-medium text-white bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 rounded-md flex items-center justify-center'
 							>
 								<svg class='h-4 w-4 mr-2' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
-									<path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M12 6v6m0 0v6m0-6h6m-6 0H6' />
+									<path
+										stroke-linecap='round'
+										stroke-linejoin='round'
+										stroke-width='2'
+										d='M12 6v6m0 0v6m0-6h6m-6 0H6'
+									/>
 								</svg>
 								Buy Credits
 							</button>
-							
+
 							<button
 								type='button'
 								onClick={scrollToChangePlan}
 								class='w-full px-4 py-3 text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-800/20 rounded-md flex items-center justify-center'
 							>
 								<svg class='h-4 w-4 mr-2' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
-									<path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 14l-7 7m0 0l-7-7m7 7V3' />
+									<path
+										stroke-linecap='round'
+										stroke-linejoin='round'
+										stroke-width='2'
+										d='M19 14l-7 7m0 0l-7-7m7 7V3'
+									/>
 								</svg>
 								Switch Plan
 							</button>
-							
+
 							{!billingState.value.defaultPaymentMethod && (
 								<button
 									type='button'
@@ -363,19 +395,29 @@ export default function PlansAndCreditsTab() {
 									class='w-full px-4 py-3 text-sm font-medium text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-800/20 rounded-md flex items-center justify-center'
 								>
 									<svg class='h-4 w-4 mr-2' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
-										<path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z' />
+										<path
+											stroke-linecap='round'
+											stroke-linejoin='round'
+											stroke-width='2'
+											d='M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z'
+										/>
 									</svg>
 									Add Payment Method
 								</button>
 							)}
-							
+
 							<button
 								type='button'
 								onClick={handleCancelSubscription}
 								class='w-full px-4 py-3 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-800/20 rounded-md flex items-center justify-center'
 							>
 								<svg class='h-4 w-4 mr-2' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
-									<path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M6 18L18 6M6 6l12 12' />
+									<path
+										stroke-linecap='round'
+										stroke-linejoin='round'
+										stroke-width='2'
+										d='M6 18L18 6M6 6l12 12'
+									/>
 								</svg>
 								Cancel Subscription
 							</button>
@@ -385,63 +427,64 @@ export default function PlansAndCreditsTab() {
 					{/* Payment Method */}
 					<div class='bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6'>
 						<h4 class='text-base font-medium text-gray-700 dark:text-gray-300 mb-4'>Payment Method</h4>
-						
-						{billingState.value.defaultPaymentMethod ? (
-							<div class='p-4 bg-gray-50 dark:bg-gray-700 rounded-md group relative'>
-								<div class='flex items-center justify-between'>
-									<div class='flex items-center space-x-3'>
-										<div class='text-sm font-medium text-gray-900 dark:text-gray-100'>
-											{billingState.value.defaultPaymentMethod.card_brand?.toUpperCase()}
+
+						{billingState.value.defaultPaymentMethod
+							? (
+								<div class='p-4 bg-gray-50 dark:bg-gray-700 rounded-md group relative'>
+									<div class='flex items-center justify-between'>
+										<div class='flex items-center space-x-3'>
+											<div class='text-sm font-medium text-gray-900 dark:text-gray-100'>
+												{billingState.value.defaultPaymentMethod.card_brand?.toUpperCase()}
+											</div>
+											<div class='text-sm font-medium text-gray-900 dark:text-gray-100'>
+												•••• {billingState.value.defaultPaymentMethod.card_last4}
+											</div>
 										</div>
-										<div class='text-sm font-medium text-gray-900 dark:text-gray-100'>
-											•••• {billingState.value.defaultPaymentMethod.card_last4}
-										</div>
+										<button
+											type='button'
+											onClick={async () => {
+												try {
+													await appState.value.apiClient?.removePaymentMethod(
+														billingState.value.defaultPaymentMethod!.payment_method_id,
+													);
+													await updatePaymentMethods();
+												} catch (err) {
+													console.error('Failed to remove payment method:', err);
+												}
+											}}
+											class='hidden group-hover:block text-red-400 hover:text-red-500 dark:text-red-500 dark:hover:text-red-400'
+											title='Remove payment method'
+										>
+											<svg class='h-4 w-4' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+												<path
+													stroke-linecap='round'
+													stroke-linejoin='round'
+													stroke-width='2'
+													d='M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16'
+												/>
+											</svg>
+										</button>
 									</div>
+									<div class='mt-2'>
+										<span class='text-xs text-gray-500 dark:text-gray-400 bg-gray-200 dark:bg-gray-600 px-2 py-1 rounded'>
+											Default
+										</span>
+									</div>
+								</div>
+							)
+							: (
+								<div class='text-center py-8'>
+									<div class='text-gray-500 dark:text-gray-400 mb-4'>No payment methods added</div>
 									<button
 										type='button'
-										onClick={async () => {
-											try {
-												await appState.value.apiClient?.removePaymentMethod(
-													billingState.value.defaultPaymentMethod!.payment_method_id
-												);
-												await updatePaymentMethods();
-											} catch (err) {
-												console.error('Failed to remove payment method:', err);
-											}
-										}}
-										class='hidden group-hover:block text-red-400 hover:text-red-500 dark:text-red-500 dark:hover:text-red-400'
-										title='Remove payment method'
+										onClick={() => showPaymentMethodDialog.value = true}
+										class='px-4 py-2 text-sm font-medium text-white bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 rounded-md'
 									>
-										<svg class='h-4 w-4' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
-											<path
-												stroke-linecap='round'
-												stroke-linejoin='round'
-												stroke-width='2'
-												d='M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16'
-											/>
-										</svg>
+										Add Payment Method
 									</button>
 								</div>
-								<div class='mt-2'>
-									<span class='text-xs text-gray-500 dark:text-gray-400 bg-gray-200 dark:bg-gray-600 px-2 py-1 rounded'>
-										Default
-									</span>
-								</div>
-							</div>
-						) : (
-							<div class='text-center py-8'>
-								<div class='text-gray-500 dark:text-gray-400 mb-4'>No payment methods added</div>
-								<button
-									type='button'
-									onClick={() => showPaymentMethodDialog.value = true}
-									class='px-4 py-2 text-sm font-medium text-white bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 rounded-md'
-								>
-									Add Payment Method
-								</button>
-							</div>
-						)}
+							)}
 					</div>
-
 				</div>
 			</div>
 
@@ -502,7 +545,12 @@ export default function PlansAndCreditsTab() {
 							>
 								<span class='sr-only'>Close</span>
 								<svg class='h-6 w-6' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
-									<path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M6 18L18 6M6 6l12 12' />
+									<path
+										stroke-linecap='round'
+										stroke-linejoin='round'
+										stroke-width='2'
+										d='M6 18L18 6M6 6l12 12'
+									/>
 								</svg>
 							</button>
 						</div>

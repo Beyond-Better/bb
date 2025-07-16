@@ -56,7 +56,7 @@ export class FeatureAccessService {
 
 	constructor(
 		coreClient: SupabaseClientWithSchema<'abi_core'>,
-		billingClient: SupabaseClientWithSchema<'abi_billing'>
+		billingClient: SupabaseClientWithSchema<'abi_billing'>,
 	) {
 		this.coreClient = coreClient;
 		this.billingClient = billingClient;

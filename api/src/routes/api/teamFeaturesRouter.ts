@@ -1,9 +1,5 @@
 import { Router } from '@oak/oak';
-import {
-	getTeamFeatureProfile,
-	checkTeamFeatureAccess,
-	getTeamAvailableModels,
-} from './teamFeatures.handlers.ts';
+import { checkTeamFeatureAccess, getTeamAvailableModels, getTeamFeatureProfile } from './teamFeatures.handlers.ts';
 
 const teamFeaturesRouter = new Router();
 

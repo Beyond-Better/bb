@@ -139,22 +139,22 @@ export const listModels = async (
 				// Create Supabase clients for both schemas
 				const supabaseCore = await SupabaseClientFactory.createClient('abi_core', true);
 				const supabaseBilling = await SupabaseClientFactory.createClient('abi_billing', true);
-				
+
 				// Batch check feature access for all models
 				const accessChecks = await Promise.allSettled(
 					allModels.map(async (model) => {
 						if (!model.capabilities.featureKey) return { modelId: model.id, hasAccess: true };
-						
+
 						const hasAccess = await ModelAccess.hasModel(
 							supabaseCore,
 							supabaseBilling,
 							session.user.id,
-							model.capabilities.featureKey
+							model.capabilities.featureKey,
 						);
 						return { modelId: model.id, hasAccess };
-					})
+					}),
 				);
-				
+
 				// Process results
 				accessChecks.forEach((result, index) => {
 					if (result.status === 'fulfilled') {
@@ -168,13 +168,13 @@ export const listModels = async (
 			} catch (error) {
 				logger.error('Failed to perform feature access checks:', error);
 				// Default to no access for all models on error
-				allModels.forEach(model => {
+				allModels.forEach((model) => {
 					userHasAccess[model.id] = false;
 				});
 			}
 		} else {
 			// No authenticated user, default to no access
-			allModels.forEach(model => {
+			allModels.forEach((model) => {
 				userHasAccess[model.id] = false;
 			});
 		}
@@ -308,12 +308,12 @@ export const getModelCapabilities = async (
 				// Create Supabase clients for both schemas
 				const supabaseCore = await SupabaseClientFactory.createClient('abi_core');
 				const supabaseBilling = await SupabaseClientFactory.createClient('abi_billing');
-				
+
 				userHasAccess = await ModelAccess.hasModel(
 					supabaseCore,
 					supabaseBilling,
 					session.user.id,
-					modelInfo.capabilities.featureKey
+					modelInfo.capabilities.featureKey,
 				);
 			} catch (error) {
 				logger.warn(`Feature access check failed for model ${modelId}:`, error);

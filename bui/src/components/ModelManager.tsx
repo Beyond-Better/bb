@@ -270,7 +270,7 @@ export function ModelSelector({
 									(intelligenceA === -1 ? 1 : intelligenceA);
 								return intelligenceComparison;
 							});
-						console.log('ModelSelector: ', {sortedModels});
+						console.log('ModelSelector: ', { sortedModels });
 
 						modelsState.value = {
 							models: sortedModels,
@@ -307,7 +307,7 @@ export function ModelSelector({
 		let filteredModels = modelsState.value.models;
 		if (strictFiltering) {
 			// Hide models user doesn't have access to
-			filteredModels = modelsState.value.models.filter(model => model.userHasAccess !== false);
+			filteredModels = modelsState.value.models.filter((model) => model.userHasAccess !== false);
 		}
 
 		// Group models by provider
@@ -341,57 +341,63 @@ export function ModelSelector({
 				const hasAccess = model.userHasAccess !== false;
 				const showAsUnavailable = showAccessStatus && !hasAccess;
 
-				const label = compact ? (
-				<span className={showAsUnavailable ? 'opacity-50' : ''}>
-					{model.displayName}
-					{showAsUnavailable && (
-						<a 
-							href='/app/settings?tab=plans-credits' 
-							className='ml-2 text-xs text-gray-500 dark:text-gray-400 cursor-help hover:text-gray-700 dark:hover:text-gray-300 hover:underline'
-							title='This model requires a higher subscription plan. Click to upgrade.'
-							onClick={(e) => e.stopPropagation()}
-						>
-							(unavailable)
-						</a>
-					)}
-				</span>
-			) : (
-					// Rich layout for dropdown (matches original ModelList design)
-					<div className={`flex items-center gap-2 flex-1 min-w-0 ${showAsUnavailable ? 'opacity-50' : ''}`}>
-						<span className='mr-2 text-lg flex-shrink-0 text-gray-700 dark:text-gray-300'>
-							{getProviderIcon(model.provider)}
+				const label = compact
+					? (
+						<span className={showAsUnavailable ? 'opacity-50' : ''}>
+							{model.displayName}
+							{showAsUnavailable && (
+								<a
+									href='/app/settings?tab=plans-credits'
+									className='ml-2 text-xs text-gray-500 dark:text-gray-400 cursor-help hover:text-gray-700 dark:hover:text-gray-300 hover:underline'
+									title='This model requires a higher subscription plan. Click to upgrade.'
+									onClick={(e) => e.stopPropagation()}
+								>
+									(unavailable)
+								</a>
+							)}
 						</span>
-						<div className='flex flex-col min-w-0'>
-							<span className='font-medium text-gray-900 dark:text-gray-100 truncate'>
-								{model.displayName}
-								{showAsUnavailable && (
-									<a 
-										href='/app/settings?tab=plans-credits' 
-										className='ml-2 text-xs text-gray-500 dark:text-gray-400 cursor-help hover:text-gray-700 dark:hover:text-gray-300 hover:underline'
-										title='This model requires a higher subscription plan. Click to upgrade.'
-										onClick={(e) => e.stopPropagation()}
-									>
-										(unavailable)
-									</a>
-								)}
+					)
+					: (
+						// Rich layout for dropdown (matches original ModelList design)
+						<div
+							className={`flex items-center gap-2 flex-1 min-w-0 ${
+								showAsUnavailable ? 'opacity-50' : ''
+							}`}
+						>
+							<span className='mr-2 text-lg flex-shrink-0 text-gray-700 dark:text-gray-300'>
+								{getProviderIcon(model.provider)}
 							</span>
-							<div className='flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400'>
-								<span className='mr-1 text-lg'>
-									{getCharacteristicIcon('speed', characteristics.speed)}
+							<div className='flex flex-col min-w-0'>
+								<span className='font-medium text-gray-900 dark:text-gray-100 truncate'>
+									{model.displayName}
+									{showAsUnavailable && (
+										<a
+											href='/app/settings?tab=plans-credits'
+											className='ml-2 text-xs text-gray-500 dark:text-gray-400 cursor-help hover:text-gray-700 dark:hover:text-gray-300 hover:underline'
+											title='This model requires a higher subscription plan. Click to upgrade.'
+											onClick={(e) => e.stopPropagation()}
+										>
+											(unavailable)
+										</a>
+									)}
 								</span>
-								<span className='mr-1 text-lg'>
-									{getCharacteristicIcon('cost', characteristics.cost)}
-								</span>
-								<span className='mr-1 text-lg'>
-									{getCharacteristicIcon('intelligence', characteristics.intelligence)}
-								</span>
-								<span className='ml-1'>
-									{(model.contextWindow / 1000).toFixed(0)}K tokens
-								</span>
+								<div className='flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400'>
+									<span className='mr-1 text-lg'>
+										{getCharacteristicIcon('speed', characteristics.speed)}
+									</span>
+									<span className='mr-1 text-lg'>
+										{getCharacteristicIcon('cost', characteristics.cost)}
+									</span>
+									<span className='mr-1 text-lg'>
+										{getCharacteristicIcon('intelligence', characteristics.intelligence)}
+									</span>
+									<span className='ml-1'>
+										{(model.contextWindow / 1000).toFixed(0)}K tokens
+									</span>
+								</div>
 							</div>
 						</div>
-					</div>
-				);
+					);
 
 				options.push({
 					value: model.id,

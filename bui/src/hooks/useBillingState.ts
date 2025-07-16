@@ -104,8 +104,6 @@ const initialBillingState: BillingState = {
 const billingState = signal<BillingState>(initialBillingState);
 let isInitialized = false;
 
-
-
 export function useBillingState() {
 	const appState = useAppState();
 

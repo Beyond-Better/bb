@@ -1,13 +1,13 @@
 import { Router } from '@oak/oak';
 import {
-	getUserFeatureProfile,
-	checkUserFeatureAccess,
 	batchCheckUserFeatureAccess,
-	getUserAvailableModels,
+	checkUserFeatureAccess,
 	getUserAvailableDatasources,
+	getUserAvailableModels,
+	getUserFeatureProfile,
+	getUserHasExternalTools,
 	getUserRateLimits,
 	refreshUserFeatureCache,
-	getUserHasExternalTools,
 } from './features.handlers.ts';
 
 const featuresRouter = new Router();
