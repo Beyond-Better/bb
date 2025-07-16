@@ -17,6 +17,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.8.12] - 2025-07-16
+
+### Notes
+
+This is a quick fix. See release notes for v0.8.11 for full list of recent changes.
+- https://github.com/Beyond-Better/bb/releases/tag/v0.8.11
+
+Beyond Better has a major update to subscription plans and billing system.  See Pricing page for more details.
+
+- https://beyondbetter.app/pricing
+
+### BREAKING CHANGES
+
+- The billing system has been completely replaced to support new subscription plans. There should be no risk of breaking local project configs, but users should be aware of new subscription plans and token credit system.
+
+### Added
+
+
+### Changed
+
+- added flag for checking model access
+
+### Fixed
+
+
 ## [0.8.11] - 2025-07-16
 
 ### Notes

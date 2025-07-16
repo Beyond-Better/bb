@@ -90,7 +90,8 @@ class BaseController {
 	async init(): Promise<BaseController> {
 		const configManager = await getConfigManager();
 		this.projectConfig = await configManager.getProjectConfig(this.projectEditor.projectId);
-		this.toolManager = await new LLMToolManager(this.projectConfig, this.projectEditor.sessionManager, 'core').init();
+		this.toolManager = await new LLMToolManager(this.projectConfig, this.projectEditor.sessionManager, 'core')
+			.init();
 		this.eventManager = EventManager.getInstance();
 		this.promptManager = await new PromptManager().init(this.projectEditor.projectId);
 

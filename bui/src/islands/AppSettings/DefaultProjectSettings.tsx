@@ -659,8 +659,8 @@ export default function DefaultProjectSettings() {
 									<ModelSelector
 										key={`orchestrator-${formState.defaultModels.orchestrator}`}
 										apiClient={appState.value.apiClient!}
-										context='global'
 										showAccessStatus
+										context='global'
 										role='orchestrator'
 										value={formState.defaultModels.orchestrator}
 										onChange={(value) => {
@@ -689,8 +689,8 @@ export default function DefaultProjectSettings() {
 									<ModelSelector
 										key={`agent-${formState.defaultModels.agent}`}
 										apiClient={appState.value.apiClient!}
-										context='global'
 										showAccessStatus
+										context='global'
 										role='agent'
 										value={formState.defaultModels.agent}
 										onChange={(value) => {
@@ -719,8 +719,8 @@ export default function DefaultProjectSettings() {
 									<ModelSelector
 										key={`chat-${formState.defaultModels.chat}`}
 										apiClient={appState.value.apiClient!}
-										context='global'
 										showAccessStatus
+										context='global'
 										role='chat'
 										value={formState.defaultModels.chat}
 										onChange={(value) => {

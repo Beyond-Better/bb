@@ -56,7 +56,7 @@ export class FeatureAccessService {
 
 	constructor(
 		coreClient: SupabaseClientWithSchema<'abi_core'>,
-		billingClient: SupabaseClientWithSchema<'abi_billing'>
+		billingClient: SupabaseClientWithSchema<'abi_billing'>,
 	) {
 		this.coreClient = coreClient;
 		this.billingClient = billingClient;
@@ -69,7 +69,7 @@ export class FeatureAccessService {
 	async checkFeatureAccess(
 		userId: string,
 		featureKey: string,
-		useCache: boolean = true,
+		useCache: boolean = false,
 	): Promise<FeatureAccessResult> {
 		try {
 			// Try cache first if enabled

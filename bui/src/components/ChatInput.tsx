@@ -1839,6 +1839,7 @@ export function ChatInput({
 									chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]?.model || ''
 								}`}
 								apiClient={apiClient}
+								showAccessStatus
 								context='collaboration'
 								role={selectedModelRole.value}
 								value={chatInputOptions.value.rolesModelConfig?.[selectedModelRole.value]?.model || ''}

@@ -110,21 +110,23 @@ export default function PlanCard({ plan, isCurrentPlan, onSelect }: PlanCardProp
 
 						<div class='space-y-2'>
 							{/* {(plan.plan_features?.signup_credits_cents ?? 0) > 0 && ( */}
-								<div class='flex items-center justify-between'>
-									<span class='text-sm text-gray-700 dark:text-gray-300'>On signup:</span>
-									<span class='font-bold text-emerald-700 dark:text-emerald-300 text-lg'>
-										${formatCents(plan.plan_features.signup_credits_cents)}
-									</span>
-								</div>
+							<div class='flex items-center justify-between'>
+								<span class='text-sm text-gray-700 dark:text-gray-300'>On signup:</span>
+								<span class='font-bold text-emerald-700 dark:text-emerald-300 text-lg'>
+									${formatCents(plan.plan_features.signup_credits_cents)}
+								</span>
+							</div>
 							{/* )} */}
 
 							{/* {(plan.plan_features?.upgrade_credits_cents ?? 0) > 0 && ( */}
-								<div class='flex items-center justify-between'>
-									<span class='text-sm text-gray-700 dark:text-gray-300'>On upgrade:</span>
-									<span class='font-bold text-emerald-700 dark:text-emerald-300 text-lg'>
-										{(plan.plan_features?.upgrade_credits_cents ?? 0) > 0 ? '$'+formatCents(plan.plan_features.upgrade_credits_cents || 0) : 'N/A'}
-									</span>
-								</div>
+							<div class='flex items-center justify-between'>
+								<span class='text-sm text-gray-700 dark:text-gray-300'>On upgrade:</span>
+								<span class='font-bold text-emerald-700 dark:text-emerald-300 text-lg'>
+									{(plan.plan_features?.upgrade_credits_cents ?? 0) > 0
+										? '$' + formatCents(plan.plan_features.upgrade_credits_cents || 0)
+										: 'N/A'}
+								</span>
+							</div>
 							{/* )} */}
 						</div>
 

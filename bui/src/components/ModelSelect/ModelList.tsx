@@ -57,12 +57,12 @@ export function ModelList({
 						onClick={() => !option.disabled && onSelect(option.value)}
 						disabled={option.disabled}
 						className={`w-full px-4 py-3 text-left border-b border-gray-100 dark:border-gray-700 last:border-b-0 ${
-							option.disabled 
-								? 'cursor-not-allowed bg-gray-50 dark:bg-gray-800' 
+							option.disabled
+								? 'cursor-not-allowed bg-gray-50 dark:bg-gray-800'
 								: 'hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:bg-gray-50 dark:focus:bg-gray-700'
-						} ${
-							isSelected && !option.disabled ? 'bg-blue-50 dark:bg-blue-900/20' : ''
-						} ${isCurrent && !option.disabled ? 'bg-blue-100 dark:bg-blue-800/30' : ''}`}
+						} ${isSelected && !option.disabled ? 'bg-blue-50 dark:bg-blue-900/20' : ''} ${
+							isCurrent && !option.disabled ? 'bg-blue-100 dark:bg-blue-800/30' : ''
+						}`}
 					>
 						<div className='flex items-center justify-between'>
 							<div className='flex-1 min-w-0'>

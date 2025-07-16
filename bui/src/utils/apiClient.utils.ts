@@ -35,8 +35,8 @@ import type {
 	PlanResults,
 	PurchaseHistoryFilters,
 	PurchasesBalance,
-	SubscriptionResults,
 	Subscription,
+	SubscriptionResults,
 	SubscriptionWithPaymentMethods,
 	UsageAnalytics,
 	UsageAnalyticsResults,
@@ -406,10 +406,10 @@ export class ApiClient {
 		console.log('APIClient: getCurrentSubscription', results);
 		return results
 			? {
-					subscription: results?.subscription,
-					futureSubscription: results?.futureSubscription,
-					paymentMethods: results?.paymentMethods || [],
-				}
+				subscription: results?.subscription,
+				futureSubscription: results?.futureSubscription,
+				paymentMethods: results?.paymentMethods || [],
+			}
 			: null;
 	}
 
@@ -429,9 +429,7 @@ export class ApiClient {
 			paymentMethodId: paymentMethodId, // New format - matches the property name in the edge function
 		};
 		const results = await this.post<SubscriptionResults>('/api/v1/user/subscription/change', data);
-		return results
-			? { ...results?.subscription, payment_methods: results?.paymentMethods }
-			: null;
+		return results ? { ...results?.subscription, payment_methods: results?.paymentMethods } : null;
 	}
 
 	async cancelSubscription(
@@ -477,7 +475,7 @@ export class ApiClient {
 	// Enhanced Purchase History with filtering for Usage & History tab
 	async getEnhancedPurchaseHistory(filters?: PurchaseHistoryFilters): Promise<EnhancedPurchaseHistory | null> {
 		let endpoint = '/api/v1/user/billing/history/enhanced';
-		
+
 		if (filters) {
 			const params = new URLSearchParams();
 			if (filters.transaction_type && filters.transaction_type !== 'all') {
@@ -490,39 +488,41 @@ export class ApiClient {
 			}
 			if (filters.page) params.append('page', filters.page.toString());
 			if (filters.per_page) params.append('per_page', filters.per_page.toString());
-			
+
 			const queryString = params.toString();
 			if (queryString) {
 				endpoint += `?${queryString}`;
 			}
 		}
-		
+
 		const result = await this.get<EnhancedPurchaseHistoryResults>(endpoint);
 		return result?.history || null;
 	}
 
 	// Auto Top-up Methods
-	async getAutoTopupStatus(): Promise<{
-		settings: {
-			enabled: boolean;
-			min_balance_cents: number;
-			purchase_amount_cents: number;
-			max_per_day_cents: number;
-		};
-		rate_limits: {
-			daily_topup_count: number;
-			daily_topup_amount_cents: number;
-			failure_count: number;
-			temporary_disable_until: string | null;
-		};
-		recent_purchases: Array<{
-			purchase_id: string;
-			amount_usd: number;
-			purchase_status: string;
-			auto_triggered: boolean;
-			created_at: string;
-		}>;
-	} | null> {
+	async getAutoTopupStatus(): Promise<
+		{
+			settings: {
+				enabled: boolean;
+				min_balance_cents: number;
+				purchase_amount_cents: number;
+				max_per_day_cents: number;
+			};
+			rate_limits: {
+				daily_topup_count: number;
+				daily_topup_amount_cents: number;
+				failure_count: number;
+				temporary_disable_until: string | null;
+			};
+			recent_purchases: Array<{
+				purchase_id: string;
+				amount_usd: number;
+				purchase_status: string;
+				auto_triggered: boolean;
+				created_at: string;
+			}>;
+		} | null
+	> {
 		return await this.get<{
 			settings: {
 				enabled: boolean;
@@ -555,13 +555,15 @@ export class ApiClient {
 		return await this.put<{ success: boolean; message: string }>('/api/v1/user/billing/auto-topup', settings);
 	}
 
-	async triggerAutoTopup(): Promise<{
-		success: boolean;
-		purchase_id?: string;
-		amount_cents?: number;
-		message: string;
-		retry_after_seconds?: number;
-	} | null> {
+	async triggerAutoTopup(): Promise<
+		{
+			success: boolean;
+			purchase_id?: string;
+			amount_cents?: number;
+			message: string;
+			retry_after_seconds?: number;
+		} | null
+	> {
 		return await this.post<{
 			success: boolean;
 			purchase_id?: string;
@@ -1096,24 +1098,26 @@ export class ApiClient {
 		return await this.get<{ hasAccess: boolean; reason: string }>('/api/v1/user/features/external-tools');
 	}
 
-	async getUserFeatures(): Promise<{
-		profile: {
-			models: string[];
-			datasources: { name: string; read: boolean; write: boolean }[];
-			tools: string[];
-			limits: { tokensPerMinute: number; requestsPerMinute: number };
-			support: {
-				community: boolean;
-				email: boolean;
-				priorityQueue: boolean;
-				earlyAccess: boolean;
-				workspaceIsolation: boolean;
-				sso: boolean;
-				dedicatedCSM: boolean;
-				onPremises: boolean;
+	async getUserFeatures(): Promise<
+		{
+			profile: {
+				models: string[];
+				datasources: { name: string; read: boolean; write: boolean }[];
+				tools: string[];
+				limits: { tokensPerMinute: number; requestsPerMinute: number };
+				support: {
+					community: boolean;
+					email: boolean;
+					priorityQueue: boolean;
+					earlyAccess: boolean;
+					workspaceIsolation: boolean;
+					sso: boolean;
+					dedicatedCSM: boolean;
+					onPremises: boolean;
+				};
 			};
-		};
-	} | null> {
+		} | null
+	> {
 		return await this.get<{
 			profile: {
 				models: string[];
@@ -1134,14 +1138,16 @@ export class ApiClient {
 		}>('/api/v1/user/features');
 	}
 
-	async checkFeatureAccess(featureKey: string): Promise<{
-		result: {
-			access_granted: boolean;
-			feature_value: any;
-			access_reason: string;
-			resolved_from: string;
-		};
-	} | null> {
+	async checkFeatureAccess(featureKey: string): Promise<
+		{
+			result: {
+				access_granted: boolean;
+				feature_value: any;
+				access_reason: string;
+				resolved_from: string;
+			};
+		} | null
+	> {
 		return await this.post<{
 			result: {
 				access_granted: boolean;
@@ -1152,14 +1158,16 @@ export class ApiClient {
 		}>('/api/v1/user/features/check', { featureKey });
 	}
 
-	async batchCheckFeatureAccess(featureKeys: string[]): Promise<{
-		results: Record<string, {
-			access_granted: boolean;
-			feature_value: any;
-			access_reason: string;
-			resolved_from: string;
-		}>;
-	} | null> {
+	async batchCheckFeatureAccess(featureKeys: string[]): Promise<
+		{
+			results: Record<string, {
+				access_granted: boolean;
+				feature_value: any;
+				access_reason: string;
+				resolved_from: string;
+			}>;
+		} | null
+	> {
 		return await this.post<{
 			results: Record<string, {
 				access_granted: boolean;
