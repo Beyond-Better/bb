@@ -25,13 +25,30 @@ export async function stageAndCommitAfterChanging(
 	}
 	logger.info(`GitUtils: Project root is: ${dataSourceRoot}`);
 
-	// Group files by their git repository root
+	// Group files by their git repository root, and resolve symlinks
 	const repoFiles = new Map<string, Set<string>>();
 	for (const file of changedResources) {
 		logger.info(`GitUtils: Finding git root for file: ${file}`);
-		const fullPath = resolve(dataSourceRoot, file);
+		let resolvedDataSourceRoot:string;
+		try {
+			// resolve symlinks
+			resolvedDataSourceRoot = await Deno.realPath(dataSourceRoot);
+		} catch (error) {
+			logger.error(`GitUtils: Could not get realPath for ${dataSourceRoot}: ${(error as Error).message}`);
+			throw error;
+		}
+		const fullPath = resolve(resolvedDataSourceRoot, file);
+// 		let resolvedPath:string;
+// 		try {
+// 			// resolve symlinks
+// 			resolvedPath = await Deno.realPath(fullPath);
+// 		} catch (error) {
+// 			logger.error(`GitUtils: Could not get realPath for ${fullPath}: ${(error as Error).message}`);
+// 			throw error;
+// 		}
+
 		logger.info(`GitUtils:   Full path: ${fullPath}`);
-		const gitRoot = await GitUtils.findGitRoot(fullPath, dataSourceRoot);
+		const gitRoot = await GitUtils.findGitRoot(fullPath, resolvedDataSourceRoot);
 		logger.info(`GitUtils:   Git root: ${gitRoot || 'not found'}`);
 
 		if (!gitRoot) {
@@ -55,7 +72,24 @@ export async function stageAndCommitAfterChanging(
 		// Convert file paths to be relative to git root instead of project root
 		const filesRelativeToGitRoot = new Set<string>();
 		for (const file of files) {
-			const fullPath = resolve(dataSourceRoot, file);
+			let resolvedDataSourceRoot:string;
+			try {
+				// resolve symlinks
+				resolvedDataSourceRoot = await Deno.realPath(dataSourceRoot);
+			} catch (error) {
+				logger.error(`GitUtils: Could not get realPath for ${dataSourceRoot}: ${(error as Error).message}`);
+				throw error;
+			}
+			const fullPath = resolve(resolvedDataSourceRoot, file);
+// 			let resolvedPath:string;
+// 			try {
+// 				// resolve symlinks
+// 				resolvedPath = await Deno.realPath(resolvedPath);
+// 			} catch (error) {
+// 				logger.error(`GitUtils: Could not get realPath for ${resolvedPath}: ${(error as Error).message}`);
+// 				throw error;
+// 			}
+	
 			const relativeToGitRoot = relative(gitRoot, fullPath);
 			logger.info(
 				`GitUtils: Converting path for git:\n  Project relative: ${file}\n  Full path: ${fullPath}\n  Git relative: ${relativeToGitRoot}`,
