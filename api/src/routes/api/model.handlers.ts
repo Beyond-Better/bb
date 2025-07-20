@@ -97,11 +97,6 @@ export const listModels = async (
 		// [TODO] Ideally we pass projectConfig to getInstance since project may have different llmProviders
 		const registryService = await ModelRegistryService.getInstance();
 
-		// Get configuration to check localMode
-		const configManager = await getConfigManager();
-		const globalConfig = await configManager.getGlobalConfig();
-		const isLocalMode = globalConfig.api.localMode ?? false;
-
 		// Parse pagination and filter parameters
 		const url = new URL(request.url);
 		const page = parseInt(url.searchParams.get('page') || '1');
@@ -113,7 +108,7 @@ export const listModels = async (
 		let allModels = registryService.getAllModels();
 
 		// Filter out local-only models when not in local mode
-		if (!isLocalMode) {
+		if (!ctx.state.localMode) {
 			allModels = allModels.filter((model: ModelInfo) => !model.localOnly);
 		}
 		//logger.info('ModelHandler: listModels', allModels);
@@ -126,16 +121,23 @@ export const listModels = async (
 		if (sourceFilter) {
 			allModels = allModels.filter((model: ModelInfo) => model.source === sourceFilter);
 		}
+		//logger.info('ModelHandler: allModels', allModels);
 
 		// Get user session for feature access checks
 		const session = ctx.state?.session;
-		let userHasAccess: Record<string, boolean> = {};
-
 		//logger.info('ModelHandler: session', session);
 
+		let userHasAccess: Record<string, boolean> = {};
+
 		// Perform feature access checks if user is authenticated
-		if (session?.user?.id) {
+		if (ctx.state.localMode) {
+			// Local mode, default to all access
+			allModels.forEach((model) => {
+				userHasAccess[model.id] = true;
+			});
+		} else if (session?.user?.id) {
 			try {
+				//logger.info('ModelHandler: not localMode - checking models for user: ', session?.user?.id);
 				// Create Supabase clients for both schemas
 				const supabaseCore = await SupabaseClientFactory.createClient('abi_core', true);
 				const supabaseBilling = await SupabaseClientFactory.createClient('abi_billing', true);
@@ -173,6 +175,7 @@ export const listModels = async (
 				});
 			}
 		} else {
+			logger.info('ModelHandler: not localMode - no user - no models', );
 			// No authenticated user, default to no access
 			allModels.forEach((model) => {
 				userHasAccess[model.id] = false;
@@ -277,11 +280,6 @@ export const getModelCapabilities = async (
 		// Initialize the model registry service
 		const registryService = await ModelRegistryService.getInstance();
 
-		// Get configuration to check localMode
-		const configManager = await getConfigManager();
-		const globalConfig = await configManager.getGlobalConfig();
-		const isLocalMode = globalConfig.api.localMode ?? false;
-
 		// Get the model information
 		const modelInfo = registryService.getModel(modelId);
 
@@ -292,7 +290,7 @@ export const getModelCapabilities = async (
 		}
 
 		// Check if model is local-only and we're not in local mode
-		if (modelInfo.localOnly && !isLocalMode) {
+		if (modelInfo.localOnly && !ctx.state.localMode) {
 			response.status = 403;
 			response.body = { error: `Model ${modelId} is only available in local mode` };
 			return;
