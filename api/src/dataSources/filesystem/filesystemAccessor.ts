@@ -61,6 +61,9 @@ export class FilesystemAccessor extends BBResourceAccessor {
 	 */
 	private rootPath: string;
 
+	public followSymlinks: boolean;
+	public strictRoot: boolean;
+
 	/**
 	 * Create a new FilesystemAccessor
 	 * @param connection The data source connection to use
@@ -68,13 +71,20 @@ export class FilesystemAccessor extends BBResourceAccessor {
 	constructor(connection: DataSourceConnection) {
 		super(connection);
 
+		logger.info(`FilesystemAccessor: constructor `, { config: connection.config });
 		// Extract and validate the root path from the connection config
 		const rootPath = connection.config.dataSourceRoot as string;
 		if (!rootPath || typeof rootPath !== 'string') {
 			throw new Error(`Invalid dataSourceRoot in connection ${connection.id}: ${rootPath}`);
 		}
-
 		this.rootPath = rootPath;
+
+		const followSymlinks = (connection.config.followSymlinks ?? true)as boolean;
+		this.followSymlinks = followSymlinks;
+
+		const strictRoot = (connection.config.strictRoot ?? true) as boolean;
+		this.strictRoot = strictRoot;
+
 		logger.debug(`FilesystemAccessor: Created for ${connection.id} with root ${this.rootPath}`);
 	}
 
@@ -85,7 +95,9 @@ export class FilesystemAccessor extends BBResourceAccessor {
 	 */
 	async isResourceWithinDataSource(resourceUri: string): Promise<boolean> {
 		const resourcePath = extractResourcePath(resourceUri) || '.';
-		//logger.info(`FilesystemAccessor: isResourceWithinDataSource - checking root ${this.rootPath} contains ${resourcePath}`);
+		logger.info(
+			`FilesystemAccessor: isResourceWithinDataSource - checking root ${this.rootPath} contains ${resourcePath}`,
+		);
 		if (!resourcePath) return false;
 		return await isPathWithinDataSource(this.rootPath, resourcePath);
 	}

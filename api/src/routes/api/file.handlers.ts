@@ -470,7 +470,7 @@ export const suggestFilesForPath = async (
 		const result = await getSuggestionsForPath(options);
 		response.body = result;
 	} catch (error) {
-		logger.error(`FileHandler: Error getting file suggestions: ${(error as Error).message}`);
+		logger.error(`FileHandler: Error getting file suggestions for path: ${(error as Error).message}`);
 
 		if ((error as Error).name === ErrorType.FileHandling) {
 			response.status = 400;
@@ -486,7 +486,7 @@ export const listDirectoryContents = async (
 	{ request, response }: { request: Context['request']; response: Context['response'] },
 ) => {
 	try {
-		const { dirPath, only, matchingString, includeHidden } = await request.body.json();
+		const { dirPath, only, matchingString, includeHidden, strictRoot } = await request.body.json();
 		const rootDir = Deno.env.get('HOME') || Deno.env.get('USERPROFILE') || '';
 
 		//if (!dirPath) {
@@ -499,6 +499,7 @@ export const listDirectoryContents = async (
 		if (only) options.only = only;
 		if (matchingString) options.matchingString = matchingString;
 		if (includeHidden !== undefined) options.includeHidden = includeHidden;
+		if (strictRoot !== undefined) options.strictRoot = strictRoot;
 
 		const result = await listDirectory(rootDir, dirPath, options);
 		response.body = result;

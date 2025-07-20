@@ -68,6 +68,17 @@ export class FilesystemProvider extends BBDataSourceProvider {
 			return false;
 		}
 
+		// Check that strictRoot is a boolean if present
+		if (config.strictRoot !== undefined && typeof config.strictRoot !== 'boolean') {
+			logger.warn(`FilesystemProvider: strictRoot must be a boolean, got ${typeof config.strictRoot}`);
+			return false;
+		}
+		// Check that followSymlinks is a boolean if present
+		if (config.followSymlinks !== undefined && typeof config.followSymlinks !== 'boolean') {
+			logger.warn(`FilesystemProvider: followSymlinks must be a boolean, got ${typeof config.followSymlinks}`);
+			return false;
+		}
+
 		// All checks passed
 		return true;
 	}
@@ -88,6 +99,8 @@ export class FilesystemProvider extends BBDataSourceProvider {
 			enabled?: boolean;
 			isPrimary?: boolean;
 			priority?: number;
+			strictRoot?: number;
+			followSymlinks?: number;
 		} = {},
 	): DataSourceConnection {
 		const provider = registry.getProvider('filesystem', 'bb');
@@ -96,7 +109,11 @@ export class FilesystemProvider extends BBDataSourceProvider {
 		return registry.createConnection(
 			provider,
 			name,
-			{ dataSourceRoot: rootPath },
+			{
+				dataSourceRoot: rootPath,
+				strictRoot: options.strictRoot ?? true,
+				followSymlinks: options.followSymlinks ?? true,
+			},
 			options,
 		);
 	}
