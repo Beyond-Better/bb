@@ -40,44 +40,44 @@ export const getFeatureService = (
 	billingClient: SupabaseClientWithSchema<'abi_billing'>,
 ): FeatureAccessService => {
 	// Create a composite cache key
-// 	const cacheKey = `${(coreClient as any).__clientId || 'core'}_${(billingClient as any).__clientId || 'billing'}`;
-// 
-// 	// Check if we already have a service for this client pair
-// 	let cached = serviceCache.get(cacheKey);
-// 
-// 	// Verify the cached service still has valid client references
-// 	if (cached) {
-// 		const coreRef = cached.coreRef.deref();
-// 		const billingRef = cached.billingRef.deref();
-// 		if (coreRef && billingRef) {
-// 			return cached.service;
-// 		} else {
-// 			// Clean up stale cache entry
-// 			serviceCache.delete(cacheKey);
-// 			serviceTimestamps.delete(cacheKey);
-// 			activeServices.delete(cacheKey);
-// 		}
-// 	}
+	// 	const cacheKey = `${(coreClient as any).__clientId || 'core'}_${(billingClient as any).__clientId || 'billing'}`;
+	//
+	// 	// Check if we already have a service for this client pair
+	// 	let cached = serviceCache.get(cacheKey);
+	//
+	// 	// Verify the cached service still has valid client references
+	// 	if (cached) {
+	// 		const coreRef = cached.coreRef.deref();
+	// 		const billingRef = cached.billingRef.deref();
+	// 		if (coreRef && billingRef) {
+	// 			return cached.service;
+	// 		} else {
+	// 			// Clean up stale cache entry
+	// 			serviceCache.delete(cacheKey);
+	// 			serviceTimestamps.delete(cacheKey);
+	// 			activeServices.delete(cacheKey);
+	// 		}
+	// 	}
 
 	// Create new service instance
 	const service = new FeatureAccessService(coreClient, billingClient);
-// 	service.startCacheCleanup(); // Start cleanup for this instance
-// 
-// 	// Cache it with weak references to the clients
-// 	serviceCache.set(cacheKey, {
-// 		service,
-// 		coreRef: new WeakRef(coreClient),
-// 		billingRef: new WeakRef(billingClient),
-// 	});
-// 
-// 	// Track for manual cleanup
-// 	serviceTimestamps.set(cacheKey, Date.now());
-// 	activeServices.add(cacheKey);
-// 
-// 	// Start cleanup timer if this is the first service and we're in a long-running process
-// 	if (cleanupTimer === null && typeof Deno !== 'undefined') {
-// 		startServiceCacheCleanup();
-// 	}
+	// 	service.startCacheCleanup(); // Start cleanup for this instance
+	//
+	// 	// Cache it with weak references to the clients
+	// 	serviceCache.set(cacheKey, {
+	// 		service,
+	// 		coreRef: new WeakRef(coreClient),
+	// 		billingRef: new WeakRef(billingClient),
+	// 	});
+	//
+	// 	// Track for manual cleanup
+	// 	serviceTimestamps.set(cacheKey, Date.now());
+	// 	activeServices.add(cacheKey);
+	//
+	// 	// Start cleanup timer if this is the first service and we're in a long-running process
+	// 	if (cleanupTimer === null && typeof Deno !== 'undefined') {
+	// 		startServiceCacheCleanup();
+	// 	}
 
 	return service;
 };

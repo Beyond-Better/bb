@@ -79,7 +79,7 @@ export class FilesystemAccessor extends BBResourceAccessor {
 		}
 		this.rootPath = rootPath;
 
-		const followSymlinks = (connection.config.followSymlinks ?? true)as boolean;
+		const followSymlinks = (connection.config.followSymlinks ?? true) as boolean;
 		this.followSymlinks = followSymlinks;
 
 		const strictRoot = (connection.config.strictRoot ?? true) as boolean;

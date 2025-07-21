@@ -194,13 +194,16 @@ export function DataSourceModal({ dsConnection, onClose, onSave, appState, dsPro
 								<input
 									type='checkbox'
 									checked={formData.config.strictRoot !== false}
-									onChange={(e) => handleConfigChange('strictRoot', (e.target as HTMLInputElement).checked)}
+									onChange={(e) =>
+										handleConfigChange('strictRoot', (e.target as HTMLInputElement).checked)}
 									class='mr-2'
 								/>
 								Deny External Symlinks
 							</label>
 							<div className='text-xs text-gray-500 dark:text-gray-400 ml-6'>
-								When checked, restricts file access to your home directory and hides symlinks that point outside it. When unchecked, allows following symlinks to any accessible location on the system.
+								When checked, restricts file access to your home directory and hides symlinks that point
+								outside it. When unchecked, allows following symlinks to any accessible location on the
+								system.
 							</div>
 						</div>
 					</div>

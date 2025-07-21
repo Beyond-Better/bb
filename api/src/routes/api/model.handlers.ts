@@ -175,7 +175,7 @@ export const listModels = async (
 				});
 			}
 		} else {
-			logger.info('ModelHandler: not localMode - no user - no models', );
+			logger.info('ModelHandler: not localMode - no user - no models');
 			// No authenticated user, default to no access
 			allModels.forEach((model) => {
 				userHasAccess[model.id] = false;

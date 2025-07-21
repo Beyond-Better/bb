@@ -51,7 +51,7 @@ export default function PlanCard({ plan, isCurrentPlan, onSelect }: PlanCardProp
 
 			<div class='flex items-center gap-2 mb-2'>
 				<h3 class='text-lg font-medium text-gray-900 dark:text-gray-100'>{plan.plan_name}</h3>
-				{hasPromotion && (
+				{hasPromotion && plan.plan_features && plan.plan_features.promotion && (
 					<span class='inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-orange-100 to-red-100 dark:from-orange-900/40 dark:to-red-900/40 text-orange-800 dark:text-orange-200 border border-orange-200 dark:border-orange-700'>
 						🐦 {plan.plan_features.promotion.discount_percentage} OFF
 					</span>
@@ -73,11 +73,13 @@ export default function PlanCard({ plan, isCurrentPlan, onSelect }: PlanCardProp
 								</div>
 							)}
 							<div>
-								<span class={`text-3xl font-bold ${
-									hasPromotion 
-										? 'text-orange-600 dark:text-orange-400'
-										: 'text-gray-900 dark:text-gray-100'
-								}`}>
+								<span
+									class={`text-3xl font-bold ${
+										hasPromotion
+											? 'text-orange-600 dark:text-orange-400'
+											: 'text-gray-900 dark:text-gray-100'
+									}`}
+								>
 									${plan.plan_price_monthly}
 								</span>
 								<span class='text-gray-500 dark:text-gray-400'>/ monthly (USD)</span>
@@ -99,11 +101,13 @@ export default function PlanCard({ plan, isCurrentPlan, onSelect }: PlanCardProp
 								</div>
 							)}
 							<div>
-								<span class={`text-3xl font-bold ${
-									hasPromotion 
-										? 'text-orange-600 dark:text-orange-400'
-										: 'text-gray-900 dark:text-gray-100'
-								}`}>
+								<span
+									class={`text-3xl font-bold ${
+										hasPromotion
+											? 'text-orange-600 dark:text-orange-400'
+											: 'text-gray-900 dark:text-gray-100'
+									}`}
+								>
 									Free
 								</span>
 								{hasPromotion && (

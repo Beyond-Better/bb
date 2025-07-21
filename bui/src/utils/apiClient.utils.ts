@@ -770,7 +770,12 @@ export class ApiClient {
 
 	async listDirectory(
 		dirPath: string,
-		options: { only?: 'files' | 'directories'; matchingString?: string; includeHidden?: boolean } = {},
+		options: {
+			only?: 'files' | 'directories';
+			matchingString?: string;
+			includeHidden?: boolean;
+			strictRoot?: boolean;
+		} = {},
 	): Promise<ListDirectoryResponse | null> {
 		try {
 			return await this.post<ListDirectoryResponse>('/api/v1/files/list-directory', {

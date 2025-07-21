@@ -72,19 +72,19 @@ export class FeatureAccessService {
 		useCache: boolean = false,
 	): Promise<FeatureAccessResult> {
 		try {
-// 			// Try cache first if enabled
-// 			if (useCache) {
-// 				const cacheKey = `${userId}:${featureKey}`;
-// 				const cached = this.cache.get(cacheKey);
-// 				if (cached && cached.expires > new Date()) {
-// 					return {
-// 						access_granted: cached.result.access_granted,
-// 						feature_value: cached.result.feature_value,
-// 						access_reason: 'cached',
-// 						resolved_from: 'cache',
-// 					};
-// 				}
-// 			}
+			// 			// Try cache first if enabled
+			// 			if (useCache) {
+			// 				const cacheKey = `${userId}:${featureKey}`;
+			// 				const cached = this.cache.get(cacheKey);
+			// 				if (cached && cached.expires > new Date()) {
+			// 					return {
+			// 						access_granted: cached.result.access_granted,
+			// 						feature_value: cached.result.feature_value,
+			// 						access_reason: 'cached',
+			// 						resolved_from: 'cache',
+			// 					};
+			// 				}
+			// 			}
 
 			// Get from database using RPC
 			const { data, error } = await this.coreClient
@@ -115,18 +115,18 @@ export class FeatureAccessService {
 				};
 			}
 
-// 			// Update cache
-// 			if (useCache) {
-// 				const cacheKey = `${userId}:${featureKey}`;
-// 				this.cache.set(cacheKey, {
-// 					result: {
-// 						access_granted: result.access_granted,
-// 						feature_value: result.feature_value,
-// 						from_cache: false,
-// 					},
-// 					expires: new Date(Date.now() + this.cacheExpiry),
-// 				});
-// 			}
+			// 			// Update cache
+			// 			if (useCache) {
+			// 				const cacheKey = `${userId}:${featureKey}`;
+			// 				this.cache.set(cacheKey, {
+			// 					result: {
+			// 						access_granted: result.access_granted,
+			// 						feature_value: result.feature_value,
+			// 						from_cache: false,
+			// 					},
+			// 					expires: new Date(Date.now() + this.cacheExpiry),
+			// 				});
+			// 			}
 
 			return result;
 		} catch (error) {
