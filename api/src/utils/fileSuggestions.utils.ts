@@ -18,6 +18,7 @@ export interface FileSuggestionsOptions {
 	projectId: ProjectId;
 	limit?: number;
 	caseSensitive?: boolean;
+	followSymlinks?: boolean;
 	type?: 'all' | 'file' | 'directory';
 	dataSourcesIds?: string[];
 }
@@ -27,6 +28,7 @@ export interface FileSuggestionsForPathOptions {
 	rootPath: string;
 	limit?: number;
 	caseSensitive?: boolean;
+	followSymlinks?: boolean;
 	type?: 'all' | 'file' | 'directory';
 }
 
@@ -48,7 +50,7 @@ export interface FileSuggestionsResponse {
  * Main function to get file suggestions based on partial path and project ID
  */
 export async function suggestFiles(options: FileSuggestionsOptions): Promise<FileSuggestionsResponse> {
-	const { partialPath, projectId, limit, caseSensitive, type } = options;
+	const { partialPath, projectId, limit, caseSensitive, type, followSymlinks: optionsFollowSymlinks } = options;
 
 	const projectPersistenceManager = await getProjectPersistenceManager();
 	const projectData = await projectPersistenceManager.getProject(projectId);
@@ -68,20 +70,26 @@ export async function suggestFiles(options: FileSuggestionsOptions): Promise<Fil
 		// Validate path is within this data source
 		const pathToCheck = partialPath.startsWith('/') ? partialPath.substring(1) : partialPath;
 		const resourceUri = dsConnection.getUriForResource(`file:./${pathToCheck}`);
-		//logger.info('SuggestionPatterns: Checking dsConnection path within root:', { resourceUri });
+		logger.info('SuggestionPatterns: Checking dsConnection path within root:', { resourceUri });
 		if (!await dsConnection.isResourceWithinDataSource(resourceUri)) {
 			continue; // Skip this data source if path is outside
 		}
 		const dataSourcePath = dsConnection.getDataSourceRoot();
 		if (!dataSourcePath) continue;
-		//logger.info('SuggestionPatterns: Searching in:', { dataSourcePath });
+		logger.info('SuggestionPatterns: Searching in:', { dataSourcePath, optionsFollowSymlinks });
 
+		const followSymlinks = (optionsFollowSymlinks !== undefined)
+			? optionsFollowSymlinks
+			: (dsConnection.config.followSymlinks as boolean ?? false);
+
+		logger.warn('SuggestionPatterns: Suggesting files for', { partialPath, followSymlinks });
 		const suggestionsResponse = await suggestFilesForPath({
 			partialPath,
 			rootPath: dataSourcePath,
 			limit: limit, // We'll trim the combined results later
 			caseSensitive,
 			type,
+			followSymlinks,
 		});
 		//allSuggestions.push(...suggestionsResponse.suggestions);
 		if (suggestionsResponse.hasMore) hasMore = true;
@@ -111,7 +119,8 @@ export async function suggestFiles(options: FileSuggestionsOptions): Promise<Fil
  * Get file suggestions based on partial path and root directory
  */
 export async function suggestFilesForPath(options: FileSuggestionsForPathOptions): Promise<FileSuggestionsResponse> {
-	const { partialPath, rootPath, limit = 50, caseSensitive = false, type = 'all' } = options;
+	const { partialPath, rootPath, limit = 50, caseSensitive = false, type = 'all', followSymlinks = false } = options;
+	logger.warn('SuggestionPatterns: Suggesting files for path', { partialPath, rootPath, followSymlinks });
 
 	// Remove leading slash as it's just a trigger, not part of the pattern
 	const searchPath = partialPath.replace(/^\//, '');
@@ -136,7 +145,7 @@ export async function suggestFilesForPath(options: FileSuggestionsForPathOptions
 		for await (
 			const entry of walk(rootPath, {
 				includeDirs: true,
-				followSymlinks: false,
+				followSymlinks: followSymlinks,
 				match: patterns,
 				skip: excludePatterns,
 			})

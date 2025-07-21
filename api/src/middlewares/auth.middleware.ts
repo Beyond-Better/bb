@@ -15,9 +15,11 @@ export async function authMiddleware(ctx: Context<BbState>, next: Next) {
 		// Skip auth check in localMode
 		if (globalConfig.api.localMode) {
 			logger.debug('Auth check skipped: API is in localMode');
+			ctx.state.localMode = true;
 			await next();
 			return;
 		}
+		ctx.state.localMode = false;
 
 		// Check for authentication
 		const sessionManager = ctx.app.state.auth.sessionManager;

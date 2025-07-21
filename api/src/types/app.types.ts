@@ -10,4 +10,5 @@ export interface BbState {
 		sessionManager: SessionManager;
 	};
 	session?: Session;
+	localMode?: boolean;
 }

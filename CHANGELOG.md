@@ -17,6 +17,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.8.13] - 2025-07-21
+
+### Added
+
+- config option to allow project root external symlinks
+
+### Changed
+
+- follow symlinks when finding git root
+- follow symlinks when searching file suggestions
+- updated subscription plan cards with promo/discount fields
+
+### Fixed
+
+- model access in local-only mode
+
+
 ## [0.8.12] - 2025-07-16
 
 ### Notes

@@ -17,6 +17,7 @@ interface FileBrowserProps {
 	onSelectionValid?: (isValid: boolean, selectedPath?: string) => void;
 	alwaysShowPath?: boolean;
 	helpText?: string;
+	strictRoot?: boolean;
 }
 
 export function FileBrowser({
@@ -31,6 +32,7 @@ export function FileBrowser({
 	onSelectionValid,
 	alwaysShowPath,
 	helpText,
+	strictRoot = true,
 }: FileBrowserProps) {
 	// If using column view, render the ColumnFileBrowser
 	if (viewMode === 'column') {
@@ -52,6 +54,7 @@ export function FileBrowser({
 				onSelectionValid={onSelectionValid}
 				alwaysShowPath={alwaysShowPath}
 				helpText={helpText}
+				strictRoot={strictRoot}
 			/>
 		);
 	}

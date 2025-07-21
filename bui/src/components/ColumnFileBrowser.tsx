@@ -27,6 +27,7 @@ interface ColumnFileBrowserProps {
 	onSelectionValid?: (isValid: boolean, selectedPath?: string) => void;
 	alwaysShowPath?: boolean;
 	helpText?: string;
+	strictRoot?: boolean;
 }
 
 export function ColumnFileBrowser({
@@ -40,6 +41,7 @@ export function ColumnFileBrowser({
 	onSelectionValid,
 	alwaysShowPath,
 	helpText,
+	strictRoot = true,
 }: ColumnFileBrowserProps) {
 	// Core state
 	const columns = useSignal<Column[]>([]);
@@ -109,6 +111,7 @@ export function ColumnFileBrowser({
 			const response = await appState.value.apiClient?.listDirectory(path, {
 				only: type === 'directory' ? 'directories' : undefined,
 				includeHidden: showHidden.value,
+				strictRoot: strictRoot,
 			});
 
 			if (!response) {
@@ -175,7 +178,14 @@ export function ColumnFileBrowser({
 		};
 
 		initializeBrowser();
-	}, [value, isExpanded.value]);
+	}, [value, isExpanded.value, strictRoot]);
+
+	// Reload columns when strictRoot changes
+	useEffect(() => {
+		if (columns.value.length > 0) {
+			reloadAllColumns();
+		}
+	}, [strictRoot]);
 
 	// Handle directory selection
 	const handleItemClick = async (item: DirectoryItem, columnIndex: number) => {

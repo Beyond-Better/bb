@@ -152,6 +152,7 @@ export async function isPathWithinDataSource(dataSourceRoot: string, filePath: s
 	try {
 		// For existing files, resolve symlinks
 		const resolvedPath = await Deno.realPath(absoluteFilePath);
+		//logger.info(`FileHandlingUtil: isPathWithinDataSource: Checking if ${resolvedPath} is within ${normalizedDataSourceRoot}`);
 		return resolvedPath.startsWith(await Deno.realPath(normalizedDataSourceRoot));
 	} catch (error) {
 		if (error instanceof Deno.errors.NotFound) {
@@ -779,6 +780,7 @@ export interface ListDirectoryOptions {
 	only?: 'files' | 'directories';
 	matchingString?: string;
 	includeHidden?: boolean;
+	strictRoot?: boolean;
 }
 export interface ListDirectoryResponse {
 	items: Array<{ name: string; path: string; isDirectory: boolean }>;
@@ -788,12 +790,21 @@ export interface ListDirectoryResponse {
 export async function listDirectory(
 	rootDir: string,
 	dirPath: string,
-	options: ListDirectoryOptions = {},
+	options: ListDirectoryOptions = { strictRoot: true },
 ): Promise<ListDirectoryResponse> {
 	try {
 		const fullPath = join(rootDir, dirPath);
-		if (!await isPathWithinDataSource(rootDir, fullPath)) {
-			throw createError(ErrorType.FileHandling, `Access denied: ${dirPath} is outside the data source directory`);
+		logger.info(`FileHandlingUtil: Checking if ${fullPath} is within ${rootDir}`);
+		if (options.strictRoot && !await isPathWithinDataSource(rootDir, fullPath)) {
+			throw createError(
+				ErrorType.FileHandling,
+				`Access denied: ${dirPath} is outside the data source directory`,
+				{
+					name: 'list-directory',
+					filePath: fullPath,
+					operation: 'read',
+				} as FileHandlingErrorOptions,
+			);
 		}
 
 		const items: Array<{ name: string; path: string; isDirectory: boolean }> = [];
@@ -801,10 +812,33 @@ export async function listDirectory(
 			? globToRegExp(options.matchingString, { extended: true, globstar: true })
 			: null;
 
-		for await (const entry of Deno.readDir(fullPath)) {
+		let resolvedPath: string;
+		try {
+			// For existing files, resolve symlinks
+			resolvedPath = await Deno.realPath(fullPath);
+		} catch (error) {
+			logger.error(`FileHandlingUtil: Could not get realPath for ${fullPath}: ${(error as Error).message}`);
+			throw error;
+		}
+
+		for await (const entry of Deno.readDir(resolvedPath)) {
+			// Resolve symlinks to determine actual type
+			let isDirectory = entry.isDirectory;
+			if (entry.isSymlink) {
+				try {
+					const symlinkPath = join(resolvedPath, entry.name);
+					const stat = await Deno.stat(symlinkPath); // This follows symlinks
+					isDirectory = stat.isDirectory;
+				} catch (_error) {
+					// If symlink is broken, skip it or treat as file
+					console.warn(`Broken symlink detected: ${entry.name}`);
+					isDirectory = false; // or continue to skip broken symlinks
+				}
+			}
+
 			// Skip if filtering by type
-			if (options.only === 'files' && entry.isDirectory) continue;
-			if (options.only === 'directories' && !entry.isDirectory) continue;
+			if (options.only === 'files' && isDirectory) continue;
+			if (options.only === 'directories' && !isDirectory) continue;
 
 			// Skip hidden files unless explicitly included
 			if (!options.includeHidden && entry.name.startsWith('.')) continue;
@@ -816,7 +850,7 @@ export async function listDirectory(
 			items.push({
 				name: entry.name,
 				path: relativePath,
-				isDirectory: entry.isDirectory,
+				isDirectory,
 			});
 		}
 

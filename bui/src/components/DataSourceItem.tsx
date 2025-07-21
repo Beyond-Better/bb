@@ -78,6 +78,19 @@ export function DataSourceItem({ dsConnection, onSetPrimary, onEdit, onRemove }:
 								Disabled
 							</span>
 						)}
+					{providerType === 'filesystem' && (
+						dsConnection.config.strictRoot !== false
+							? (
+								<span className='px-2 py-1 text-xs rounded-full bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'>
+									Home Directory Only
+								</span>
+							)
+							: (
+								<span className='px-2 py-1 text-xs rounded-full bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300'>
+									External Symlinks Allowed
+								</span>
+							)
+					)}
 				</div>
 
 				<div className='flex flex-wrap gap-1.5'>

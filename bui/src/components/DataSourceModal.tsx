@@ -35,7 +35,7 @@ const DEFAULT_DATA_SOURCE = (): ClientDataSourceConnection => ({
  */
 export function DataSourceModal({ dsConnection, onClose, onSave, appState, dsProviders }: DataSourceModalProps) {
 	const [formData, setFormData] = useState<ClientDataSourceConnection>(
-		dsConnection ? { ...dsConnection } : DEFAULT_DATA_SOURCE(),
+		dsConnection ? { ...dsConnection } : { ...DEFAULT_DATA_SOURCE(), config: { strictRoot: true } },
 	);
 	// Initialize isCustomDescription based on whether dsConnection has a description
 	const [isCustomDescription, setIsCustomDescription] = useState<boolean>(Boolean(dsConnection?.description));
@@ -184,9 +184,27 @@ export function DataSourceModal({ dsConnection, onClose, onSave, appState, dsPro
 								type='directory'
 								className='w-full'
 								appState={appState}
+								strictRoot={formData.config.strictRoot !== false}
 							/>
 							{errors.dataSourceRoot &&
 								<div className='text-red-500 text-xs mt-1'>{errors.dataSourceRoot}</div>}
+						</div>
+						<div className='space-y-2'>
+							<label className='flex items-center text-sm text-gray-600 dark:text-gray-400'>
+								<input
+									type='checkbox'
+									checked={formData.config.strictRoot !== false}
+									onChange={(e) =>
+										handleConfigChange('strictRoot', (e.target as HTMLInputElement).checked)}
+									class='mr-2'
+								/>
+								Deny External Symlinks
+							</label>
+							<div className='text-xs text-gray-500 dark:text-gray-400 ml-6'>
+								When checked, restricts file access to your home directory and hides symlinks that point
+								outside it. When unchecked, allows following symlinks to any accessible location on the
+								system.
+							</div>
 						</div>
 					</div>
 				);
