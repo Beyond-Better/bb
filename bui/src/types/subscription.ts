@@ -13,6 +13,16 @@ export interface Plan {
 		signup_credits_cents: number;
 		upgrade_credits_cents?: number; // Credits to encourage upgrades
 		contact_for_signup?: boolean; // Enterprise plans that require contact
+		promotion?: {
+			type: string;
+			title: string;
+			description: string;
+			original_price_monthly: string;
+			original_price_yearly: string;
+			savings_monthly?: string;
+			savings_yearly?: string;
+			discount_percentage?: string;
+		};
 	};
 	//plan_limits?: {
 	//	max_conversations?: number;

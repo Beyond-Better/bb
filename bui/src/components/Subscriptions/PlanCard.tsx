@@ -10,6 +10,7 @@ export default function PlanCard({ plan, isCurrentPlan, onSelect }: PlanCardProp
 	//const yearlySavings = Math.round((1 - (plan.plan_price_yearly / (plan.plan_price_monthly * 12))) * 100);
 
 	const isContactPlan = plan.plan_features?.contact_for_signup === true;
+	const hasPromotion = plan.plan_features?.promotion !== undefined;
 
 	// Helper function to format cents to dollars
 	const formatCents = (cents: number) => {
@@ -48,7 +49,14 @@ export default function PlanCard({ plan, isCurrentPlan, onSelect }: PlanCardProp
 				</span>
 			)}
 
-			<h3 class='text-lg font-medium text-gray-900 dark:text-gray-100'>{plan.plan_name}</h3>
+			<div class='flex items-center gap-2 mb-2'>
+				<h3 class='text-lg font-medium text-gray-900 dark:text-gray-100'>{plan.plan_name}</h3>
+				{hasPromotion && (
+					<span class='inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-orange-100 to-red-100 dark:from-orange-900/40 dark:to-red-900/40 text-orange-800 dark:text-orange-200 border border-orange-200 dark:border-orange-700'>
+						🐦 {plan.plan_features.promotion.discount_percentage} OFF
+					</span>
+				)}
+			</div>
 			<p class='mt-2 text-sm text-gray-500 dark:text-gray-400'>{plan.plan_description}</p>
 
 			<div class='mt-4'>
@@ -56,14 +64,56 @@ export default function PlanCard({ plan, isCurrentPlan, onSelect }: PlanCardProp
 					? <span class='text-3xl font-bold text-gray-900 dark:text-gray-100'>Custom</span>
 					: plan.plan_price_monthly > 0
 					? (
-						<>
-							<span class='text-3xl font-bold text-gray-900 dark:text-gray-100'>
-								${plan.plan_price_monthly}
-							</span>
-							<span class='text-gray-500 dark:text-gray-400'>/ monthly (USD)</span>
-						</>
+						<div class='space-y-1'>
+							{hasPromotion && (
+								<div class='text-sm text-gray-500 dark:text-gray-400'>
+									<span class='line-through'>
+										{plan.plan_features.promotion?.original_price_monthly} / monthly
+									</span>
+								</div>
+							)}
+							<div>
+								<span class={`text-3xl font-bold ${
+									hasPromotion 
+										? 'text-orange-600 dark:text-orange-400'
+										: 'text-gray-900 dark:text-gray-100'
+								}`}>
+									${plan.plan_price_monthly}
+								</span>
+								<span class='text-gray-500 dark:text-gray-400'>/ monthly (USD)</span>
+								{hasPromotion && plan.plan_features.promotion?.savings_monthly && (
+									<span class='ml-2 text-sm font-medium text-green-600 dark:text-green-400'>
+										Save {plan.plan_features.promotion.savings_monthly}!
+									</span>
+								)}
+							</div>
+						</div>
 					)
-					: <span class='text-3xl font-bold text-gray-900 dark:text-gray-100'>Free</span>}
+					: (
+						<div class='space-y-1'>
+							{hasPromotion && plan.plan_features.promotion?.original_price_monthly !== '$0' && (
+								<div class='text-sm text-gray-500 dark:text-gray-400'>
+									<span class='line-through'>
+										{plan.plan_features.promotion?.original_price_monthly} / monthly
+									</span>
+								</div>
+							)}
+							<div>
+								<span class={`text-3xl font-bold ${
+									hasPromotion 
+										? 'text-orange-600 dark:text-orange-400'
+										: 'text-gray-900 dark:text-gray-100'
+								}`}>
+									Free
+								</span>
+								{hasPromotion && (
+									<span class='ml-2 text-sm font-medium text-green-600 dark:text-green-400'>
+										Launch Special!
+									</span>
+								)}
+							</div>
+						</div>
+					)}
 			</div>
 			{
 				/*<div class='mt-2 flex items-center gap-2'>
@@ -210,6 +260,55 @@ export default function PlanCard({ plan, isCurrentPlan, onSelect }: PlanCardProp
 							</div>
 						</div>*/
 						}
+					</div>
+				</div>
+			)}
+
+			{/* Promotional Section */}
+			{hasPromotion && (
+				<div class='mt-4 p-4 bg-gradient-to-r from-orange-50 via-red-50 to-pink-50 dark:from-orange-900/20 dark:via-red-900/20 dark:to-pink-900/20 rounded-lg border border-orange-200 dark:border-orange-800 relative overflow-hidden'>
+					{/* Background decoration */}
+					<div class='absolute top-0 right-0 w-16 h-16 bg-orange-100 dark:bg-orange-800/30 rounded-full -mr-8 -mt-8 opacity-30'>
+					</div>
+					<div class='absolute bottom-0 left-0 w-12 h-12 bg-red-100 dark:bg-red-800/30 rounded-full -ml-6 -mb-6 opacity-30'>
+					</div>
+
+					<div class='relative z-10'>
+						<div class='flex items-center gap-2 mb-2'>
+							<svg
+								class='w-5 h-5 text-orange-600 dark:text-orange-400'
+								fill='none'
+								stroke='currentColor'
+								viewBox='0 0 24 24'
+							>
+								<path
+									stroke-linecap='round'
+									stroke-linejoin='round'
+									stroke-width='2'
+									d='M13 10V3L4 14h7v7l9-11h-7z'
+								/>
+							</svg>
+							<span class='font-semibold text-orange-800 dark:text-orange-200 text-sm'>
+								{plan.plan_features.promotion?.title}
+							</span>
+						</div>
+
+						<p class='text-sm text-orange-700 dark:text-orange-300 leading-relaxed'>
+							{plan.plan_features.promotion?.description}
+						</p>
+
+						{plan.plan_features.promotion?.savings_monthly && (
+							<div class='mt-3 pt-2 border-t border-orange-200 dark:border-orange-700'>
+								<div class='flex items-center justify-between'>
+									<span class='text-sm font-medium text-orange-800 dark:text-orange-200'>
+										Monthly savings:
+									</span>
+									<span class='font-bold text-orange-700 dark:text-orange-300 text-lg'>
+										{plan.plan_features.promotion.savings_monthly}
+									</span>
+								</div>
+							</div>
+						)}
 					</div>
 				</div>
 			)}

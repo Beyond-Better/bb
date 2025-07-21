@@ -177,6 +177,19 @@ export function DataSourceModal({ dsConnection, onClose, onSave, appState, dsPro
 				return (
 					<div className='space-y-4 col-span-2'>
 						<div className='space-y-2'>
+							<label className='block text-sm font-medium text-gray-700 dark:text-gray-300'>Path</label>
+							<FileBrowser
+								value={formData.config.dataSourceRoot as string || ''}
+								onChange={(value: string) => handleConfigChange('dataSourceRoot', value)}
+								type='directory'
+								className='w-full'
+								appState={appState}
+								strictRoot={formData.config.strictRoot !== false}
+							/>
+							{errors.dataSourceRoot &&
+								<div className='text-red-500 text-xs mt-1'>{errors.dataSourceRoot}</div>}
+						</div>
+						<div className='space-y-2'>
 							<label className='flex items-center text-sm text-gray-600 dark:text-gray-400'>
 								<input
 									type='checkbox'
@@ -189,19 +202,6 @@ export function DataSourceModal({ dsConnection, onClose, onSave, appState, dsPro
 							<div className='text-xs text-gray-500 dark:text-gray-400 ml-6'>
 								When checked, restricts file access to your home directory and hides symlinks that point outside it. When unchecked, allows following symlinks to any accessible location on the system.
 							</div>
-						</div>
-						<div className='space-y-2'>
-							<label className='block text-sm font-medium text-gray-700 dark:text-gray-300'>Path</label>
-							<FileBrowser
-								value={formData.config.dataSourceRoot as string || ''}
-								onChange={(value: string) => handleConfigChange('dataSourceRoot', value)}
-								type='directory'
-								className='w-full'
-								appState={appState}
-								strictRoot={formData.config.strictRoot !== false}
-							/>
-							{errors.dataSourceRoot &&
-								<div className='text-red-500 text-xs mt-1'>{errors.dataSourceRoot}</div>}
 						</div>
 					</div>
 				);
