@@ -1,6 +1,7 @@
 //import { IS_BROWSER } from '$fresh/runtime.ts';
 import { useComputed, useSignal } from '@preact/signals';
 import { useAuthState } from '../../hooks/useAuthState.ts';
+import { errorMessage, errorName } from 'shared/error.ts';
 import { ExternalLink } from '../../components/ExternalLink.tsx';
 
 interface PasswordRequirement {
@@ -95,10 +96,24 @@ export default function SignupForm() {
 				// Redirect to check-email page
 				globalThis.location.href = `/auth/check-email?email=${encodeURIComponent(email.value)}`;
 			} else {
-				signupError.value = data.error || 'unknown error';
+				if (data.error === 'Failed to fetch' || data.error === 'Load failed') {
+					signupError.value =
+						'⚠️ BB App Required: The BB Desktop App must be installed and running to sign up. This is not optional - it\'s required for BB to work properly.';
+				} else {
+					signupError.value = data.error || 'Unknown signup error occurred.';
+				}
 			}
 		} catch (error) {
-			signupError.value = `Signup failed: ${(error as Error).message}`;
+			// Specific error handling for connection issues
+			if (
+				errorMessage(error) === 'Failed to fetch' || errorMessage(error) === 'Load failed' ||
+				errorName(error) === 'TypeError'
+			) {
+				signupError.value =
+					'⚠️ BB App Required: The BB Desktop App must be installed and running to sign up. This is not optional - it\'s required for BB to work properly.';
+			} else {
+				signupError.value = `Signup failed: ${errorMessage(error) || 'Unknown error occurred'}`;
+			}
 		} finally {
 			isSubmitting.value = false;
 		}
@@ -182,6 +197,28 @@ export default function SignupForm() {
 							<h3 class='text-sm font-medium text-red-800 dark:text-red-200'>
 								{signupError.value}
 							</h3>
+							{(signupError.value.includes('BB Server') || signupError.value.includes('BB App Required')) && (
+								<div class='mt-3 space-y-2'>
+									<div class='text-sm text-red-700 dark:text-red-300'>
+										<p class='font-medium mb-1'>To fix this:</p>
+										<ol class='list-decimal list-inside space-y-1 text-xs'>
+											<li>Download and install the BB Desktop App (see below)</li>
+											<li>Launch the BB Desktop App</li>
+											<li>Ensure the server toggle is enabled (green)</li>
+											<li>Try signing up again</li>
+										</ol>
+									</div>
+									<p class='text-xs text-red-600 dark:text-red-400'>
+										Need more help?{' '}
+										<ExternalLink
+											href='https://www.beyondbetter.app/docs/install'
+											class='font-medium underline'
+										>
+											View troubleshooting guide
+										</ExternalLink>
+									</p>
+								</div>
+							)}
 						</div>
 					</div>
 				</div>

@@ -32,7 +32,7 @@ export default function LoginForm() {
 			} else {
 				if (data.error === 'Failed to fetch' || data.error === 'Load failed') {
 					loginError.value =
-						'Connection to BB Server failed. Please ensure the BB Server is running. Check the BB Desktop App and click the toggle to start the server.';
+						'⚠️ BB App Required: The BB Desktop App must be installed and running to sign in. This is not optional - it\'s required for BB to work properly.';
 				} else if (data.error?.includes('status: 401')) {
 					loginError.value = 'Authentication error. Please check your credentials.';
 				} else {
@@ -47,7 +47,7 @@ export default function LoginForm() {
 				errorName(error) === 'TypeError'
 			) {
 				loginError.value =
-					'Connection to BB Server failed. Please ensure the BB Server is running. Check the BB Desktop App and click the toggle to start the server.';
+					'⚠️ BB App Required: The BB Desktop App must be installed and running to sign in. This is not optional - it\'s required for BB to work properly.';
 			} else if (errorMessage(error).includes('status: 401')) {
 				loginError.value = 'Authentication error. Please check your credentials.';
 			} else {
@@ -156,7 +156,7 @@ export default function LoginForm() {
 							<h3 class='text-sm font-medium text-red-800 dark:text-red-200'>
 								{loginError.value}
 							</h3>
-							{loginError.value.includes('BB Server') && (
+							{(loginError.value.includes('BB Server') || loginError.value.includes('BB App Required')) && (
 								<p class='mt-2 text-sm text-red-700 dark:text-red-300'>
 									Need help?{' '}
 									<ExternalLink

@@ -444,7 +444,7 @@ class BbLLM extends LLM {
 					} as LLMErrorOptions,
 				);
 			}
-			if (bbResponseMessage.status.statusCode !== 200) {
+			if (!bbResponseMessage.status || bbResponseMessage.status.statusCode !== 200) {
 				logger.error(
 					`BbLLM:provider[${this.llmProviderName}]: Received a non-200 from BB API: `,
 					bbResponseMessage,

@@ -40,14 +40,23 @@ export function BBAppRequirement(): JSX.Element {
 
 	return (
 		<div class='mt-6 space-y-4'>
-			<div class='text-sm text-gray-600 dark:text-gray-400'>
-				<h3 class='font-medium text-gray-900 dark:text-white mb-2'>
-					BB Desktop App Required
-				</h3>
-				<p>
-					BB requires the desktop app or API to be running locally. This provides secure access to BB's
-					features and capabilities.
-				</p>
+			<div class='p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-md'>
+				<div class='flex items-start'>
+					<div class='flex-shrink-0'>
+						<svg class='h-5 w-5 text-yellow-600 dark:text-yellow-400' fill='currentColor' viewBox='0 0 20 20'>
+							<path fillRule='evenodd' d='M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z' clipRule='evenodd' />
+						</svg>
+					</div>
+					<div class='ml-3'>
+						<h3 class='text-sm font-bold text-yellow-800 dark:text-yellow-200'>
+							⚠️ CRITICAL REQUIREMENT: BB Desktop App Must Be Installed & Running
+						</h3>
+						<p class='mt-2 text-sm text-yellow-700 dark:text-yellow-300'>
+							The BB Desktop App is <strong>absolutely required</strong> - not optional. Without it running, 
+							you cannot sign in, sign up, or use any BB features. Download and install it first.
+						</p>
+					</div>
+				</div>
 			</div>
 
 			{error.value
