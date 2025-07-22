@@ -10,6 +10,7 @@ use std::path::PathBuf;
 #[cfg(not(target_os = "windows"))]
 use tar::Archive;
 use tauri::{command, AppHandle, Emitter};
+use tokio;
 use tauri_plugin_updater::UpdaterExt;
 use tempfile::TempDir;
 #[cfg(target_os = "windows")]
@@ -233,13 +234,13 @@ pub async fn perform_atomic_update(app: AppHandle) -> Result<(), String> {
             )
             .map_err(|e| format!("Failed to emit progress: {}", e))?;
             
-            info!("Application update installed successfully, restarting...");
+            info!("Application update installed successfully, preparing restart...");
             
-            // Small delay to ensure progress is shown
-            tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
+            // Small delay to ensure progress is shown and filesystem operations complete
+            tokio::time::sleep(std::time::Duration::from_millis(2000)).await;
             
-            // Restart the application (this doesn't return)
-            app.restart();
+            // Attempt graceful restart with error handling
+            restart_application_safely(&app).await?;
         }
         None => {
             info!("No application update available");
@@ -338,13 +339,13 @@ pub async fn perform_dui_update_only(app: AppHandle) -> Result<(), String> {
             )
             .map_err(|e| format!("Failed to emit progress: {}", e))?;
             
-            info!("Application update installed successfully, restarting...");
+            info!("Application update installed successfully, preparing restart...");
             
-            // Small delay to ensure progress is shown
-            tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
+            // Small delay to ensure progress is shown and filesystem operations complete
+            tokio::time::sleep(std::time::Duration::from_millis(2000)).await;
             
-            // Restart the application
-            app.restart();
+            // Attempt graceful restart with error handling
+            restart_application_safely(&app).await?;
         }
         None => {
             info!("No Application update available");
@@ -987,6 +988,80 @@ pub async fn open_external_url(url: String, _app: AppHandle) -> Result<(), Strin
             Err(format!("Failed to open URL: {}", e))
         }
     }
+}
+
+async fn restart_application_safely(app: &AppHandle) -> Result<(), String> {
+    info!("Attempting safe application restart after update");
+    
+    // On macOS, verify the current executable exists and is accessible
+    #[cfg(target_os = "macos")]
+    {
+        if let Ok(current_exe) = std::env::current_exe() {
+            info!("Verifying updated executable at: {:?}", current_exe);
+            
+            // Check if the executable file exists and is readable
+            if !current_exe.exists() {
+                error!("Updated executable not found at: {:?}", current_exe);
+                return Err("Updated executable file missing".to_string());
+            }
+            
+            // Try to verify code signature using codesign command
+            match std::process::Command::new("codesign")
+                .args(["-v", "--verbose", current_exe.to_str().unwrap_or("")])
+                .output()
+            {
+                Ok(output) => {
+                    if output.status.success() {
+                        info!("Code signature verification passed");
+                    } else {
+                        let stderr = String::from_utf8_lossy(&output.stderr);
+                        warn!("Code signature verification failed: {}", stderr);
+                        // Don't fail the restart for signature issues, but log the warning
+                    }
+                }
+                Err(e) => {
+                    warn!("Could not run codesign verification: {}", e);
+                }
+            }
+            
+            // Additional delay to ensure filesystem stability
+            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+        }
+    }
+    
+    // Attempt to restart with better error handling
+    info!("Initiating application restart...");
+    
+    // Use a spawn to handle the restart in a separate task
+    // This helps avoid any issues with the current execution context
+    let app_clone = app.clone();
+    tokio::spawn(async move {
+        tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+        
+        // Try direct restart first
+        info!("Attempting direct application restart...");
+        app_clone.restart();
+        
+        // If direct restart fails (shouldn't reach here), try alternative
+        warn!("Direct restart returned unexpectedly, trying alternative method...");
+        
+        #[cfg(target_os = "macos")]
+        {
+            if let Ok(current_exe) = std::env::current_exe() {
+                info!("Attempting external restart via 'open' command");
+                let _ = std::process::Command::new("open")
+                    .arg("-n")
+                    .arg(&current_exe)
+                    .spawn();
+                    
+                // Give it a moment then exit current process
+                tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
+                std::process::exit(0);
+            }
+        }
+    });
+    
+    Ok(())
 }
 
 fn backup_current_installation(location: &InstallLocation) -> Result<(), String> {

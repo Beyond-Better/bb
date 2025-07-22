@@ -18,7 +18,7 @@
     <key>com.apple.security.files.downloads.read-write</key>
     <true/>
     
-    <!-- Allow executing user-selected binaries (bb and bb-api) -->
+    <!-- Allow executing user-selected binaries (bb, bb-bui and bb-api) -->
     <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
     <true/>
     
@@ -26,12 +26,7 @@
     <key>com.apple.security.cs.allow-jit</key>
     <true/>
     
-    <!-- Allow running dylibs -->
-    <key>com.apple.security.cs.disable-library-validation</key>
-    <true/>
-    
-    <!-- Allow opening URLs in default browser -->
-    <key>com.apple.security.cs.allow-dyld-environment-variables</key>
-    <true/>
+    <!-- Note: URL opening via 'open' command doesn't require additional entitlements -->
+    <!-- Removed disable-library-validation and allow-dyld-environment-variables for better security -->
 </dict>
 </plist>
