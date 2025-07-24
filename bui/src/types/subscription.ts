@@ -69,6 +69,9 @@ export interface BillingPreview {
 	proratedAmount?: number;
 	prorationFactor: number;
 	fullAmount?: number;
+	originalAmount?: number;
+	discount?: number;
+	bonusCredits?: number;
 	periodStart: string; // iso8601
 	periodEnd: string; // iso8601
 	nextPeriodStart?: string; // iso8601
@@ -80,6 +83,15 @@ export interface BillingPreview {
 	immediateChange?: boolean;
 	effectiveDate?: string; // iso8601
 	description?: string;
+	// Coupon fields
+	coupon?: {
+		code: string;
+		valid: boolean;
+		error?: string;
+		coupon_name?: string;
+		discount_type?: string;
+		duration_months?: number;
+	};
 }
 export interface BillingPreviewResults {
 	preview: BillingPreview;

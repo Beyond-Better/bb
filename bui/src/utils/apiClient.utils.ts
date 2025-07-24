@@ -422,12 +422,16 @@ export class ApiClient {
 	async changePlan(
 		planId: string,
 		paymentMethodId: string | null,
+		couponCode?: string,
 	): Promise<SubscriptionWithPaymentMethods | null> {
-		const data: { planId: string; payment_method_id: string | null; paymentMethodId: string | null } = {
+		const data: { planId: string; payment_method_id: string | null; paymentMethodId: string | null; couponCode?: string } = {
 			planId,
 			payment_method_id: paymentMethodId, // Original format - may be expected by some endpoints
 			paymentMethodId: paymentMethodId, // New format - matches the property name in the edge function
 		};
+		if (couponCode) {
+			data.couponCode = couponCode;
+		}
 		const results = await this.post<SubscriptionResults>('/api/v1/user/subscription/change', data);
 		return results ? { ...results?.subscription, payment_methods: results?.paymentMethods } : null;
 	}
@@ -442,10 +446,15 @@ export class ApiClient {
 		return result ?? { success: false, subscription: {} as Subscription };
 	}
 
-	async getBillingPreview(planId: string): Promise<BillingPreviewWithUsage | null> {
-		const results = await this.post<BillingPreviewResults>('/api/v1/user/subscription/preview', {
+	async getBillingPreview(planId: string, couponCode?: string): Promise<BillingPreviewWithUsage | null> {
+		const requestBody: { planId: string; couponCode?: string; preview: boolean } = {
 			planId,
-		});
+			preview: true, // Always request preview mode
+		};
+		if (couponCode) {
+			requestBody.couponCode = couponCode;
+		}
+		const results = await this.post<BillingPreviewResults>('/api/v1/user/subscription/preview', requestBody);
 		return results ? { ...results?.preview, usage: results?.usage } : null;
 	}
 

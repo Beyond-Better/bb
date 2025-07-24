@@ -29,7 +29,7 @@ export interface UserPreferences {
 }
 
 export interface EdgeFunctionUserProfile {
-	profile_id: string;
+	user_id: string;
 	name_first?: string;
 	name_last?: string;
 	theme: 'light' | 'dark' | 'system';

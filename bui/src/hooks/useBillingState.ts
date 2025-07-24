@@ -392,7 +392,7 @@ export function useBillingState() {
 	};
 
 	// Preview plan change
-	const previewPlanChange = async (planId: string): Promise<void> => {
+	const previewPlanChange = async (planId: string, couponCode?: string): Promise<void> => {
 		try {
 			const apiClient = getApiClient();
 
@@ -402,7 +402,7 @@ export function useBillingState() {
 				paymentFlowError: null,
 			};
 
-			const preview = await apiClient.getBillingPreview(planId);
+			const preview = await apiClient.getBillingPreview(planId, couponCode);
 			const selectedPlan = billingState.value.availablePlans.find((p) => p.plan_id === planId) ?? null;
 
 			billingState.value = {
@@ -421,7 +421,7 @@ export function useBillingState() {
 	};
 
 	// Change plan with payment if needed
-	const changePlan = async (planId: string, paymentMethodId: string): Promise<void> => {
+	const changePlan = async (planId: string, paymentMethodId: string, couponCode?: string): Promise<void> => {
 		try {
 			const apiClient = getApiClient();
 
@@ -445,7 +445,7 @@ export function useBillingState() {
 			}
 
 			// Change plan - ABI will handle the payment success via webhook
-			const newSubscription = await apiClient.changePlan(planId, paymentMethodId);
+			const newSubscription = await apiClient.changePlan(planId, paymentMethodId, couponCode);
 			console.log('useBillingState: changed plan to subscription: ', newSubscription);
 
 			// Payment intent is automatically created by Stripe when the subscription is created
