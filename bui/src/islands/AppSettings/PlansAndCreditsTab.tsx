@@ -51,14 +51,14 @@ export default function PlansAndCreditsTab() {
 		wasActive.value = isActive;
 	}, [activeTab.value]);
 
-	const handlePlanSelect = async (plan: Plan) => {
+	const handlePlanSelect = async (plan: Plan, couponCode?: string) => {
 		if (!billingState.value.stripe) {
 			console.error('Stripe not initialized');
 			return;
 		}
 
 		try {
-			const preview = await appState.value.apiClient!.getBillingPreview(plan.plan_id);
+			const preview = await appState.value.apiClient!.getBillingPreview(plan.plan_id, couponCode);
 			if (preview) {
 				billingState.value = {
 					...billingState.value,

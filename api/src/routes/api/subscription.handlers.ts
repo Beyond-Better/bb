@@ -87,6 +87,7 @@ export async function changePlan(ctx: Context) {
 		const body = await ctx.request.body.json();
 		const planId = body.planId;
 		const paymentMethodId = body.payment_method_id; // Extract payment method ID
+		const couponCode = body.couponCode; // Extract coupon code
 
 		if (!planId) {
 			ctx.response.status = 400;
@@ -95,12 +96,16 @@ export async function changePlan(ctx: Context) {
 		}
 
 		// Log the request details
-		//logger.info(`SubscriptionHandler: changePlan:`, { planId, paymentMethodId });
+		//logger.info(`SubscriptionHandler: changePlan:`, { planId, paymentMethodId, couponCode });
 
-		// Pass both planId and paymentMethodId to the edge function
+		// Pass planId, paymentMethodId, and couponCode to the edge function
+		const requestBody: { planId: string; paymentMethodId?: string; couponCode?: string } = { planId };
+		if (paymentMethodId) requestBody.paymentMethodId = paymentMethodId;
+		if (couponCode) requestBody.couponCode = couponCode;
+
 		const { data, error } = await supabaseClient.functions.invoke('user-subscription', {
 			method: 'POST',
-			body: { planId, paymentMethodId },
+			body: requestBody,
 		});
 
 		if (error) {
@@ -133,7 +138,8 @@ export async function getPreview(ctx: Context) {
 
 		const body = await ctx.request.body.json();
 		const planId = body.planId;
-		//logger.info( `SubscriptionHandler: createPaymentIntent: args`, { planId });
+		const couponCode = body.couponCode; // Extract coupon code for preview
+		//logger.info( `SubscriptionHandler: getPreview: args`, { planId, couponCode });
 
 		if (!planId) {
 			ctx.response.status = 400;
@@ -141,11 +147,18 @@ export async function getPreview(ctx: Context) {
 			return;
 		}
 
+		// Build request body with optional coupon code
+		const requestBody: { planId: string; preview: boolean; couponCode?: string } = {
+			planId,
+			preview: true,
+		};
+		if (couponCode) requestBody.couponCode = couponCode;
+
 		const { data, error } = await supabaseClient.functions.invoke('user-subscription', {
 			method: 'POST',
-			body: { planId, preview: true },
+			body: requestBody,
 		});
-		//logger.info(`SubscriptionHandler: createPaymentIntent: data`, { data, error });
+		//logger.info(`SubscriptionHandler: getPreview: data`, { data, error });
 
 		if (error) {
 			ctx.response.status = 400;
