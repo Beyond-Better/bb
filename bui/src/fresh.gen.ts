@@ -18,10 +18,11 @@ import * as $app_settings_index from './routes/app/settings/index.tsx';
 import * as $app_settings_partial from './routes/app/settings/partial.tsx';
 import * as $auth_check_email_index from './routes/auth/check-email/index.tsx';
 import * as $auth_error from './routes/auth/error.tsx';
-import * as $auth_forgot_password from './routes/auth/forgot-password.tsx';
+import * as $auth_forgot_password_index from './routes/auth/forgot-password/index.tsx';
 import * as $auth_login_index from './routes/auth/login/index.tsx';
 import * as $auth_logout_index from './routes/auth/logout/index.tsx';
 import * as $auth_signup_index from './routes/auth/signup/index.tsx';
+import * as $auth_update_password_index from './routes/auth/update-password/index.tsx';
 import * as $auth_verify_index from './routes/auth/verify/index.tsx';
 import * as $doctor from './routes/doctor.tsx';
 import * as $index from './routes/index.tsx';
@@ -43,11 +44,15 @@ import * as $ProjectManager from './islands/ProjectManager.tsx';
 import * as $SideNav from './islands/SideNav.tsx';
 import * as $ThemeManager from './islands/ThemeManager.tsx';
 import * as $auth_AuthError from './islands/auth/AuthError.tsx';
+import * as $auth_ForgotPasswordContent from './islands/auth/ForgotPasswordContent.tsx';
+import * as $auth_ForgotPasswordForm from './islands/auth/ForgotPasswordForm.tsx';
 import * as $auth_LoginContent from './islands/auth/LoginContent.tsx';
 import * as $auth_LoginForm from './islands/auth/LoginForm.tsx';
 import * as $auth_ResendVerificationEmail from './islands/auth/ResendVerificationEmail.tsx';
 import * as $auth_SignupContent from './islands/auth/SignupContent.tsx';
 import * as $auth_SignupForm from './islands/auth/SignupForm.tsx';
+import * as $auth_UpdatePasswordContent from './islands/auth/UpdatePasswordContent.tsx';
+import * as $auth_UpdatePasswordForm from './islands/auth/UpdatePasswordForm.tsx';
 import * as $auth_VerifyContent from './islands/auth/VerifyContent.tsx';
 import * as $metadata_AppSettingsMetadata from './islands/metadata/AppSettingsMetadata.tsx';
 import * as $metadata_ProjectManagerMetadata from './islands/metadata/ProjectManagerMetadata.tsx';
@@ -73,10 +78,11 @@ const manifest = {
 		'./routes/app/settings/partial.tsx': $app_settings_partial,
 		'./routes/auth/check-email/index.tsx': $auth_check_email_index,
 		'./routes/auth/error.tsx': $auth_error,
-		'./routes/auth/forgot-password.tsx': $auth_forgot_password,
+		'./routes/auth/forgot-password/index.tsx': $auth_forgot_password_index,
 		'./routes/auth/login/index.tsx': $auth_login_index,
 		'./routes/auth/logout/index.tsx': $auth_logout_index,
 		'./routes/auth/signup/index.tsx': $auth_signup_index,
+		'./routes/auth/update-password/index.tsx': $auth_update_password_index,
 		'./routes/auth/verify/index.tsx': $auth_verify_index,
 		'./routes/doctor.tsx': $doctor,
 		'./routes/index.tsx': $index,
@@ -100,11 +106,15 @@ const manifest = {
 		'./islands/SideNav.tsx': $SideNav,
 		'./islands/ThemeManager.tsx': $ThemeManager,
 		'./islands/auth/AuthError.tsx': $auth_AuthError,
+		'./islands/auth/ForgotPasswordContent.tsx': $auth_ForgotPasswordContent,
+		'./islands/auth/ForgotPasswordForm.tsx': $auth_ForgotPasswordForm,
 		'./islands/auth/LoginContent.tsx': $auth_LoginContent,
 		'./islands/auth/LoginForm.tsx': $auth_LoginForm,
 		'./islands/auth/ResendVerificationEmail.tsx': $auth_ResendVerificationEmail,
 		'./islands/auth/SignupContent.tsx': $auth_SignupContent,
 		'./islands/auth/SignupForm.tsx': $auth_SignupForm,
+		'./islands/auth/UpdatePasswordContent.tsx': $auth_UpdatePasswordContent,
+		'./islands/auth/UpdatePasswordForm.tsx': $auth_UpdatePasswordForm,
 		'./islands/auth/VerifyContent.tsx': $auth_VerifyContent,
 		'./islands/metadata/AppSettingsMetadata.tsx': $metadata_AppSettingsMetadata,
 		'./islands/metadata/ProjectManagerMetadata.tsx': $metadata_ProjectManagerMetadata,

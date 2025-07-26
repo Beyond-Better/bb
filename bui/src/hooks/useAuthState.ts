@@ -453,5 +453,79 @@ export function useAuthState() {
 				return { error: error instanceof Error ? error.message : 'Sign out failed' };
 			}
 		},
+
+		resetPasswordForEmail: async (
+			req: Request | null,
+			_resp: Response | null,
+			email: string,
+		): Promise<{ error?: string }> => {
+			console.log('useAuthState: Requesting password reset for:', email);
+
+			// If in local mode, pretend the operation is successful
+			if (authState.value.isLocalMode) {
+				console.log('useAuthState: Local mode - bypassing password reset');
+				return {};
+			}
+
+			try {
+				const apiClient = getApiClient(req);
+				if (!apiClient) {
+					console.log('useAuthState: [resetPasswordForEmail] Could not load API Client');
+					return { error: 'Could not load API Client [resetPasswordForEmail]' };
+				}
+
+				const result = await apiClient.resetPasswordForEmail(email);
+
+				if (result.error) {
+					throw new Error(result.error);
+				}
+
+				return {};
+			} catch (error) {
+				console.error('useAuthState: Password reset request failed:', (error as Error).message);
+				return { error: error instanceof Error ? error.message : 'Password reset request failed' };
+			}
+		},
+
+		updatePassword: async (
+			req: Request | null,
+			_resp: Response | null,
+			password: string,
+		): Promise<{ user?: User; success?: boolean; error?: string }> => {
+			console.log('useAuthState: Updating password');
+
+			// If in local mode, pretend the operation is successful
+			if (authState.value.isLocalMode) {
+				console.log('useAuthState: Local mode - bypassing password update');
+				return { user: DUMMY_USER, success: true };
+			}
+
+			try {
+				const apiClient = getApiClient(req);
+				if (!apiClient) {
+					console.log('useAuthState: [updatePassword] Could not load API Client');
+					return { error: 'Could not load API Client [updatePassword]' };
+				}
+
+				const result = await apiClient.updatePassword(password);
+
+				if (result.error) {
+					throw new Error(result.error);
+				}
+
+				if (result.user) {
+					// Update the auth state with the updated user
+					authState.value = {
+						...authState.value,
+						user: result.user,
+					};
+				}
+
+				return { user: result.user, success: result.success };
+			} catch (error) {
+				console.error('useAuthState: Password update failed:', (error as Error).message);
+				return { error: error instanceof Error ? error.message : 'Password update failed' };
+			}
+		},
 	};
 }

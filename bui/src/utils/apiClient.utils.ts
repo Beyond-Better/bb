@@ -645,6 +645,21 @@ export class ApiClient {
 		}) ?? { error: 'ResendVerification: Failed to connect to API' };
 	}
 
+	async resetPasswordForEmail(email: string): Promise<{ error?: string }> {
+		return await this.post<{ error?: string }>('/api/v1/auth/reset-password', {
+			email,
+			options: {
+				redirectTo: `${globalThis.location.origin}/auth/verify?type=recovery&next=/auth/update-password`,
+			},
+		}) ?? { error: 'ResetPassword: Failed to connect to API' };
+	}
+
+	async updatePassword(password: string): Promise<{ user?: any; success?: boolean; error?: string }> {
+		return await this.post<{ user?: any; success?: boolean; error?: string }>('/api/v1/auth/update-password', {
+			password,
+		}) ?? { error: 'UpdatePassword: Failed to connect to API' };
+	}
+
 	// Project Management Methods
 	async listProjects(): Promise<{ projects: ClientProjectWithConfigSources[] } | null> {
 		return await this.get<{ projects: ClientProjectWithConfigSources[] }>('/api/v1/project');
