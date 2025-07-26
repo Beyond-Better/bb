@@ -78,7 +78,8 @@ export default function VerifyContent() {
 									// Account not found or other error
 									isVerifying.value = false;
 									isError.value = true;
-									successMessage.value = fallbackResult.error || `Failed to verify email: ${data.error}`;
+									successMessage.value = fallbackResult.error ||
+										`Failed to verify email: ${data.error}`;
 								}
 							} else {
 								// No email provided, can't do fallback verification
@@ -114,7 +115,9 @@ export default function VerifyContent() {
 				isVerifying.value = false;
 				isError.value = true;
 				if (verificationType === 'recovery') {
-					successMessage.value = error instanceof Error ? error.message : 'Failed to verify password reset link';
+					successMessage.value = error instanceof Error
+						? error.message
+						: 'Failed to verify password reset link';
 				} else {
 					successMessage.value = error instanceof Error ? error.message : 'Failed to verify email';
 				}

@@ -193,7 +193,13 @@ export function useAuthState() {
 				}
 
 				// Call the API endpoint to check email verification status
-				const result = await apiClient.post<{ verified?: boolean; exists?: boolean; error?: { code?: string; message: string; reason?: string } }>(
+				const result = await apiClient.post<
+					{
+						verified?: boolean;
+						exists?: boolean;
+						error?: { code?: string; message: string; reason?: string };
+					}
+				>(
 					'/api/v1/auth/check-email-verification',
 					{
 						email,

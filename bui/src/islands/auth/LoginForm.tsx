@@ -32,7 +32,7 @@ export default function LoginForm() {
 			} else {
 				if (data.error === 'Failed to fetch' || data.error === 'Load failed') {
 					loginError.value =
-						'⚠️ BB App Required: The BB Desktop App must be installed and running to sign in. This is not optional - it\'s required for BB to work properly.';
+						"⚠️ BB App Required: The BB Desktop App must be installed and running to sign in. This is not optional - it's required for BB to work properly.";
 				} else if (data.error?.includes('status: 401')) {
 					loginError.value = 'Authentication error. Please check your credentials.';
 				} else {
@@ -47,7 +47,7 @@ export default function LoginForm() {
 				errorName(error) === 'TypeError'
 			) {
 				loginError.value =
-					'⚠️ BB App Required: The BB Desktop App must be installed and running to sign in. This is not optional - it\'s required for BB to work properly.';
+					"⚠️ BB App Required: The BB Desktop App must be installed and running to sign in. This is not optional - it's required for BB to work properly.";
 			} else if (errorMessage(error).includes('status: 401')) {
 				loginError.value = 'Authentication error. Please check your credentials.';
 			} else {
@@ -156,17 +156,18 @@ export default function LoginForm() {
 							<h3 class='text-sm font-medium text-red-800 dark:text-red-200'>
 								{loginError.value}
 							</h3>
-							{(loginError.value.includes('BB Server') || loginError.value.includes('BB App Required')) && (
-								<p class='mt-2 text-sm text-red-700 dark:text-red-300'>
-									Need help?{' '}
-									<ExternalLink
-										href='https://www.beyondbetter.app/docs/install'
-										class='font-medium underline'
-									>
-										View troubleshooting guide
-									</ExternalLink>
-								</p>
-							)}
+							{(loginError.value.includes('BB Server') || loginError.value.includes('BB App Required')) &&
+								(
+									<p class='mt-2 text-sm text-red-700 dark:text-red-300'>
+										Need help?{' '}
+										<ExternalLink
+											href='https://www.beyondbetter.app/docs/install'
+											class='font-medium underline'
+										>
+											View troubleshooting guide
+										</ExternalLink>
+									</p>
+								)}
 						</div>
 					</div>
 				</div>

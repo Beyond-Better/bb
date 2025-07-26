@@ -30,19 +30,20 @@ export default function ForgotPasswordForm() {
 		try {
 			isSubmitting.value = true;
 			resetError.value = '';
-			
+
 			const data = await resetPasswordForEmail(null, null, email.value);
 
 			if (data.error) {
 				if (data.error === 'Failed to fetch' || data.error === 'Load failed') {
 					resetError.value =
-						'⚠️ BB App Required: The BB Desktop App must be installed and running to reset your password. This is not optional - it\'s required for BB to work properly.';
+						"⚠️ BB App Required: The BB Desktop App must be installed and running to reset your password. This is not optional - it's required for BB to work properly.";
 				} else {
 					resetError.value = data.error;
 				}
 			} else {
 				// Success
-				successMessage.value = 'Password reset email sent! Please check your inbox and follow the instructions to reset your password.';
+				successMessage.value =
+					'Password reset email sent! Please check your inbox and follow the instructions to reset your password.';
 			}
 		} catch (error) {
 			// Specific error handling for connection issues
@@ -51,7 +52,7 @@ export default function ForgotPasswordForm() {
 				errorName(error) === 'TypeError'
 			) {
 				resetError.value =
-					'⚠️ BB App Required: The BB Desktop App must be installed and running to reset your password. This is not optional - it\'s required for BB to work properly.';
+					"⚠️ BB App Required: The BB Desktop App must be installed and running to reset your password. This is not optional - it's required for BB to work properly.";
 			} else {
 				resetError.value = `Password reset failed: ${errorMessage(error) || 'Unknown error occurred'}`;
 			}
@@ -111,28 +112,29 @@ export default function ForgotPasswordForm() {
 							<h3 class='text-sm font-medium text-red-800 dark:text-red-200'>
 								{resetError.value}
 							</h3>
-							{(resetError.value.includes('BB Server') || resetError.value.includes('BB App Required')) && (
-								<div class='mt-3 space-y-2'>
-									<div class='text-sm text-red-700 dark:text-red-300'>
-										<p class='font-medium mb-1'>To fix this:</p>
-										<ol class='list-decimal list-inside space-y-1 text-xs'>
-											<li>Download and install the BB Desktop App (see below)</li>
-											<li>Launch the BB Desktop App</li>
-											<li>Ensure the server toggle is enabled (green)</li>
-											<li>Try resetting your password again</li>
-										</ol>
+							{(resetError.value.includes('BB Server') || resetError.value.includes('BB App Required')) &&
+								(
+									<div class='mt-3 space-y-2'>
+										<div class='text-sm text-red-700 dark:text-red-300'>
+											<p class='font-medium mb-1'>To fix this:</p>
+											<ol class='list-decimal list-inside space-y-1 text-xs'>
+												<li>Download and install the BB Desktop App (see below)</li>
+												<li>Launch the BB Desktop App</li>
+												<li>Ensure the server toggle is enabled (green)</li>
+												<li>Try resetting your password again</li>
+											</ol>
+										</div>
+										<p class='text-xs text-red-600 dark:text-red-400'>
+											Need more help?{' '}
+											<ExternalLink
+												href='https://www.beyondbetter.app/docs/install'
+												class='font-medium underline'
+											>
+												View troubleshooting guide
+											</ExternalLink>
+										</p>
 									</div>
-									<p class='text-xs text-red-600 dark:text-red-400'>
-										Need more help?{' '}
-										<ExternalLink
-											href='https://www.beyondbetter.app/docs/install'
-											class='font-medium underline'
-										>
-											View troubleshooting guide
-										</ExternalLink>
-									</p>
-								</div>
-							)}
+								)}
 						</div>
 					</div>
 				</div>

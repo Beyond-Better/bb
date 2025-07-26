@@ -73,14 +73,13 @@ export default function PaymentFlowDialog({
 		isRefreshingPreview.value = true;
 		paymentFlowError.value = null;
 
-			console.log('PaymentFlowDialog: couponCode', couponCode.value);
-		console.log('PaymentFlowDialog: couponCode', couponCode.value);
+		//console.log('PaymentFlowDialog: couponCode', couponCode.value);
 		try {
 			const apiClient = appState.value.apiClient;
 			if (!apiClient) throw new Error('API client not available');
 
 			const newPreview = await apiClient.getBillingPreview(selectedPlan.plan_id, couponCode.value || undefined);
-			console.log('PaymentFlowDialog: newPreview', newPreview);
+			//console.log('PaymentFlowDialog: newPreview', newPreview);
 			if (newPreview) {
 				// Update the billing state with new preview
 				billingState.value = {

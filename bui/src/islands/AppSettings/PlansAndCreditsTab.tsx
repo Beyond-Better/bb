@@ -199,7 +199,7 @@ export default function PlansAndCreditsTab() {
 												<span>
 													Recent: ${billingState.value.purchasesBalance.purchases[0]
 														.amount_usd?.toFixed(2)} on
-												</span>
+												</span>{' '}
 												<span>
 													{formatDateSafe(
 														new Date(
