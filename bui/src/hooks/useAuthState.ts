@@ -98,7 +98,7 @@ export function useAuthState() {
 				const user = session?.user;
 
 				if (error) {
-					throw new AuthError(error, 'auth_failed');
+					throw new AuthError(error.message, 'auth_failed');
 				}
 
 				if (!user) {
@@ -141,7 +141,7 @@ export function useAuthState() {
 				const { user, session, error } = await apiClient.verifyOtp(tokenHash, type);
 
 				if (error) {
-					throw new AuthError(error, 'auth_failed');
+					throw new AuthError(error.message, 'auth_failed');
 				}
 
 				if (!session) {
@@ -193,7 +193,7 @@ export function useAuthState() {
 				}
 
 				// Call the API endpoint to check email verification status
-				const result = await apiClient.post<{ verified?: boolean; exists?: boolean; error?: string }>(
+				const result = await apiClient.post<{ verified?: boolean; exists?: boolean; error?: { code?: string; message: string; reason?: string } }>(
 					'/api/v1/auth/check-email-verification',
 					{
 						email,
@@ -205,10 +205,10 @@ export function useAuthState() {
 				}
 
 				if (result.error) {
-					throw new Error(result.error);
+					throw new Error(result.error.message);
 				}
 
-				return result;
+				return { verified: result.verified, exists: result.exists };
 			} catch (error) {
 				console.error('useAuthState: Email verification check failed:', (error as Error).message);
 				return { error: error instanceof Error ? error.message : 'Email verification check failed' };
@@ -301,7 +301,7 @@ export function useAuthState() {
 				console.log('useAuthState: Sign in user', user);
 
 				if (error) {
-					throw new AuthError(error, 'auth_failed');
+					throw new AuthError(error.message, 'auth_failed');
 				}
 
 				if (!session) {
@@ -374,7 +374,7 @@ export function useAuthState() {
 				);
 
 				if (error) {
-					throw new AuthError(error, 'auth_failed');
+					throw new AuthError(error.message, 'auth_failed');
 				}
 
 				if (!user) {
@@ -432,7 +432,7 @@ export function useAuthState() {
 				const { error } = await apiClient.signOut();
 
 				if (error) {
-					throw new AuthError(error, 'auth_failed');
+					throw new AuthError(error.message, 'auth_failed');
 				}
 
 				authState.value = {
@@ -477,7 +477,7 @@ export function useAuthState() {
 				const result = await apiClient.resetPasswordForEmail(email);
 
 				if (result.error) {
-					throw new Error(result.error);
+					throw new Error(result.error.message);
 				}
 
 				return {};
@@ -508,9 +508,10 @@ export function useAuthState() {
 				}
 
 				const result = await apiClient.updatePassword(password);
+				console.log('useAuthState: updatePassword result', result);
 
 				if (result.error) {
-					throw new Error(result.error);
+					return { error: result.error.message, success: false };
 				}
 
 				if (result.user) {

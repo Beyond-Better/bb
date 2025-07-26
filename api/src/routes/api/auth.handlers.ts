@@ -26,6 +26,7 @@ export async function handleLogin(ctx: Context<BbState>) {
 				error: {
 					code: 'INVALID_REQUEST',
 					message: 'Email and password are required',
+					reason: 'required_fields_missing',
 				},
 			};
 			return;
@@ -46,6 +47,7 @@ export async function handleLogin(ctx: Context<BbState>) {
 				error: {
 					code: 'AUTH_ERROR',
 					message: error.message,
+					reason: error.code,
 				},
 			};
 			return;
@@ -133,6 +135,7 @@ export async function handleSignup(ctx: Context<BbState>) {
 				error: {
 					code: 'INVALID_REQUEST',
 					message: 'Email and password are required',
+					reason: 'required_fields_missing',
 				},
 			};
 			return;
@@ -162,6 +165,7 @@ export async function handleSignup(ctx: Context<BbState>) {
 				error: {
 					code: 'AUTH_ERROR',
 					message: error.message,
+					reason: error.code,
 				},
 			};
 			return;
@@ -195,6 +199,7 @@ export async function handleCallback(ctx: Context<BbState>) {
 				error: {
 					code: 'INVALID_REQUEST',
 					message: 'token_hash and type are required',
+					reason: 'required_fields_missing',
 				},
 			};
 			return;
@@ -237,23 +242,13 @@ export async function handleCallback(ctx: Context<BbState>) {
 				error: {
 					code: 'AUTH_ERROR',
 					message: error.message,
+					reason: error.code,
 				},
 			};
 			return;
 		}
 
 		logger.info('AuthHandler: Verify token successful, session established');
-
-		if (error) {
-			ctx.response.status = 401;
-			ctx.response.body = {
-				error: {
-					code: 'AUTH_ERROR',
-					message: (error as Error).message,
-				},
-			};
-			return;
-		}
 
 		ctx.response.status = 200;
 		ctx.response.body = {
@@ -286,6 +281,7 @@ export async function handleCheckEmailVerification(ctx: Context<BbState>) {
 				error: {
 					code: 'INVALID_REQUEST',
 					message: 'Email is required',
+					reason: 'required_fields_missing',
 				},
 			};
 			return;
@@ -305,7 +301,11 @@ export async function handleCheckEmailVerification(ctx: Context<BbState>) {
 			logger.error('AuthHandler: Check email verification failed:', error);
 			ctx.response.status = 500;
 			ctx.response.body = {
-				error: error.message,
+				error: {
+					code: 'AUTH_ERROR',
+					message: error.message,
+					reason: 'failed_verification',
+				},
 			};
 			return;
 		}
@@ -336,6 +336,7 @@ export async function handleResetPassword(ctx: Context<BbState>) {
 				error: {
 					code: 'INVALID_REQUEST',
 					message: 'Email is required',
+					reason: 'required_fields_missing',
 				},
 			};
 			return;
@@ -357,6 +358,7 @@ export async function handleResetPassword(ctx: Context<BbState>) {
 				error: {
 					code: 'AUTH_ERROR',
 					message: error.message,
+					reason: error.code,
 				},
 			};
 			return;
@@ -393,6 +395,7 @@ export async function handleUpdatePassword(ctx: Context<BbState>) {
 				error: {
 					code: 'INVALID_REQUEST',
 					message: 'Password is required',
+					reason: 'required_fields_missing',
 				},
 			};
 			return;
@@ -414,6 +417,7 @@ export async function handleUpdatePassword(ctx: Context<BbState>) {
 				error: {
 					code: 'AUTH_ERROR',
 					message: error.message,
+					reason: error.code,
 				},
 			};
 			return;
@@ -451,6 +455,7 @@ export async function handleResendVerification(ctx: Context<BbState>) {
 				error: {
 					code: 'INVALID_REQUEST',
 					message: 'Email and type are required',
+					reason: 'required_fields_missing',
 				},
 			};
 			return;
@@ -471,7 +476,11 @@ export async function handleResendVerification(ctx: Context<BbState>) {
 			logger.error('AuthHandler: Resend verification email failed:', error);
 			ctx.response.status = 400;
 			ctx.response.body = {
-				error: error.message,
+				error: {
+					code: 'AUTH_ERROR',
+					message: error.message,
+					reason: error.code,
+				},
 			};
 			return;
 		}

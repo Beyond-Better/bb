@@ -73,7 +73,7 @@ export default function PaymentFlowDialog({
 		isRefreshingPreview.value = true;
 		paymentFlowError.value = null;
 
-			console.log('PaymentFlowDialog: couponCode', couponCode.value);
+		console.log('PaymentFlowDialog: couponCode', couponCode.value);
 		try {
 			const apiClient = appState.value.apiClient;
 			if (!apiClient) throw new Error('API client not available');
@@ -276,47 +276,92 @@ export default function PaymentFlowDialog({
 									disabled={isRefreshingPreview.value}
 									class='px-4 py-2 text-sm font-medium text-white bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-md flex items-center space-x-2'
 								>
-									{isRefreshingPreview.value ? (
-										<>
-											<svg class='animate-spin h-4 w-4' fill='none' viewBox='0 0 24 24'>
-												<circle class='opacity-25' cx='12' cy='12' r='10' stroke='currentColor' stroke-width='4' />
-												<path class='opacity-75' fill='currentColor' d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z' />
-											</svg>
-											<span>Checking</span>
-										</>
-									) : (
-										<>
-											<svg class='h-4 w-4' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
-												<path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15' />
-											</svg>
-											<span>Apply</span>
-										</>
-									)}
+									{isRefreshingPreview.value
+										? (
+											<>
+												<svg class='animate-spin h-4 w-4' fill='none' viewBox='0 0 24 24'>
+													<circle
+														class='opacity-25'
+														cx='12'
+														cy='12'
+														r='10'
+														stroke='currentColor'
+														stroke-width='4'
+													/>
+													<path
+														class='opacity-75'
+														fill='currentColor'
+														d='M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z'
+													/>
+												</svg>
+												<span>Checking</span>
+											</>
+										)
+										: (
+											<>
+												<svg
+													class='h-4 w-4'
+													fill='none'
+													viewBox='0 0 24 24'
+													stroke='currentColor'
+												>
+													<path
+														stroke-linecap='round'
+														stroke-linejoin='round'
+														stroke-width='2'
+														d='M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15'
+													/>
+												</svg>
+												<span>Apply</span>
+											</>
+										)}
 								</button>
 							</div>
 
 							{/* Coupon Status Display */}
 							{billingPreview.coupon && (
 								<div class='mt-3'>
-									{billingPreview.coupon.valid ? (
-										<div class='flex items-center space-x-2 text-green-600 dark:text-green-400'>
-											<svg class='h-4 w-4' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
-												<path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M5 13l4 4L19 7' />
-											</svg>
-											<span class='text-sm font-medium'>
-												Coupon "{billingPreview.coupon.code}" applied successfully!
-											</span>
-										</div>
-									) : (
-										<div class='flex items-center space-x-2 text-red-600 dark:text-red-400'>
-											<svg class='h-4 w-4' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
-												<path stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M6 18L18 6M6 6l12 12' />
-											</svg>
-											<span class='text-sm font-medium'>
-												{billingPreview.coupon.error || 'Invalid coupon code'}
-											</span>
-										</div>
-									)}
+									{billingPreview.coupon.valid
+										? (
+											<div class='flex items-center space-x-2 text-green-600 dark:text-green-400'>
+												<svg
+													class='h-4 w-4'
+													fill='none'
+													viewBox='0 0 24 24'
+													stroke='currentColor'
+												>
+													<path
+														stroke-linecap='round'
+														stroke-linejoin='round'
+														stroke-width='2'
+														d='M5 13l4 4L19 7'
+													/>
+												</svg>
+												<span class='text-sm font-medium'>
+													Coupon "{billingPreview.coupon.code}" applied successfully!
+												</span>
+											</div>
+										)
+										: (
+											<div class='flex items-center space-x-2 text-red-600 dark:text-red-400'>
+												<svg
+													class='h-4 w-4'
+													fill='none'
+													viewBox='0 0 24 24'
+													stroke='currentColor'
+												>
+													<path
+														stroke-linecap='round'
+														stroke-linejoin='round'
+														stroke-width='2'
+														d='M6 18L18 6M6 6l12 12'
+													/>
+												</svg>
+												<span class='text-sm font-medium'>
+													{billingPreview.coupon.error || 'Invalid coupon code'}
+												</span>
+											</div>
+										)}
 								</div>
 							)}
 						</div>
@@ -374,8 +419,12 @@ export default function PaymentFlowDialog({
 												<dd class='text-sm font-medium text-gray-900 dark:text-gray-100'>
 													${billingPreview.proratedAmount
 														? billingPreview.proratedAmount.toFixed(2)
-														: (billingPreview.prorationFactor *
-															billingPreview.fullAmount !== undefined ? billingPreview.fullAmount : selectedPlan.plan_price_monthly)
+														: ((billingPreview.prorationFactor !== undefined
+															? billingPreview.prorationFactor
+															: 0) *
+															(billingPreview.fullAmount !== undefined
+																? billingPreview.fullAmount
+																: selectedPlan.plan_price_monthly))
 															.toFixed(2)}
 												</dd>
 											</div>
@@ -389,7 +438,9 @@ export default function PaymentFlowDialog({
 													</div>
 												</dt>
 												<dd class='text-sm font-medium text-gray-900 dark:text-gray-100'>
-													${billingPreview.fullAmount !== undefined ? billingPreview.fullAmount.toFixed(2) : selectedPlan.plan_price_monthly.toFixed(2)}
+													${billingPreview.fullAmount !== undefined
+														? billingPreview.fullAmount.toFixed(2)
+														: selectedPlan.plan_price_monthly.toFixed(2)}
 												</dd>
 											</div>
 										</>
@@ -409,7 +460,9 @@ export default function PaymentFlowDialog({
 													New Monthly Amount:
 												</dt>
 												<dd class='text-sm font-medium text-gray-900 dark:text-gray-100'>
-													${billingPreview.fullAmount !== undefined ? billingPreview.fullAmount.toFixed(2) : selectedPlan.plan_price_monthly.toFixed(2)}
+													${billingPreview.fullAmount !== undefined
+														? billingPreview.fullAmount.toFixed(2)
+														: selectedPlan.plan_price_monthly.toFixed(2)}
 												</dd>
 											</div>
 										</>
@@ -418,30 +471,41 @@ export default function PaymentFlowDialog({
 								{/* Coupon Discount and Bonus Credits */}
 								{billingPreview.coupon?.valid && (
 									<>
-										{billingPreview.originalAmount && billingPreview.discount && billingPreview.discount > 0 ? (
-											<>
-												<div class='flex justify-between border-t border-gray-200 dark:border-gray-600 pt-2 mt-2'>
-													<dt class='text-sm text-gray-500 dark:text-gray-400'>Original Price:</dt>
-													<dd class='text-sm text-gray-500 dark:text-gray-400 line-through'>
-														${billingPreview.originalAmount.toFixed(2)}
-													</dd>
-												</div>
+										{billingPreview.originalAmount && billingPreview.discount &&
+												billingPreview.discount > 0
+											? (
+												<>
+													<div class='flex justify-between border-t border-gray-200 dark:border-gray-600 pt-2 mt-2'>
+														<dt class='text-sm text-gray-500 dark:text-gray-400'>
+															Original Price:
+														</dt>
+														<dd class='text-sm text-gray-500 dark:text-gray-400 line-through'>
+															${billingPreview.originalAmount.toFixed(2)}
+														</dd>
+													</div>
+													<div class='flex justify-between'>
+														<dt class='text-sm text-green-600 dark:text-green-400 font-medium'>
+															Coupon Discount:
+														</dt>
+														<dd class='text-sm text-green-600 dark:text-green-400 font-medium'>
+															-${billingPreview.discount.toFixed(2)}
+														</dd>
+													</div>
+												</>
+											)
+											: null}
+										{billingPreview.bonusCredits && billingPreview.bonusCredits > 0
+											? (
 												<div class='flex justify-between'>
-													<dt class='text-sm text-green-600 dark:text-green-400 font-medium'>Coupon Discount:</dt>
-													<dd class='text-sm text-green-600 dark:text-green-400 font-medium'>
-														-${billingPreview.discount.toFixed(2)}
+													<dt class='text-sm text-blue-600 dark:text-blue-400 font-medium'>
+														Bonus Credits:
+													</dt>
+													<dd class='text-sm text-blue-600 dark:text-blue-400 font-medium'>
+														+${billingPreview.bonusCredits.toFixed(2)}
 													</dd>
 												</div>
-											</>
-										) : null}
-										{billingPreview.bonusCredits && billingPreview.bonusCredits > 0 ? (
-											<div class='flex justify-between'>
-												<dt class='text-sm text-blue-600 dark:text-blue-400 font-medium'>Bonus Credits:</dt>
-												<dd class='text-sm text-blue-600 dark:text-blue-400 font-medium'>
-													+${billingPreview.bonusCredits.toFixed(2)}
-												</dd>
-											</div>
-										) : null}
+											)
+											: null}
 									</>
 								)}
 

@@ -33,7 +33,7 @@ const PASSWORD_REQUIREMENTS: PasswordRequirement[] = [
 ];
 
 export default function UpdatePasswordForm() {
-	const { updatePassword, authState } = useAuthState();
+	const { updatePassword, authState, getSessionUser } = useAuthState();
 	const password = useSignal('');
 	const confirmPassword = useSignal('');
 	const isSubmitting = useSignal(false);
@@ -51,13 +51,27 @@ export default function UpdatePasswordForm() {
 	// Check if we have a valid authenticated session (should be set after verification)
 	useEffect(() => {
 		const checkRecoverySession = async () => {
-			// For password recovery, user should be authenticated after token verification
-			// Check if we have a valid session or if we're in local mode
-			if (authState.value.isLocalMode || authState.value.session || authState.value.user) {
+			if (authState.value.isLocalMode) {
 				isValidSession.value = true;
-			} else {
-				// No authenticated session - this might be direct access or expired session
-				updateError.value = 'Invalid or expired password reset session. Please request a new password reset link.';
+				return;
+			}
+
+			try {
+				// For password recovery, user should be authenticated after token verification
+				// Check if we have a valid session
+				const { user, error } = await getSessionUser(null, null);
+				//console.log('UpdatePasswordForm: getSessionUser', { user, error });
+				if (error || !user) {
+					// No authenticated session - this might be direct access or expired session
+					updateError.value =
+						'Invalid or expired password reset session. Please request a new password reset link.';
+
+					return;
+				}
+				isValidSession.value = true;
+				return;
+			} catch (error) {
+				console.error('Session check failed:', error);
 			}
 		};
 
@@ -99,7 +113,7 @@ export default function UpdatePasswordForm() {
 			if (data.error) {
 				if (data.error === 'Failed to fetch' || data.error === 'Load failed') {
 					updateError.value =
-						'⚠️ BB App Required: The BB Desktop App must be installed and running to update your password. This is not optional - it\'s required for BB to work properly.';
+						"⚠️ BB App Required: The BB Desktop App must be installed and running to update your password. This is not optional - it's required for BB to work properly.";
 				} else {
 					updateError.value = data.error;
 				}
@@ -118,7 +132,7 @@ export default function UpdatePasswordForm() {
 				errorName(error) === 'TypeError'
 			) {
 				updateError.value =
-					'⚠️ BB App Required: The BB Desktop App must be installed and running to update your password. This is not optional - it\'s required for BB to work properly.';
+					"⚠️ BB App Required: The BB Desktop App must be installed and running to update your password. This is not optional - it's required for BB to work properly.";
 			} else {
 				updateError.value = `Password update failed: ${errorMessage(error) || 'Unknown error occurred'}`;
 			}
@@ -245,7 +259,8 @@ export default function UpdatePasswordForm() {
 							<h3 class='text-sm font-medium text-red-800 dark:text-red-200'>
 								{updateError.value}
 							</h3>
-							{(updateError.value.includes('BB Server') || updateError.value.includes('BB App Required')) && (
+							{(updateError.value.includes('BB Server') ||
+								updateError.value.includes('BB App Required')) && (
 								<div class='mt-3 space-y-2'>
 									<div class='text-sm text-red-700 dark:text-red-300'>
 										<p class='font-medium mb-1'>To fix this:</p>
