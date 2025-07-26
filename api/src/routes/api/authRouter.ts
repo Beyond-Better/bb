@@ -5,8 +5,10 @@ import {
 	handleLogin,
 	handleLogout,
 	handleResendVerification,
+	handleResetPassword,
 	handleSignup,
 	handleStatus,
+	handleUpdatePassword,
 } from './auth.handlers.ts';
 
 const router = new Router();
@@ -233,5 +235,80 @@ router.post('/check-email-verification', handleCheckEmailVerification);
  *         description: Server error
  */
 router.post('/resend-verification', handleResendVerification);
+
+/**
+ * @openapi
+ * /api/v1/auth/reset-password:
+ *   post:
+ *     summary: Request password reset
+ *     description: Send a password reset email to the user
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *               options:
+ *                 type: object
+ *                 properties:
+ *                   redirectTo:
+ *                     type: string
+ *     responses:
+ *       200:
+ *         description: Password reset email sent successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *       400:
+ *         description: Invalid request
+ *       500:
+ *         description: Server error
+ */
+router.post('/reset-password', handleResetPassword);
+
+/**
+ * @openapi
+ * /api/v1/auth/update-password:
+ *   post:
+ *     summary: Update user password
+ *     description: Update the authenticated user's password
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - password
+ *             properties:
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Password updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 user:
+ *                   type: object
+ *                 success:
+ *                   type: boolean
+ *       400:
+ *         description: Invalid request
+ *       500:
+ *         description: Server error
+ */
+router.post('/update-password', handleUpdatePassword);
 
 export default router;

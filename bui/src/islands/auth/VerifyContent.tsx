@@ -9,9 +9,10 @@ export default function VerifyContent() {
 
 	const isError = useSignal(false);
 	const isVerifying = useSignal(true);
-	const successMessage = useSignal('Verifying your email...');
+	const successMessage = useSignal('');
 	const [userEmail, setUserEmail] = useState('');
 	const [showResendForm, setShowResendForm] = useState(false);
+	const [verificationType, setVerificationType] = useState<EmailOtpType | null>(null);
 
 	useEffect(() => {
 		const handleVerification = async () => {
@@ -22,6 +23,14 @@ export default function VerifyContent() {
 			const type = searchParams.get('type') as EmailOtpType;
 			const email = searchParams.get('email');
 			const next = searchParams.get('next') ?? '/app/home';
+
+			// Set verification type and initial message
+			setVerificationType(type);
+			if (type === 'recovery') {
+				successMessage.value = 'Verifying your password reset link...';
+			} else {
+				successMessage.value = 'Verifying your email...';
+			}
 
 			// Store email for potential resend
 			if (email) {
@@ -35,45 +44,57 @@ export default function VerifyContent() {
 					console.log('VerifyEmail: data[after getUser]', data);
 
 					if (data.error) {
-						// Primary verification failed, try fallback if we have email
-						if (email) {
-							console.log('Primary verification failed, trying fallback with email:', email);
-
-							const fallbackResult = await checkEmailVerification(null, null, email);
-							console.log('Fallback verification result:', fallbackResult);
-
-							if (fallbackResult.verified) {
-								// Email is already verified
-								isVerifying.value = false;
-								successMessage.value = 'Email verified successfully! Redirecting...';
-								// Redirect after a short delay
-								setTimeout(() => {
-									globalThis.location.href = next;
-								}, 2000);
-								return;
-							} else if (fallbackResult.exists) {
-								// User exists but email not verified
-								isVerifying.value = false;
-								isError.value = true;
-								successMessage.value =
-									'Your verification link may have expired. Please try the resend option below.';
-								setShowResendForm(true);
-							} else {
-								// Account not found or other error
-								isVerifying.value = false;
-								isError.value = true;
-								successMessage.value = fallbackResult.error || `Failed to verify email: ${data.error}`;
-							}
-						} else {
-							// No email provided, can't do fallback verification
+						// Handle different verification types differently
+						if (type === 'recovery') {
+							// Password recovery failed
 							isVerifying.value = false;
 							isError.value = true;
-							successMessage.value = `Failed to verify email: ${data.error}`;
+							successMessage.value = `Password reset link is invalid or expired: ${data.error}`;
+						} else {
+							// Email verification - try fallback if we have email
+							if (email) {
+								console.log('Primary verification failed, trying fallback with email:', email);
+
+								const fallbackResult = await checkEmailVerification(null, null, email);
+								console.log('Fallback verification result:', fallbackResult);
+
+								if (fallbackResult.verified) {
+									// Email is already verified
+									isVerifying.value = false;
+									successMessage.value = 'Email verified successfully! Redirecting...';
+									// Redirect after a short delay
+									setTimeout(() => {
+										globalThis.location.href = next;
+									}, 2000);
+									return;
+								} else if (fallbackResult.exists) {
+									// User exists but email not verified
+									isVerifying.value = false;
+									isError.value = true;
+									successMessage.value =
+										'Your verification link may have expired. Please try the resend option below.';
+									setShowResendForm(true);
+								} else {
+									// Account not found or other error
+									isVerifying.value = false;
+									isError.value = true;
+									successMessage.value = fallbackResult.error || `Failed to verify email: ${data.error}`;
+								}
+							} else {
+								// No email provided, can't do fallback verification
+								isVerifying.value = false;
+								isError.value = true;
+								successMessage.value = `Failed to verify email: ${data.error}`;
+							}
 						}
 					}
 					if (data.user) {
 						isVerifying.value = false;
-						successMessage.value = 'Email verified successfully! Redirecting...';
+						if (type === 'recovery') {
+							successMessage.value = 'Password reset verified! Redirecting to password update...';
+						} else {
+							successMessage.value = 'Email verified successfully! Redirecting...';
+						}
 						// Redirect after a short delay
 						setTimeout(() => {
 							globalThis.location.href = next;
@@ -82,13 +103,21 @@ export default function VerifyContent() {
 				} else {
 					isVerifying.value = false;
 					isError.value = true;
-					successMessage.value = `No token_hash or type found in URL`;
+					if (type === 'recovery') {
+						successMessage.value = `Invalid password reset link - missing token information`;
+					} else {
+						successMessage.value = `No token_hash or type found in URL`;
+					}
 				}
 			} catch (error) {
 				console.error('Verification error:', error);
 				isVerifying.value = false;
 				isError.value = true;
-				successMessage.value = error instanceof Error ? error.message : 'Failed to verify email';
+				if (verificationType === 'recovery') {
+					successMessage.value = error instanceof Error ? error.message : 'Failed to verify password reset link';
+				} else {
+					successMessage.value = error instanceof Error ? error.message : 'Failed to verify email';
+				}
 			}
 		};
 
@@ -103,7 +132,7 @@ export default function VerifyContent() {
 		<div class='min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8'>
 			<div class='sm:mx-auto sm:w-full sm:max-w-md'>
 				<h2 class='mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white'>
-					Email Verification
+					{verificationType === 'recovery' ? 'Password Reset Verification' : 'Email Verification'}
 				</h2>
 			</div>
 
@@ -192,8 +221,8 @@ export default function VerifyContent() {
 						</div>
 					</div>
 
-					{/* Error actions */}
-					{isError.value && !showResendForm && userEmail && (
+					{/* Error actions for email verification */}
+					{isError.value && !showResendForm && verificationType !== 'recovery' && userEmail && (
 						<div class='mt-6'>
 							<button
 								type='button'
@@ -205,7 +234,19 @@ export default function VerifyContent() {
 						</div>
 					)}
 
-					{isError.value && !showResendForm && !userEmail && (
+					{/* Error actions for password recovery */}
+					{isError.value && verificationType === 'recovery' && (
+						<div class='mt-6'>
+							<a
+								href='/auth/forgot-password'
+								class='px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-md transition-colors inline-block'
+							>
+								Request New Password Reset
+							</a>
+						</div>
+					)}
+
+					{isError.value && !showResendForm && !userEmail && verificationType !== 'recovery' && (
 						<div class='mt-6'>
 							<div class='space-y-4'>
 								<p class='text-sm text-gray-600 dark:text-gray-400'>
@@ -227,7 +268,7 @@ export default function VerifyContent() {
 					)}
 
 					{/* Resend form */}
-					{showResendForm && userEmail && (
+					{showResendForm && userEmail && verificationType !== 'recovery' && (
 						<div class='mt-6'>
 							<h3 class='text-lg font-medium text-gray-900 dark:text-white mb-4'>
 								Request New Verification Email

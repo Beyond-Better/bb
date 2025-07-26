@@ -125,7 +125,7 @@ export default function LoginForm() {
 
 				<div class='text-sm'>
 					<a
-						href='/auth/forgot-password'
+						href={`/auth/forgot-password${email.value ? `?email=${encodeURIComponent(email.value)}` : ''}`}
 						class='font-medium text-purple-600 hover:text-purple-500'
 					>
 						Forgot your password?
