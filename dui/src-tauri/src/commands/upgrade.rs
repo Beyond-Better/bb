@@ -1061,6 +1061,8 @@ async fn restart_application_safely(app: &AppHandle) -> Result<(), String> {
         }
     });
     
+    // Note: This function initiates restart but doesn't wait for completion
+    // The actual restart happens asynchronously
     Ok(())
 }
 
