@@ -39,7 +39,7 @@ export async function handleLogin(ctx: Context<BbState>) {
 			email,
 			password,
 		});
-		logger.error('AuthHandler: handleLogin:', { data, error });
+		//logger.error('AuthHandler: handleLogin:', { data, error });
 
 		if (error) {
 			ctx.response.status = 401;
@@ -156,7 +156,7 @@ export async function handleSignup(ctx: Context<BbState>) {
 				data: userData,
 			},
 		});
-		logger.error('AuthHandler: handleSignup:', { data, error });
+		//logger.error('AuthHandler: handleSignup:', { data, error });
 
 		if (error) {
 			logger.error(`AuthHandler: Signup failed for ${email}:`, error);
@@ -310,7 +310,7 @@ export async function handleCheckEmailVerification(ctx: Context<BbState>) {
 			return;
 		}
 
-		logger.info(`AuthHandler: Email verification check for ${email}:`, data);
+		//logger.info(`AuthHandler: Email verification check for ${email}:`, data);
 		ctx.response.status = 200;
 		ctx.response.body = data;
 	} catch (error) {

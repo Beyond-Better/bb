@@ -628,15 +628,6 @@ export function ChatInput({
 		};
 	}, [onHeightChange]);
 
-	// Cleanup debounce timer
-	useEffect(() => {
-		return () => {
-			if (suggestionDebounceRef.current) {
-				globalThis.clearTimeout(suggestionDebounceRef.current);
-			}
-		};
-	}, []);
-
 	// Initialize collaboration ID signal and handle saved input
 	useEffect(() => {
 		// Skip if no collaboration ID
@@ -1202,22 +1193,43 @@ export function ChatInput({
 		}
 	};
 
-	// Handle page reload confirmation for unsaved content
+	// Handle component unmount during Fresh SPA navigation
 	useEffect(() => {
+		return () => {
+			// Save input when component unmounts during SPA navigation
+			if (chatInputText.value.trim() && collaborationId && !isMessageSentRef.current) {
+				console.info('ChatInput: Component unmounting, saving current input for SPA navigation');
+				saveCurrentInput(chatInputText.value);
+			}
+		};
+	}, []); // Empty deps = only runs on mount/unmount
+
+	// Handle page reload confirmation and page visibility changes
+	useEffect(() => {
+		// Handle actual page reloads - prevent navigation to avoid data loss
 		const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-			// Check if there's unsaved content
 			if (chatInputText.value.trim()) {
 				console.info('ChatInput: Preventing page reload with unsaved content');
 				e.preventDefault();
 			}
 		};
 
+		// Handle tab switching, browser minimize, etc.
+		const handleVisibilityChange = () => {
+			if (document.hidden && chatInputText.value.trim() && collaborationId && !isMessageSentRef.current) {
+				console.info('ChatInput: Page became hidden, saving current input');
+				saveCurrentInput(chatInputText.value);
+			}
+		};
+
 		globalThis.addEventListener('beforeunload', handleBeforeUnload);
+		document.addEventListener('visibilitychange', handleVisibilityChange);
 
 		return () => {
 			globalThis.removeEventListener('beforeunload', handleBeforeUnload);
+			document.removeEventListener('visibilitychange', handleVisibilityChange);
 		};
-	}, [chatInputText.value]);
+	}, [chatInputText.value, collaborationId]);
 
 	// Handle clicking outside the options modal to close it
 	useEffect(() => {
@@ -1252,7 +1264,7 @@ export function ChatInput({
 		}
 	}, [chatInputText.value]);
 
-	// Cleanup
+	// Cleanup all timers on component unmount
 	useEffect(() => {
 		return () => {
 			[inputDebounceRef, saveDebounceRef, suggestionDebounceRef, errorTimeoutRef].forEach((ref) => {

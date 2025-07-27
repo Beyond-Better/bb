@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- save partial prompt when navigating within app
 
 
 ## [0.8.15] - 2025-07-27

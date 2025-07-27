@@ -247,3 +247,28 @@
 √ - passing in requestParams (speakOptions) (ModelCapabilitiesManager)
 √ - loading correct model
 
+√ conversation header not showing turns and tokens during statement handling
+√ Fix token counts in conversation header of BUI
+√ duplicate subscription charges
+√ Need auto-topup feature
+√ Assign signup and upgrade credits (plan_features->signup_credits_cents, plan_features->upgrade_credits_cents)
+√ Auto-topup needs to trigger a stripe payment attempt
+√ Plan downgrade is taking effect immediately, possibly result of stripe webhook event
+√ plan downgrade is settng new plan to ACTIVE and setting cancel_at date
+√ update plan descriptions to show free upgrade credits
+√ manually applied credit purchase are showing as 'pending' in invoice history
+√ Add plan card for 'enterprise - contact us'
+√ Change user-subscription edge function to correctly use start_subscription vs change_subscription
+X Add free period for Basic plan
+√ wire up notifications such as auto topup
+√ update plan cards for marketing site
+√ restrict mcp tools based on features system
+√ disable UI controls for mcp tools based on features system (use API to access features)
+√ Test new user signup
+X Change free plan to BYO api keys - limited data sources and tools
+√ Password reset
+√ Review purpose of 'free_months' coupon type - it should probably just be a 'percentage' type set to 100% with relevant 'duration_months'
+√ Drop old billing functions (confirm no usage first) - process_month_end - process_month_end_batch
+√ add token-usage log to llm-proxy
+√ save partial prompt when navigating away, not just on page reload (eg, user switches to different conversation or to project settings)
+
