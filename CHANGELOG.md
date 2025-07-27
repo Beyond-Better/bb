@@ -16,6 +16,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 
+## [0.8.14] - 2025-07-27
+
+### Added
+
+- coupon discounts for subscriptions
+
+### Changed
+
+
+### Fixed
+
+- forgot password reset via email link
+- prorated amounts for plan upgrades 
+- crash following app self-update
+
 
 ## [0.8.13] - 2025-07-21
 
