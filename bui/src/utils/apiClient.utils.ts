@@ -46,7 +46,7 @@ import { savePreferredProtocol } from './connectionManager.utils.ts';
 export interface AuthResponse {
 	user?: User;
 	session?: Session;
-	error?: string;
+	error?: { code?: string; message: string; reason?: string };
 }
 
 export interface ApiStatus {
@@ -240,7 +240,13 @@ export class ApiClient {
 			if (!response.ok) {
 				// Check if this status code is explicitly allowed
 				if (allowedCodes.includes(response.status)) {
-					return null;
+					// For allowed error codes, try to return the JSON response body
+					try {
+						return await response.json() as T;
+					} catch {
+						// If response body is not valid JSON, return null
+						return null;
+					}
 				}
 				throw new Error(`HTTP error! status: ${response.status}`);
 			}
@@ -422,12 +428,21 @@ export class ApiClient {
 	async changePlan(
 		planId: string,
 		paymentMethodId: string | null,
+		couponCode?: string,
 	): Promise<SubscriptionWithPaymentMethods | null> {
-		const data: { planId: string; payment_method_id: string | null; paymentMethodId: string | null } = {
+		const data: {
+			planId: string;
+			payment_method_id: string | null;
+			paymentMethodId: string | null;
+			couponCode?: string;
+		} = {
 			planId,
 			payment_method_id: paymentMethodId, // Original format - may be expected by some endpoints
 			paymentMethodId: paymentMethodId, // New format - matches the property name in the edge function
 		};
+		if (couponCode) {
+			data.couponCode = couponCode;
+		}
 		const results = await this.post<SubscriptionResults>('/api/v1/user/subscription/change', data);
 		return results ? { ...results?.subscription, payment_methods: results?.paymentMethods } : null;
 	}
@@ -442,10 +457,15 @@ export class ApiClient {
 		return result ?? { success: false, subscription: {} as Subscription };
 	}
 
-	async getBillingPreview(planId: string): Promise<BillingPreviewWithUsage | null> {
-		const results = await this.post<BillingPreviewResults>('/api/v1/user/subscription/preview', {
+	async getBillingPreview(planId: string, couponCode?: string): Promise<BillingPreviewWithUsage | null> {
+		const requestBody: { planId: string; couponCode?: string; preview: boolean } = {
 			planId,
-		});
+			preview: true, // Always request preview mode
+		};
+		if (couponCode) {
+			requestBody.couponCode = couponCode;
+		}
+		const results = await this.post<BillingPreviewResults>('/api/v1/user/subscription/preview', requestBody);
 		return results ? { ...results?.preview, usage: results?.usage } : null;
 	}
 
@@ -575,18 +595,18 @@ export class ApiClient {
 
 	// Auth Methods
 	async signIn(email: string, password: string): Promise<AuthResponse> {
-		return await this.post<AuthResponse>('/api/v1/auth/login', { email, password }) ??
-			{ error: 'SignIn: Failed to connect to API' };
+		return await this.post<AuthResponse>('/api/v1/auth/login', { email, password }, [400, 401]) ??
+			{ error: { message: 'SignIn: Failed to connect to API' } };
 	}
 
 	async signOut(): Promise<AuthResponse> {
-		return await this.post<AuthResponse>('/api/v1/auth/logout', {}) ??
-			{ error: 'SignOut: Failed to connect to API' };
+		return await this.post<AuthResponse>('/api/v1/auth/logout', {}, [400, 401]) ??
+			{ error: { message: 'SignOut: Failed to connect to API' } };
 	}
 
 	async getSession(): Promise<AuthResponse> {
-		return await this.get<AuthResponse>('/api/v1/auth/session') ??
-			{ error: 'GetSession: Failed to connect to API' };
+		return await this.get<AuthResponse>('/api/v1/auth/session', [400, 401]) ??
+			{ error: { message: 'GetSession: Failed to connect to API' } };
 	}
 
 	async signUp(
@@ -607,33 +627,69 @@ export class ApiClient {
 				emailRedirectTo: verifyUrl.toString(),
 				data: metadata,
 			},
-		}) ?? { error: 'SignUp: Failed to connect to API' };
+		}, [400, 401]) ?? { error: { message: 'SignUp: Failed to connect to API' } };
 	}
 
 	async verifyOtp(tokenHash: string, type: string): Promise<AuthResponse> {
 		return await this.post<AuthResponse>('/api/v1/auth/callback', {
 			token_hash: tokenHash,
 			type,
-		}) ?? { error: 'VerifyToken: Failed to connect to API' };
+		}, [400, 401]) ?? { error: { message: 'VerifyToken: Failed to connect to API' } };
 	}
 
-	async checkEmailVerification(email: string): Promise<{ verified?: boolean; exists?: boolean; error?: string }> {
-		return await this.post<{ verified?: boolean; exists?: boolean; error?: string }>(
+	async checkEmailVerification(
+		email: string,
+	): Promise<{ verified?: boolean; exists?: boolean; error?: { code?: string; message: string; reason?: string } }> {
+		return await this.post<
+			{ verified?: boolean; exists?: boolean; error?: { code?: string; message: string; reason?: string } }
+		>(
 			'/api/v1/auth/check-email-verification',
 			{
 				email,
 			},
-		) ?? { error: 'CheckEmailVerification: Failed to connect to API' };
+			[400, 401],
+		) ?? { error: { message: 'CheckEmailVerification: Failed to connect to API' } };
 	}
 
-	async resendVerificationEmail(email: string): Promise<{ error?: string }> {
-		return await this.post<{ error?: string }>('/api/v1/auth/resend-verification', {
-			email,
-			type: 'signup',
-			options: {
-				emailRedirectTo: `${globalThis.location.origin}/auth/verify`,
+	async resendVerificationEmail(
+		email: string,
+	): Promise<{ error?: { code?: string; message: string; reason?: string } }> {
+		return await this.post<{ error?: { code?: string; message: string; reason?: string } }>(
+			'/api/v1/auth/resend-verification',
+			{
+				email,
+				type: 'signup',
+				options: {
+					emailRedirectTo: `${globalThis.location.origin}/auth/verify`,
+				},
 			},
-		}) ?? { error: 'ResendVerification: Failed to connect to API' };
+			[400, 401],
+		) ?? { error: { message: 'ResendVerification: Failed to connect to API' } };
+	}
+
+	async resetPasswordForEmail(
+		email: string,
+	): Promise<{ error?: { code?: string; message: string; reason?: string } }> {
+		return await this.post<{ error?: { code?: string; message: string; reason?: string } }>(
+			'/api/v1/auth/reset-password',
+			{
+				email,
+				// options: {
+				// 	redirectTo: `${globalThis.location.origin}/auth/verify?type=recovery&next=/auth/update-password`,
+				// },
+			},
+			[400, 401],
+		) ?? { error: { message: 'ResetPassword: Failed to connect to API' } };
+	}
+
+	async updatePassword(
+		password: string,
+	): Promise<{ user?: User; success?: boolean; error?: { code?: string; message: string; reason?: string } }> {
+		return await this.post<
+			{ user?: User; success?: boolean; error?: { code?: string; message: string; reason?: string } }
+		>('/api/v1/auth/update-password', {
+			password,
+		}, [400, 401]) ?? { error: { message: 'UpdatePassword: Failed to connect to API' } };
 	}
 
 	// Project Management Methods
@@ -1147,6 +1203,7 @@ export class ApiClient {
 		{
 			result: {
 				access_granted: boolean;
+				// deno-lint-ignore no-explicit-any
 				feature_value: any;
 				access_reason: string;
 				resolved_from: string;
@@ -1156,6 +1213,7 @@ export class ApiClient {
 		return await this.post<{
 			result: {
 				access_granted: boolean;
+				// deno-lint-ignore no-explicit-any
 				feature_value: any;
 				access_reason: string;
 				resolved_from: string;
@@ -1167,6 +1225,7 @@ export class ApiClient {
 		{
 			results: Record<string, {
 				access_granted: boolean;
+				// deno-lint-ignore no-explicit-any
 				feature_value: any;
 				access_reason: string;
 				resolved_from: string;
@@ -1176,6 +1235,7 @@ export class ApiClient {
 		return await this.post<{
 			results: Record<string, {
 				access_granted: boolean;
+				// deno-lint-ignore no-explicit-any
 				feature_value: any;
 				access_reason: string;
 				resolved_from: string;

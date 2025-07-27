@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Beyond Better",
-  "version": "0.8.13",
+  "version": "0.8.14",
   "identifier": "dev.beyondbetter.app",
   "build": {
     "beforeDevCommand": "npx vite",
@@ -87,6 +87,8 @@
       "minimumSystemVersion": "10.13",
       "signingIdentity": "662F8634EFD7514D1191901F83FDD7CF2A2E7728",
       "entitlements": "macos/entitlements.plist",
+      "hardenedRuntime": true,
+      "providerShortName": null,
       "dmg": {
         "windowSize": {
           "width": 660,

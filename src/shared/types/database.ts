@@ -44,7 +44,7 @@ export type Database = {
 						columns: ['user_id'];
 						isOneToOne: false;
 						referencedRelation: 'user_profiles';
-						referencedColumns: ['profile_id'];
+						referencedColumns: ['user_id'];
 					},
 				];
 			};
@@ -119,7 +119,7 @@ export type Database = {
 						columns: ['user_id'];
 						isOneToOne: false;
 						referencedRelation: 'user_profiles';
-						referencedColumns: ['profile_id'];
+						referencedColumns: ['user_id'];
 					},
 				];
 			};
@@ -178,10 +178,10 @@ export type Database = {
 					name_last: string | null;
 					phone_number: string | null;
 					preferences: Json | null;
-					profile_id: string;
 					stripe_customer_id: string | null;
 					timezone: string | null;
 					updated_at: string;
+					user_id: string;
 				};
 				Insert: {
 					created_at?: string;
@@ -190,10 +190,10 @@ export type Database = {
 					name_last?: string | null;
 					phone_number?: string | null;
 					preferences?: Json | null;
-					profile_id: string;
 					stripe_customer_id?: string | null;
 					timezone?: string | null;
 					updated_at?: string;
+					user_id: string;
 				};
 				Update: {
 					created_at?: string;
@@ -202,10 +202,10 @@ export type Database = {
 					name_last?: string | null;
 					phone_number?: string | null;
 					preferences?: Json | null;
-					profile_id?: string;
 					stripe_customer_id?: string | null;
 					timezone?: string | null;
 					updated_at?: string;
+					user_id?: string;
 				};
 				Relationships: [];
 			};
@@ -215,7 +215,7 @@ export type Database = {
 		};
 		Functions: {
 			check_min_org_role: {
-				Args: { org_id: string; min_role: string };
+				Args: { min_role: string; org_id: string };
 				Returns: boolean;
 			};
 			check_min_team_role: {
@@ -227,15 +227,15 @@ export type Database = {
 				Returns: boolean;
 			};
 			check_organization_roles: {
-				Args: { org_id: string; required_roles: string[] };
+				Args: { required_roles: string[]; org_id: string };
 				Returns: boolean;
 			};
 			check_team_role: {
-				Args: { t_id: string; required_role: string };
+				Args: { required_role: string; t_id: string };
 				Returns: boolean;
 			};
 			check_team_roles: {
-				Args: { t_id: string; required_roles: string[] };
+				Args: { required_roles: string[]; t_id: string };
 				Returns: boolean;
 			};
 			get_user_email: {
@@ -477,184 +477,6 @@ export type Database = {
 						referencedColumns: ['user_id'];
 					},
 				];
-			};
-			batches_allowance: {
-				Row: {
-					batch_id: string;
-					created_at: string;
-					period_end: string;
-					period_start: string;
-					previous_balance_cents_usd: number;
-					processed_at: string | null;
-					purchased_allowance_cents_usd: number;
-					status: string;
-					subscription_allowance_cents_usd: number;
-					total_allowance_cents_usd: number;
-					user_id: string;
-				};
-				Insert: {
-					batch_id?: string;
-					created_at?: string;
-					period_end: string;
-					period_start: string;
-					previous_balance_cents_usd: number;
-					processed_at?: string | null;
-					purchased_allowance_cents_usd: number;
-					status: string;
-					subscription_allowance_cents_usd: number;
-					total_allowance_cents_usd: number;
-					user_id: string;
-				};
-				Update: {
-					batch_id?: string;
-					created_at?: string;
-					period_end?: string;
-					period_start?: string;
-					previous_balance_cents_usd?: number;
-					processed_at?: string | null;
-					purchased_allowance_cents_usd?: number;
-					status?: string;
-					subscription_allowance_cents_usd?: number;
-					total_allowance_cents_usd?: number;
-					user_id?: string;
-				};
-				Relationships: [
-					{
-						foreignKeyName: 'batches_allowance_user_id_fkey';
-						columns: ['user_id'];
-						isOneToOne: false;
-						referencedRelation: 'subscription_balance_summary';
-						referencedColumns: ['user_id'];
-					},
-					{
-						foreignKeyName: 'batches_allowance_user_id_fkey';
-						columns: ['user_id'];
-						isOneToOne: false;
-						referencedRelation: 'team_balance_summary';
-						referencedColumns: ['user_id'];
-					},
-					{
-						foreignKeyName: 'batches_allowance_user_id_fkey';
-						columns: ['user_id'];
-						isOneToOne: false;
-						referencedRelation: 'user_current_balance';
-						referencedColumns: ['user_id'];
-					},
-					{
-						foreignKeyName: 'batches_allowance_user_id_fkey';
-						columns: ['user_id'];
-						isOneToOne: false;
-						referencedRelation: 'user_usage_summary';
-						referencedColumns: ['user_id'];
-					},
-				];
-			};
-			batches_usage: {
-				Row: {
-					batch_id: string;
-					created_at: string;
-					model_costs: Json | null;
-					period_end: string;
-					period_start: string;
-					processed_at: string | null;
-					purchased_used_cents_usd: number | null;
-					request_count: number | null;
-					status: string;
-					subscription_used_cents_usd: number | null;
-					total_used_cents_usd: number | null;
-					user_id: string;
-				};
-				Insert: {
-					batch_id?: string;
-					created_at?: string;
-					model_costs?: Json | null;
-					period_end: string;
-					period_start: string;
-					processed_at?: string | null;
-					purchased_used_cents_usd?: number | null;
-					request_count?: number | null;
-					status: string;
-					subscription_used_cents_usd?: number | null;
-					total_used_cents_usd?: number | null;
-					user_id: string;
-				};
-				Update: {
-					batch_id?: string;
-					created_at?: string;
-					model_costs?: Json | null;
-					period_end?: string;
-					period_start?: string;
-					processed_at?: string | null;
-					purchased_used_cents_usd?: number | null;
-					request_count?: number | null;
-					status?: string;
-					subscription_used_cents_usd?: number | null;
-					total_used_cents_usd?: number | null;
-					user_id?: string;
-				};
-				Relationships: [
-					{
-						foreignKeyName: 'batches_usage_user_id_fkey';
-						columns: ['user_id'];
-						isOneToOne: false;
-						referencedRelation: 'subscription_balance_summary';
-						referencedColumns: ['user_id'];
-					},
-					{
-						foreignKeyName: 'batches_usage_user_id_fkey';
-						columns: ['user_id'];
-						isOneToOne: false;
-						referencedRelation: 'team_balance_summary';
-						referencedColumns: ['user_id'];
-					},
-					{
-						foreignKeyName: 'batches_usage_user_id_fkey';
-						columns: ['user_id'];
-						isOneToOne: false;
-						referencedRelation: 'user_current_balance';
-						referencedColumns: ['user_id'];
-					},
-					{
-						foreignKeyName: 'batches_usage_user_id_fkey';
-						columns: ['user_id'];
-						isOneToOne: false;
-						referencedRelation: 'user_usage_summary';
-						referencedColumns: ['user_id'];
-					},
-				];
-			};
-			migration_progress: {
-				Row: {
-					completed_at: string | null;
-					error_message: string | null;
-					migration_step: string;
-					records_processed: number | null;
-					records_total: number | null;
-					started_at: string | null;
-					status: string;
-					updated_at: string | null;
-				};
-				Insert: {
-					completed_at?: string | null;
-					error_message?: string | null;
-					migration_step: string;
-					records_processed?: number | null;
-					records_total?: number | null;
-					started_at?: string | null;
-					status: string;
-					updated_at?: string | null;
-				};
-				Update: {
-					completed_at?: string | null;
-					error_message?: string | null;
-					migration_step?: string;
-					records_processed?: number | null;
-					records_total?: number | null;
-					started_at?: string | null;
-					status?: string;
-					updated_at?: string | null;
-				};
-				Relationships: [];
 			};
 			payment_history: {
 				Row: {
@@ -968,9 +790,213 @@ export type Database = {
 				};
 				Relationships: [];
 			};
+			subscription_coupon_usage: {
+				Row: {
+					applied_at: string | null;
+					coupon_id: string;
+					created_at: string;
+					discount_applied_cents_usd: number | null;
+					discount_months_remaining: number | null;
+					expires_at: string | null;
+					metadata: Json | null;
+					subscription_id: string;
+					updated_at: string;
+					usage_id: string;
+					usage_status: Database['abi_billing']['Enums']['coupon_usage_status'];
+					user_id: string;
+				};
+				Insert: {
+					applied_at?: string | null;
+					coupon_id: string;
+					created_at?: string;
+					discount_applied_cents_usd?: number | null;
+					discount_months_remaining?: number | null;
+					expires_at?: string | null;
+					metadata?: Json | null;
+					subscription_id: string;
+					updated_at?: string;
+					usage_id?: string;
+					usage_status?: Database['abi_billing']['Enums']['coupon_usage_status'];
+					user_id: string;
+				};
+				Update: {
+					applied_at?: string | null;
+					coupon_id?: string;
+					created_at?: string;
+					discount_applied_cents_usd?: number | null;
+					discount_months_remaining?: number | null;
+					expires_at?: string | null;
+					metadata?: Json | null;
+					subscription_id?: string;
+					updated_at?: string;
+					usage_id?: string;
+					usage_status?: Database['abi_billing']['Enums']['coupon_usage_status'];
+					user_id?: string;
+				};
+				Relationships: [
+					{
+						foreignKeyName: 'subscription_coupon_usage_coupon_id_fkey';
+						columns: ['coupon_id'];
+						isOneToOne: false;
+						referencedRelation: 'subscription_coupons';
+						referencedColumns: ['coupon_id'];
+					},
+					{
+						foreignKeyName: 'subscription_coupon_usage_subscription_id_fkey';
+						columns: ['subscription_id'];
+						isOneToOne: false;
+						referencedRelation: 'subscription_balance_summary';
+						referencedColumns: ['subscription_id'];
+					},
+					{
+						foreignKeyName: 'subscription_coupon_usage_subscription_id_fkey';
+						columns: ['subscription_id'];
+						isOneToOne: false;
+						referencedRelation: 'user_current_balance';
+						referencedColumns: ['subscription_id'];
+					},
+					{
+						foreignKeyName: 'subscription_coupon_usage_subscription_id_fkey';
+						columns: ['subscription_id'];
+						isOneToOne: false;
+						referencedRelation: 'user_subscriptions';
+						referencedColumns: ['subscription_id'];
+					},
+					{
+						foreignKeyName: 'subscription_coupon_usage_user_id_fkey';
+						columns: ['user_id'];
+						isOneToOne: false;
+						referencedRelation: 'subscription_balance_summary';
+						referencedColumns: ['user_id'];
+					},
+					{
+						foreignKeyName: 'subscription_coupon_usage_user_id_fkey';
+						columns: ['user_id'];
+						isOneToOne: false;
+						referencedRelation: 'team_balance_summary';
+						referencedColumns: ['user_id'];
+					},
+					{
+						foreignKeyName: 'subscription_coupon_usage_user_id_fkey';
+						columns: ['user_id'];
+						isOneToOne: false;
+						referencedRelation: 'user_current_balance';
+						referencedColumns: ['user_id'];
+					},
+					{
+						foreignKeyName: 'subscription_coupon_usage_user_id_fkey';
+						columns: ['user_id'];
+						isOneToOne: false;
+						referencedRelation: 'user_usage_summary';
+						referencedColumns: ['user_id'];
+					},
+				];
+			};
+			subscription_coupons: {
+				Row: {
+					coupon_active: boolean;
+					coupon_code: string;
+					coupon_description: string | null;
+					coupon_id: string;
+					coupon_name: string;
+					created_at: string;
+					created_by: string | null;
+					current_uses: number;
+					discount_duration_months: number | null;
+					discount_type: Database['abi_billing']['Enums']['discount_type'];
+					discount_value: number;
+					eligible_plan_ids: string[] | null;
+					max_uses: number | null;
+					max_uses_per_user: number | null;
+					maximum_discount_cents_usd: number | null;
+					metadata: Json | null;
+					minimum_plan_value_cents_usd: number | null;
+					stripe_coupon_id: string | null;
+					updated_at: string;
+					valid_from: string;
+					valid_until: string | null;
+				};
+				Insert: {
+					coupon_active?: boolean;
+					coupon_code: string;
+					coupon_description?: string | null;
+					coupon_id?: string;
+					coupon_name: string;
+					created_at?: string;
+					created_by?: string | null;
+					current_uses?: number;
+					discount_duration_months?: number | null;
+					discount_type: Database['abi_billing']['Enums']['discount_type'];
+					discount_value: number;
+					eligible_plan_ids?: string[] | null;
+					max_uses?: number | null;
+					max_uses_per_user?: number | null;
+					maximum_discount_cents_usd?: number | null;
+					metadata?: Json | null;
+					minimum_plan_value_cents_usd?: number | null;
+					stripe_coupon_id?: string | null;
+					updated_at?: string;
+					valid_from?: string;
+					valid_until?: string | null;
+				};
+				Update: {
+					coupon_active?: boolean;
+					coupon_code?: string;
+					coupon_description?: string | null;
+					coupon_id?: string;
+					coupon_name?: string;
+					created_at?: string;
+					created_by?: string | null;
+					current_uses?: number;
+					discount_duration_months?: number | null;
+					discount_type?: Database['abi_billing']['Enums']['discount_type'];
+					discount_value?: number;
+					eligible_plan_ids?: string[] | null;
+					max_uses?: number | null;
+					max_uses_per_user?: number | null;
+					maximum_discount_cents_usd?: number | null;
+					metadata?: Json | null;
+					minimum_plan_value_cents_usd?: number | null;
+					stripe_coupon_id?: string | null;
+					updated_at?: string;
+					valid_from?: string;
+					valid_until?: string | null;
+				};
+				Relationships: [
+					{
+						foreignKeyName: 'subscription_coupons_created_by_fkey';
+						columns: ['created_by'];
+						isOneToOne: false;
+						referencedRelation: 'subscription_balance_summary';
+						referencedColumns: ['user_id'];
+					},
+					{
+						foreignKeyName: 'subscription_coupons_created_by_fkey';
+						columns: ['created_by'];
+						isOneToOne: false;
+						referencedRelation: 'team_balance_summary';
+						referencedColumns: ['user_id'];
+					},
+					{
+						foreignKeyName: 'subscription_coupons_created_by_fkey';
+						columns: ['created_by'];
+						isOneToOne: false;
+						referencedRelation: 'user_current_balance';
+						referencedColumns: ['user_id'];
+					},
+					{
+						foreignKeyName: 'subscription_coupons_created_by_fkey';
+						columns: ['created_by'];
+						isOneToOne: false;
+						referencedRelation: 'user_usage_summary';
+						referencedColumns: ['user_id'];
+					},
+				];
+			};
 			subscription_plans: {
 				Row: {
 					created_at: string;
+					metadata: Json | null;
 					plan_active: boolean | null;
 					plan_available_for_signup: boolean;
 					plan_description: string | null;
@@ -985,6 +1011,7 @@ export type Database = {
 				};
 				Insert: {
 					created_at?: string;
+					metadata?: Json | null;
 					plan_active?: boolean | null;
 					plan_available_for_signup?: boolean;
 					plan_description?: string | null;
@@ -999,6 +1026,7 @@ export type Database = {
 				};
 				Update: {
 					created_at?: string;
+					metadata?: Json | null;
 					plan_active?: boolean | null;
 					plan_available_for_signup?: boolean;
 					plan_description?: string | null;
@@ -1026,7 +1054,7 @@ export type Database = {
 					amount_cents_usd: number;
 					batch_id: string | null;
 					created_at: string;
-					metadata: Json;
+					metadata: Json | null;
 					product_id: string | null;
 					purchase_id: string;
 					purchase_status: string;
@@ -1039,7 +1067,7 @@ export type Database = {
 					amount_cents_usd: number;
 					batch_id?: string | null;
 					created_at?: string;
-					metadata?: Json;
+					metadata?: Json | null;
 					product_id?: string | null;
 					purchase_id?: string;
 					purchase_status: string;
@@ -1052,7 +1080,7 @@ export type Database = {
 					amount_cents_usd?: number;
 					batch_id?: string | null;
 					created_at?: string;
-					metadata?: Json;
+					metadata?: Json | null;
 					product_id?: string | null;
 					purchase_id?: string;
 					purchase_status?: string;
@@ -1062,13 +1090,6 @@ export type Database = {
 					user_id?: string;
 				};
 				Relationships: [
-					{
-						foreignKeyName: 'fk_batch_allowance';
-						columns: ['batch_id', 'user_id'];
-						isOneToOne: false;
-						referencedRelation: 'batches_allowance';
-						referencedColumns: ['batch_id', 'user_id'];
-					},
 					{
 						foreignKeyName: 'token_purchases_product_id_fkey';
 						columns: ['product_id'];
@@ -1120,95 +1141,6 @@ export type Database = {
 					},
 					{
 						foreignKeyName: 'token_purchases_user_id_fkey';
-						columns: ['user_id'];
-						isOneToOne: false;
-						referencedRelation: 'user_usage_summary';
-						referencedColumns: ['user_id'];
-					},
-				];
-			};
-			token_usage_batches: {
-				Row: {
-					batch_date: string;
-					batch_id: string;
-					created_at: string | null;
-					event_count: number;
-					ledger_entry_id: number | null;
-					period_end: string;
-					period_start: string;
-					total_cost_micro_usd: number;
-					used_micro_usd: number;
-					user_id: string;
-				};
-				Insert: {
-					batch_date: string;
-					batch_id?: string;
-					created_at?: string | null;
-					event_count: number;
-					ledger_entry_id?: number | null;
-					period_end: string;
-					period_start: string;
-					total_cost_micro_usd: number;
-					used_micro_usd?: number;
-					user_id: string;
-				};
-				Update: {
-					batch_date?: string;
-					batch_id?: string;
-					created_at?: string | null;
-					event_count?: number;
-					ledger_entry_id?: number | null;
-					period_end?: string;
-					period_start?: string;
-					total_cost_micro_usd?: number;
-					used_micro_usd?: number;
-					user_id?: string;
-				};
-				Relationships: [
-					{
-						foreignKeyName: 'token_usage_batches_ledger_entry_id_fkey';
-						columns: ['ledger_entry_id'];
-						isOneToOne: false;
-						referencedRelation: 'balance_ledger';
-						referencedColumns: ['ledger_id'];
-					},
-					{
-						foreignKeyName: 'token_usage_batches_ledger_entry_id_fkey';
-						columns: ['ledger_entry_id'];
-						isOneToOne: false;
-						referencedRelation: 'balance_ledger_dollars';
-						referencedColumns: ['ledger_id'];
-					},
-					{
-						foreignKeyName: 'token_usage_batches_ledger_entry_id_fkey';
-						columns: ['ledger_entry_id'];
-						isOneToOne: false;
-						referencedRelation: 'user_balance_history';
-						referencedColumns: ['ledger_id'];
-					},
-					{
-						foreignKeyName: 'token_usage_batches_user_id_fkey';
-						columns: ['user_id'];
-						isOneToOne: false;
-						referencedRelation: 'subscription_balance_summary';
-						referencedColumns: ['user_id'];
-					},
-					{
-						foreignKeyName: 'token_usage_batches_user_id_fkey';
-						columns: ['user_id'];
-						isOneToOne: false;
-						referencedRelation: 'team_balance_summary';
-						referencedColumns: ['user_id'];
-					},
-					{
-						foreignKeyName: 'token_usage_batches_user_id_fkey';
-						columns: ['user_id'];
-						isOneToOne: false;
-						referencedRelation: 'user_current_balance';
-						referencedColumns: ['user_id'];
-					},
-					{
-						foreignKeyName: 'token_usage_batches_user_id_fkey';
 						columns: ['user_id'];
 						isOneToOne: false;
 						referencedRelation: 'user_usage_summary';
@@ -1979,6 +1911,18 @@ export type Database = {
 			};
 		};
 		Functions: {
+			activate_immediate_subscription: {
+				Args: {
+					p_stripe_subscription_id: string;
+					p_effective_date?: string;
+					p_user_id: string;
+				};
+				Returns: {
+					canceled_subscription_id: string;
+					transition_successful: boolean;
+					activated_subscription_id: string;
+				}[];
+			};
 			activate_scheduled_subscription: {
 				Args: {
 					p_user_id: string;
@@ -1986,28 +1930,38 @@ export type Database = {
 					p_effective_date?: string;
 				};
 				Returns: {
-					activated_subscription_id: string;
 					canceled_subscription_id: string;
+					activated_subscription_id: string;
 					transition_successful: boolean;
 				}[];
 			};
 			add_ledger_entry: {
 				Args: {
-					p_user_id: string;
 					p_team_id: string;
-					p_entry_type: Database['abi_billing']['Enums']['ledger_entry_type'];
 					p_amount_micro_usd: number;
 					p_reference_id?: string;
 					p_reference_type?: string;
 					p_effective_date?: string;
 					p_expires_at?: string;
 					p_metadata?: Json;
+					p_user_id: string;
+					p_entry_type: Database['abi_billing']['Enums']['ledger_entry_type'];
 				};
 				Returns: number;
 			};
 			add_micro: {
 				Args: Record<PropertyKey, never>;
 				Returns: number;
+			};
+			apply_coupon: {
+				Args: {
+					p_user_id: string;
+					p_effective_date?: string;
+					p_base_amount_micro?: number;
+					p_coupon_code: string;
+					p_subscription_id: string;
+				};
+				Returns: Json;
 			};
 			batch_daily_usage: {
 				Args: Record<PropertyKey, never>;
@@ -2016,7 +1970,7 @@ export type Database = {
 					batches_created: number;
 				}[];
 			};
-			batch_heavy_users: {
+			batch_heavy_usage: {
 				Args: Record<PropertyKey, never>;
 				Returns: {
 					users_processed: number;
@@ -2024,11 +1978,43 @@ export type Database = {
 				}[];
 			};
 			batch_user_usage: {
-				Args: { p_user_id: string; p_team_id?: string; p_force?: boolean };
+				Args: { p_team_id?: string; p_force?: boolean; p_user_id: string };
 				Returns: undefined;
 			};
+			calculate_discount: {
+				Args: {
+					p_maximum_discount_micro?: number;
+					p_base_amount_micro: number;
+					p_discount_type: Database['abi_billing']['Enums']['discount_type'];
+					p_discount_value: number;
+				};
+				Returns: number;
+			};
+			calculate_prorated_amount: {
+				Args: {
+					p_current_plan_price_cents_usd: number;
+					p_new_plan_price_cents_usd: number;
+					p_effective_date?: string;
+				};
+				Returns: {
+					days_in_month: number;
+					prorated_amount_micro_usd: number;
+					cost_difference_cents_usd: number;
+					days_remaining: number;
+					proration_factor: number;
+					calculation_metadata: Json;
+				}[];
+			};
+			calculate_subscription_total_with_coupons: {
+				Args: {
+					p_base_amount_cents_usd: number;
+					p_subscription_id: string;
+					p_effective_date?: string;
+				};
+				Returns: Json;
+			};
 			cancel_subscription: {
-				Args: { p_user_id: string; p_effective_date?: string };
+				Args: { p_effective_date?: string; p_user_id: string };
 				Returns: Database['abi_billing']['CompositeTypes']['subscription_result'];
 			};
 			categorize_auto_topup_failure: {
@@ -2046,11 +2032,12 @@ export type Database = {
 			change_subscription: {
 				Args: {
 					p_user_id: string;
-					p_new_plan_id: string;
-					p_change_type: string;
-					p_effective_date?: string;
-					p_activate_immediately?: boolean;
+					p_coupon_code?: string;
 					p_grant_tokens?: boolean;
+					p_activate_immediately?: boolean;
+					p_effective_date?: string;
+					p_change_type: string;
+					p_new_plan_id: string;
 				};
 				Returns: Database['abi_billing']['CompositeTypes']['subscription_result'];
 			};
@@ -2061,46 +2048,32 @@ export type Database = {
 			check_auto_topup_eligibility: {
 				Args: { p_user_id: string; p_current_balance_micro_usd: number };
 				Returns: {
+					min_balance_cents: number;
+					payment_method_available: boolean;
+					failure_count: number;
+					daily_limit_remaining_cents: number;
+					purchase_amount_cents: number;
 					eligible: boolean;
 					reason: string;
-					min_balance_cents: number;
-					purchase_amount_cents: number;
-					daily_limit_remaining_cents: number;
-					failure_count: number;
-					payment_method_available: boolean;
 				}[];
 			};
 			check_balance: {
 				Args: { p_user_id: string; p_team_id?: string };
 				Returns: {
+					team_id: string;
 					balance_micro_usd: number;
 					last_updated: string;
 					usage_since_update: number;
-					team_id: string;
-				}[];
-			};
-			check_migration_status: {
-				Args: Record<PropertyKey, never>;
-				Returns: {
-					migration_step: string;
-					status: string;
-					records_processed: number;
-					records_total: number;
-					progress_percent: number;
-					error_message: string;
-					started_at: string;
-					completed_at: string;
-					duration: unknown;
 				}[];
 			};
 			check_month_end_job_status: {
 				Args: Record<PropertyKey, never>;
 				Returns: {
-					job_name: string;
-					last_run: string;
 					next_run: string;
 					last_success: boolean;
 					period_processed: string;
+					job_name: string;
+					last_run: string;
 				}[];
 			};
 			count_recent_payment_failures: {
@@ -2109,12 +2082,28 @@ export type Database = {
 					count: number;
 				}[];
 			};
-			create_subscription_token_expiries: {
+			cron_daily_balance_validation: {
+				Args: Record<PropertyKey, never>;
+				Returns: undefined;
+			};
+			cron_daily_usage_batching: {
+				Args: Record<PropertyKey, never>;
+				Returns: undefined;
+			};
+			cron_heavy_usage_batching: {
+				Args: Record<PropertyKey, never>;
+				Returns: undefined;
+			};
+			cron_monthly_subscription_processing: {
+				Args: Record<PropertyKey, never>;
+				Returns: undefined;
+			};
+			cron_weekly_balance_validation_admin: {
 				Args: Record<PropertyKey, never>;
 				Returns: undefined;
 			};
 			divide_micro: {
-				Args: { micro: number; divisor: number };
+				Args: { divisor: number; micro: number };
 				Returns: number;
 			};
 			dollars_to_cents: {
@@ -2125,7 +2114,7 @@ export type Database = {
 				Args: { dollars: number };
 				Returns: number;
 			};
-			fix_ledger_balances: {
+			fix_balance_cache: {
 				Args: Record<PropertyKey, never>;
 				Returns: undefined;
 			};
@@ -2137,9 +2126,17 @@ export type Database = {
 				Args: { micro: number };
 				Returns: string;
 			};
-			get_balance_summary_reference_timestamp: {
-				Args: Record<PropertyKey, never>;
-				Returns: string;
+			get_subscription_coupon_discounts: {
+				Args: { p_effective_date?: string; p_subscription_id: string };
+				Returns: {
+					expires_at: string;
+					discount_applied_cents_usd: number;
+					coupon_name: string;
+					discount_type: Database['abi_billing']['Enums']['discount_type'];
+					usage_id: string;
+					coupon_code: string;
+					discount_months_remaining: number;
+				}[];
 			};
 			get_transaction_history: {
 				Args: {
@@ -2152,6 +2149,7 @@ export type Database = {
 					p_per_page?: number;
 				};
 				Returns: {
+					subscription_details: Json;
 					transaction_id: string;
 					transaction_type: string;
 					amount_usd: number;
@@ -2160,7 +2158,6 @@ export type Database = {
 					created_at: string;
 					payment_method: Json;
 					credit_details: Json;
-					subscription_details: Json;
 					total_items: number;
 					current_page: number;
 					total_pages: number;
@@ -2169,19 +2166,19 @@ export type Database = {
 			};
 			get_usage_analytics: {
 				Args: {
-					p_user_id: string;
-					p_period_start?: string;
 					p_period_end?: string;
 					p_include_trends?: boolean;
 					p_month_filter?: string;
 					p_model_filter?: string[];
+					p_period_start?: string;
+					p_user_id: string;
 				};
 				Returns: {
 					total_cost_micro_usd: number;
 					total_requests: number;
 					total_tokens: number;
-					period_start: string;
 					period_end: string;
+					period_start: string;
 					model_breakdown: Json;
 					usage_trends: Json;
 					filtered_by: Json;
@@ -2195,10 +2192,6 @@ export type Database = {
 				Args: { feature_name: string };
 				Returns: boolean;
 			};
-			initialize_balance_cache: {
-				Args: Record<PropertyKey, never>;
-				Returns: undefined;
-			};
 			micro_to_cents: {
 				Args: { micro: number };
 				Returns: number;
@@ -2206,18 +2199,6 @@ export type Database = {
 			micro_to_dollars: {
 				Args: { micro: number };
 				Returns: number;
-			};
-			migrate_purchase_history: {
-				Args: Record<PropertyKey, never>;
-				Returns: undefined;
-			};
-			migrate_subscription_history: {
-				Args: Record<PropertyKey, never>;
-				Returns: undefined;
-			};
-			migrate_usage_history: {
-				Args: Record<PropertyKey, never>;
-				Returns: undefined;
 			};
 			multiply_micro: {
 				Args: { micro: number; factor: number };
@@ -2232,13 +2213,9 @@ export type Database = {
 				};
 				Returns: undefined;
 			};
-			process_month_end: {
+			process_coupon_expiry: {
 				Args: { p_reference_date?: string };
-				Returns: undefined;
-			};
-			process_month_end_batch: {
-				Args: { p_period_end?: string };
-				Returns: undefined;
+				Returns: Json;
 			};
 			process_subscription_month_end: {
 				Args: { p_reference_date?: string };
@@ -2246,18 +2223,14 @@ export type Database = {
 			};
 			purchase_tokens: {
 				Args: {
-					p_user_id: string;
-					p_team_id: string;
-					p_amount_cents_usd: number;
-					p_purchase_date?: string;
-					p_apply_grant?: boolean;
 					p_auto_triggered?: boolean;
+					p_apply_grant?: boolean;
+					p_purchase_date?: string;
+					p_amount_cents_usd: number;
+					p_team_id: string;
+					p_user_id: string;
 				};
 				Returns: Database['abi_billing']['CompositeTypes']['token_purchase_result'];
-			};
-			recalculate_ledger_balances: {
-				Args: Record<PropertyKey, never>;
-				Returns: undefined;
 			};
 			record_auto_topup_attempt: {
 				Args: {
@@ -2268,44 +2241,25 @@ export type Database = {
 				};
 				Returns: undefined;
 			};
-			refresh_balance_summary: {
-				Args: Record<PropertyKey, never>;
-				Returns: undefined;
-			};
-			run_billing_data_migration: {
-				Args: {
-					p_skip_subscription_history?: boolean;
-					p_skip_purchase_history?: boolean;
-					p_skip_usage_history?: boolean;
-					p_skip_subscription_expiries?: boolean;
-					p_skip_recalculate_balances?: boolean;
-					p_skip_balance_cache?: boolean;
-					p_skip_validation?: boolean;
-				};
-				Returns: undefined;
-			};
 			start_subscription: {
 				Args: {
-					p_user_id: string;
-					p_plan_id: string;
-					p_period_start?: string;
 					p_period_end?: string;
+					p_coupon_code?: string;
+					p_period_start?: string;
+					p_plan_id: string;
+					p_user_id: string;
 					p_activate_immediately?: boolean;
 				};
 				Returns: Database['abi_billing']['CompositeTypes']['subscription_result'];
 			};
-			subscription_rollover: {
-				Args: { p_reference_date?: string };
-				Returns: undefined;
-			};
 			trigger_auto_topup: {
 				Args: { p_user_id: string; p_current_balance_micro_usd?: number };
 				Returns: {
+					retry_after_seconds: number;
+					message: string;
+					amount_cents: number;
 					success: boolean;
 					purchase_id: string;
-					amount_cents: number;
-					message: string;
-					retry_after_seconds: number;
 				}[];
 			};
 			update_auto_topup_rate_limits: {
@@ -2314,27 +2268,34 @@ export type Database = {
 			};
 			validate_balance_cache: {
 				Args: {
-					p_user_id?: string;
-					p_team_id?: string;
 					p_include_details?: boolean;
+					p_team_id?: string;
+					p_user_id?: string;
 				};
 				Returns: {
-					user_id: string;
-					team_id: string;
-					cache_balance_micro_usd: number;
-					calculated_balance_micro_usd: number;
-					variance_micro_usd: number;
 					validation_status: string;
 					details: Json;
+					variance_micro_usd: number;
+					calculated_balance_micro_usd: number;
+					cache_balance_micro_usd: number;
+					team_id: string;
+					user_id: string;
 				}[];
 			};
-			validate_migration: {
-				Args: Record<PropertyKey, never>;
-				Returns: undefined;
+			validate_coupon: {
+				Args: {
+					p_user_id: string;
+					p_effective_date?: string;
+					p_plan_id?: string;
+					p_coupon_code: string;
+				};
+				Returns: Json;
 			};
 		};
 		Enums: {
 			billing_interval: 'monthly' | 'yearly';
+			coupon_usage_status: 'pending' | 'applied' | 'expired' | 'invalid';
+			discount_type: 'percentage' | 'fixed_amount';
 			ledger_entry_type:
 				| 'token_purchase'
 				| 'usage_batch'
@@ -2752,19 +2713,19 @@ export type Database = {
 			check_feature_access: {
 				Args: { p_user_id: string; p_feature_key: string };
 				Returns: {
-					access_granted: boolean;
 					access_reason: string;
-					feature_value: Json;
 					inheritance_chain: string[];
+					access_granted: boolean;
+					feature_value: Json;
 				}[];
 			};
 			check_feature_access_cached: {
 				Args: { p_user_id: string; p_feature_key: string };
 				Returns: {
-					access_granted: boolean;
 					access_reason: string;
-					feature_value: Json;
 					from_cache: boolean;
+					access_granted: boolean;
+					feature_value: Json;
 				}[];
 			};
 			check_rate_limit: {
@@ -2777,14 +2738,14 @@ export type Database = {
 				Returns: Json;
 			};
 			check_storage_limits: {
-				Args: { user_id: string; bucket_id: string; file_size: number };
+				Args: { bucket_id: string; file_size: number; user_id: string };
 				Returns: boolean;
 			};
 			check_team_resource_access: {
 				Args: {
-					bucket_name: string;
 					object_path: string;
 					requesting_user: string;
+					bucket_name: string;
 				};
 				Returns: boolean;
 			};
@@ -2806,26 +2767,22 @@ export type Database = {
 			};
 			create_feature_override: {
 				Args: {
+					p_expires_at?: string;
+					p_created_by?: string;
 					p_user_id: string;
 					p_feature_key: string;
 					p_override_value: Json;
 					p_override_reason?: string;
-					p_expires_at?: string;
-					p_created_by?: string;
 				};
 				Returns: string;
-			};
-			create_subscription_plans: {
-				Args: Record<PropertyKey, never>;
-				Returns: undefined;
 			};
 			get_feature_analytics: {
 				Args: { p_days_back?: number };
 				Returns: {
+					denied_requests: number;
 					feature_key: string;
 					total_requests: number;
 					granted_requests: number;
-					denied_requests: number;
 					grant_rate: number;
 				}[];
 			};
@@ -2844,6 +2801,7 @@ export type Database = {
 			get_user_features: {
 				Args: { p_user_id: string };
 				Returns: {
+					feature_value: Json;
 					feature_key: string;
 					feature_name: string;
 					feature_description: string;
@@ -2851,7 +2809,6 @@ export type Database = {
 					feature_category: string;
 					access_granted: boolean;
 					access_reason: string;
-					feature_value: Json;
 				}[];
 			};
 			has_datasource_access: {
@@ -2863,29 +2820,29 @@ export type Database = {
 				Returns: boolean;
 			};
 			has_model_access: {
-				Args: { p_user_id: string; p_model_key: string };
+				Args: { p_model_key: string; p_user_id: string };
 				Returns: boolean;
 			};
 			log_feature_access: {
 				Args: {
+					p_access_granted: boolean;
+					p_request_context?: Json;
 					p_user_id: string;
 					p_feature_key: string;
-					p_access_granted: boolean;
 					p_access_reason: string;
-					p_request_context?: Json;
 				};
 				Returns: undefined;
 			};
 			notify_admin: {
-				Args: { p_type: string; p_severity: string; p_metadata: Json };
+				Args: { p_severity: string; p_metadata: Json; p_type: string };
 				Returns: undefined;
 			};
 			record_performance_metric: {
 				Args: {
-					p_metric_type: string;
+					p_metadata?: Json;
 					p_duration_ms: number;
 					p_record_count?: number;
-					p_metadata?: Json;
+					p_metric_type: string;
 				};
 				Returns: string;
 			};
@@ -2897,45 +2854,12 @@ export type Database = {
 				Args: { p_user_id: string; p_feature_key: string };
 				Returns: boolean;
 			};
-			seed_all_feature_data: {
-				Args: Record<PropertyKey, never>;
-				Returns: undefined;
-			};
-			seed_base_plan_features: {
-				Args: Record<PropertyKey, never>;
-				Returns: undefined;
-			};
-			seed_beyond_plan_features: {
-				Args: Record<PropertyKey, never>;
-				Returns: undefined;
-			};
-			seed_build_plan_features: {
-				Args: Record<PropertyKey, never>;
-				Returns: undefined;
-			};
-			seed_enterprise_plan_features: {
-				Args: Record<PropertyKey, never>;
-				Returns: undefined;
-			};
-			seed_feature_definitions: {
-				Args: Record<PropertyKey, never>;
-				Returns: undefined;
-			};
 			set_secret: {
-				Args: { p_key: string; p_value: string; p_description?: string };
+				Args: { p_description?: string; p_key: string; p_value: string };
 				Returns: string;
 			};
 			set_setting: {
 				Args: { p_key: string; p_value: string; p_description?: string };
-				Returns: undefined;
-			};
-			store_plan_ids: {
-				Args: {
-					p_base_plan_id: string;
-					p_build_plan_id: string;
-					p_beyond_plan_id: string;
-					p_enterprise_plan_id: string;
-				};
 				Returns: undefined;
 			};
 			update_statistics: {
@@ -3452,6 +3376,13 @@ export type Database = {
 				};
 				Relationships: [
 					{
+						foreignKeyName: 'fk_token_usage_batch_id';
+						columns: ['batch_id'];
+						isOneToOne: false;
+						referencedRelation: 'token_usage_batches';
+						referencedColumns: ['batch_id'];
+					},
+					{
 						foreignKeyName: 'token_usage_model_id_fkey';
 						columns: ['model_id'];
 						isOneToOne: false;
@@ -3481,44 +3412,41 @@ export type Database = {
 					},
 				];
 			};
-			token_usage_daily: {
+			token_usage_batches: {
 				Row: {
-					batch_id: string | null;
-					cost_micro_usd: number;
-					created_at: string;
-					model_name: string;
-					request_count: number;
-					rollup_id: string;
-					token_count: number;
-					token_type: Database['abi_llm']['Enums']['token_type'];
-					updated_at: string;
-					usage_date: string;
+					batch_date: string;
+					batch_id: string;
+					created_at: string | null;
+					event_count: number;
+					ledger_entry_id: number | null;
+					period_end: string;
+					period_start: string;
+					total_cost_micro_usd: number;
+					used_micro_usd: number;
 					user_id: string;
 				};
 				Insert: {
-					batch_id?: string | null;
-					cost_micro_usd: number;
-					created_at?: string;
-					model_name: string;
-					request_count: number;
-					rollup_id?: string;
-					token_count: number;
-					token_type: Database['abi_llm']['Enums']['token_type'];
-					updated_at?: string;
-					usage_date: string;
+					batch_date: string;
+					batch_id?: string;
+					created_at?: string | null;
+					event_count: number;
+					ledger_entry_id?: number | null;
+					period_end: string;
+					period_start: string;
+					total_cost_micro_usd: number;
+					used_micro_usd?: number;
 					user_id: string;
 				};
 				Update: {
-					batch_id?: string | null;
-					cost_micro_usd?: number;
-					created_at?: string;
-					model_name?: string;
-					request_count?: number;
-					rollup_id?: string;
-					token_count?: number;
-					token_type?: Database['abi_llm']['Enums']['token_type'];
-					updated_at?: string;
-					usage_date?: string;
+					batch_date?: string;
+					batch_id?: string;
+					created_at?: string | null;
+					event_count?: number;
+					ledger_entry_id?: number | null;
+					period_end?: string;
+					period_start?: string;
+					total_cost_micro_usd?: number;
+					used_micro_usd?: number;
 					user_id?: string;
 				};
 				Relationships: [];
@@ -3638,56 +3566,23 @@ export type Database = {
 		Functions: {
 			calculate_token_cost: {
 				Args: {
-					p_token_count: number;
-					p_token_type: Database['abi_llm']['Enums']['token_type'];
 					p_model_id: string;
+					p_token_type: Database['abi_llm']['Enums']['token_type'];
+					p_token_count: number;
 				};
 				Returns: number;
 			};
 			check_usage_alerts: {
-				Args: { p_user_id: string; p_subscription_id: string };
+				Args: { p_subscription_id: string; p_user_id: string };
 				Returns: undefined;
 			};
 			get_cache_cost: {
 				Args: {
-					p_provider: string;
-					p_tokens: number;
 					p_cache_duration: unknown;
+					p_tokens: number;
+					p_provider: string;
 				};
 				Returns: number;
-			};
-			get_token_usage: {
-				Args: { p_user_id: string; p_start_date: string; p_end_date: string };
-				Returns: {
-					model_name: string;
-					token_type: Database['abi_llm']['Enums']['token_type'];
-					token_count: number;
-					request_count: number;
-					cost_micro_usd: number;
-				}[];
-			};
-			perform_token_usage_rollup: {
-				Args: { p_target_date?: string };
-				Returns: undefined;
-			};
-			recalculate_historical_rollups: {
-				Args: { p_start_date?: string; p_end_date?: string };
-				Returns: undefined;
-			};
-			recalculate_token_usage_pricing: {
-				Args: {
-					p_start_date: string;
-					p_end_date?: string;
-					p_recalculate_daily_rollups?: boolean;
-				};
-				Returns: {
-					records_updated: number;
-					daily_rollups_deleted: number;
-					daily_rollups_created: number;
-					total_cost_micro_usd: number;
-					earliest_updated: string;
-					latest_updated: string;
-				}[];
 			};
 		};
 		Enums: {
@@ -3890,10 +3785,10 @@ export type Database = {
 				}[];
 			};
 			render_email_template: {
-				Args: { template_uuid: string; variables: Json };
+				Args: { variables: Json; template_uuid: string };
 				Returns: {
-					subject: string;
 					html_content: string;
+					subject: string;
 				}[];
 			};
 		};
@@ -3906,22 +3801,26 @@ export type Database = {
 	};
 };
 
-type DefaultSchema = Database[Extract<keyof Database, 'public'>];
+type DatabaseWithoutInternals = Omit<Database, '__InternalSupabase'>;
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, 'public'>];
 
 export type Tables<
 	DefaultSchemaTableNameOrOptions extends
 		| keyof (DefaultSchema['Tables'] & DefaultSchema['Views'])
-		| { schema: keyof Database },
+		| { schema: keyof DatabaseWithoutInternals },
 	TableName extends DefaultSchemaTableNameOrOptions extends {
-		schema: keyof Database;
+		schema: keyof DatabaseWithoutInternals;
 	} ? keyof (
-			& Database[DefaultSchemaTableNameOrOptions['schema']]['Tables']
-			& Database[DefaultSchemaTableNameOrOptions['schema']]['Views']
+			& DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
+			& DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views']
 		)
 		: never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database } ? (
-		& Database[DefaultSchemaTableNameOrOptions['schema']]['Tables']
-		& Database[DefaultSchemaTableNameOrOptions['schema']]['Views']
+> = DefaultSchemaTableNameOrOptions extends {
+	schema: keyof DatabaseWithoutInternals;
+} ? (
+		& DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
+		& DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views']
 	)[TableName] extends {
 		Row: infer R;
 	} ? R
@@ -3941,13 +3840,14 @@ export type Tables<
 export type TablesInsert<
 	DefaultSchemaTableNameOrOptions extends
 		| keyof DefaultSchema['Tables']
-		| { schema: keyof Database },
+		| { schema: keyof DatabaseWithoutInternals },
 	TableName extends DefaultSchemaTableNameOrOptions extends {
-		schema: keyof Database;
-	} ? keyof Database[DefaultSchemaTableNameOrOptions['schema']]['Tables']
+		schema: keyof DatabaseWithoutInternals;
+	} ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
 		: never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-	? Database[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+	schema: keyof DatabaseWithoutInternals;
+} ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
 		Insert: infer I;
 	} ? I
 	: never
@@ -3961,13 +3861,14 @@ export type TablesInsert<
 export type TablesUpdate<
 	DefaultSchemaTableNameOrOptions extends
 		| keyof DefaultSchema['Tables']
-		| { schema: keyof Database },
+		| { schema: keyof DatabaseWithoutInternals },
 	TableName extends DefaultSchemaTableNameOrOptions extends {
-		schema: keyof Database;
-	} ? keyof Database[DefaultSchemaTableNameOrOptions['schema']]['Tables']
+		schema: keyof DatabaseWithoutInternals;
+	} ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
 		: never = never,
-> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
-	? Database[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends {
+	schema: keyof DatabaseWithoutInternals;
+} ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
 		Update: infer U;
 	} ? U
 	: never
@@ -3981,13 +3882,14 @@ export type TablesUpdate<
 export type Enums<
 	DefaultSchemaEnumNameOrOptions extends
 		| keyof DefaultSchema['Enums']
-		| { schema: keyof Database },
+		| { schema: keyof DatabaseWithoutInternals },
 	EnumName extends DefaultSchemaEnumNameOrOptions extends {
-		schema: keyof Database;
-	} ? keyof Database[DefaultSchemaEnumNameOrOptions['schema']]['Enums']
+		schema: keyof DatabaseWithoutInternals;
+	} ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums']
 		: never = never,
-> = DefaultSchemaEnumNameOrOptions extends { schema: keyof Database }
-	? Database[DefaultSchemaEnumNameOrOptions['schema']]['Enums'][EnumName]
+> = DefaultSchemaEnumNameOrOptions extends {
+	schema: keyof DatabaseWithoutInternals;
+} ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums'][EnumName]
 	: DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema['Enums']
 		? DefaultSchema['Enums'][DefaultSchemaEnumNameOrOptions]
 	: never;
@@ -3995,13 +3897,14 @@ export type Enums<
 export type CompositeTypes<
 	PublicCompositeTypeNameOrOptions extends
 		| keyof DefaultSchema['CompositeTypes']
-		| { schema: keyof Database },
+		| { schema: keyof DatabaseWithoutInternals },
 	CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
-		schema: keyof Database;
-	} ? keyof Database[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes']
+		schema: keyof DatabaseWithoutInternals;
+	} ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes']
 		: never = never,
-> = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
-	? Database[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes'][CompositeTypeName]
+> = PublicCompositeTypeNameOrOptions extends {
+	schema: keyof DatabaseWithoutInternals;
+} ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes'][CompositeTypeName]
 	: PublicCompositeTypeNameOrOptions extends keyof DefaultSchema['CompositeTypes']
 		? DefaultSchema['CompositeTypes'][PublicCompositeTypeNameOrOptions]
 	: never;
@@ -4013,6 +3916,8 @@ export const Constants = {
 	abi_billing: {
 		Enums: {
 			billing_interval: ['monthly', 'yearly'],
+			coupon_usage_status: ['pending', 'applied', 'expired', 'invalid'],
+			discount_type: ['percentage', 'fixed_amount'],
 			ledger_entry_type: [
 				'token_purchase',
 				'usage_batch',

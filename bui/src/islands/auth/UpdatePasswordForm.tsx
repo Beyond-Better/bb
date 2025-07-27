@@ -1,5 +1,5 @@
-//import { IS_BROWSER } from '$fresh/runtime.ts';
 import { useComputed, useSignal } from '@preact/signals';
+import { useEffect } from 'preact/hooks';
 import { useAuthState } from '../../hooks/useAuthState.ts';
 import { errorMessage, errorName } from 'shared/error.ts';
 import { ExternalLink } from '../../components/ExternalLink.tsx';
@@ -32,24 +32,51 @@ const PASSWORD_REQUIREMENTS: PasswordRequirement[] = [
 	},
 ];
 
-export default function SignupForm() {
-	const { signUp } = useAuthState();
-	const firstName = useSignal('');
-	const lastName = useSignal('');
-	const email = useSignal('');
+export default function UpdatePasswordForm() {
+	const { updatePassword, authState, getSessionUser } = useAuthState();
 	const password = useSignal('');
 	const confirmPassword = useSignal('');
-	const acceptedTerms = useSignal(false);
-	const marketingConsent = useSignal(false);
 	const isSubmitting = useSignal(false);
 	const successMessage = useSignal('');
-	const signupError = useSignal('');
+	const updateError = useSignal('');
 	const validationError = useSignal('');
 	const showRequirements = useSignal(false);
+	const isValidSession = useSignal(false);
+
 	const cantSubmit = useComputed(() =>
-		!!isSubmitting.value || firstName.value === '' || password.value === '' ||
-		password.value !== confirmPassword.value || !acceptedTerms.value
+		!!isSubmitting.value || password.value === '' ||
+		password.value !== confirmPassword.value || !isValidSession.value
 	);
+
+	// Check if we have a valid authenticated session (should be set after verification)
+	useEffect(() => {
+		const checkRecoverySession = async () => {
+			if (authState.value.isLocalMode) {
+				isValidSession.value = true;
+				return;
+			}
+
+			try {
+				// For password recovery, user should be authenticated after token verification
+				// Check if we have a valid session
+				const { user, error } = await getSessionUser(null, null);
+				//console.log('UpdatePasswordForm: getSessionUser', { user, error });
+				if (error || !user) {
+					// No authenticated session - this might be direct access or expired session
+					updateError.value =
+						'Invalid or expired password reset session. Please request a new password reset link.';
+
+					return;
+				}
+				isValidSession.value = true;
+				return;
+			} catch (error) {
+				console.error('Session check failed:', error);
+			}
+		};
+
+		checkRecoverySession();
+	}, []); // Remove authState from deps to avoid infinite loops
 
 	const validateForm = () => {
 		if (password.value !== confirmPassword.value) {
@@ -78,30 +105,25 @@ export default function SignupForm() {
 
 		try {
 			isSubmitting.value = true;
-			const data = await signUp(
-				null,
-				null,
-				email.value,
-				password.value,
-				firstName.value,
-				lastName.value,
-				marketingConsent.value,
-				acceptedTerms.value,
-			);
-			//console.log('SignupForm: data[after signUp]', data);
+			updateError.value = '';
+			validationError.value = '';
 
-			//if (data.session && data.user) {
-			if (data.user) {
-				// Handle successful signup
-				// Redirect to check-email page
-				globalThis.location.href = `/auth/check-email?email=${encodeURIComponent(email.value)}`;
-			} else {
+			const data = await updatePassword(null, null, password.value);
+
+			if (data.error) {
 				if (data.error === 'Failed to fetch' || data.error === 'Load failed') {
-					signupError.value =
-						"⚠️ BB App Required: The BB Desktop App must be installed and running to sign up. This is not optional - it's required for BB to work properly.";
+					updateError.value =
+						"⚠️ BB App Required: The BB Desktop App must be installed and running to update your password. This is not optional - it's required for BB to work properly.";
 				} else {
-					signupError.value = data.error || 'Unknown signup error occurred.';
+					updateError.value = data.error;
 				}
+			} else if (data.success) {
+				// Success
+				successMessage.value = 'Password updated successfully! You can now log in with your new password.';
+				// Redirect after a short delay
+				setTimeout(() => {
+					globalThis.location.href = '/auth/login?message=Password updated successfully';
+				}, 3000);
 			}
 		} catch (error) {
 			// Specific error handling for connection issues
@@ -109,15 +131,55 @@ export default function SignupForm() {
 				errorMessage(error) === 'Failed to fetch' || errorMessage(error) === 'Load failed' ||
 				errorName(error) === 'TypeError'
 			) {
-				signupError.value =
-					"⚠️ BB App Required: The BB Desktop App must be installed and running to sign up. This is not optional - it's required for BB to work properly.";
+				updateError.value =
+					"⚠️ BB App Required: The BB Desktop App must be installed and running to update your password. This is not optional - it's required for BB to work properly.";
 			} else {
-				signupError.value = `Signup failed: ${errorMessage(error) || 'Unknown error occurred'}`;
+				updateError.value = `Password update failed: ${errorMessage(error) || 'Unknown error occurred'}`;
 			}
 		} finally {
 			isSubmitting.value = false;
 		}
 	};
+
+	// If session is not valid, show error
+	if (!isValidSession.value && updateError.value) {
+		return (
+			<div class='space-y-6'>
+				<div class='rounded-md bg-red-50 dark:bg-red-900/50 p-4'>
+					<div class='flex'>
+						<div class='flex-shrink-0'>
+							<svg
+								class='h-5 w-5 text-red-400'
+								xmlns='http://www.w3.org/2000/svg'
+								viewBox='0 0 20 20'
+								fill='currentColor'
+							>
+								<path
+									fill-rule='evenodd'
+									d='M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z'
+									clip-rule='evenodd'
+								/>
+							</svg>
+						</div>
+						<div class='ml-3'>
+							<h3 class='text-sm font-medium text-red-800 dark:text-red-200'>
+								{updateError.value}
+							</h3>
+						</div>
+					</div>
+				</div>
+
+				<div class='text-center'>
+					<a
+						href='/auth/forgot-password'
+						class='inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500'
+					>
+						Request new reset link
+					</a>
+				</div>
+			</div>
+		);
+	}
 
 	return (
 		<form method='post' class='space-y-6' onSubmit={handleSubmit}>
@@ -176,7 +238,7 @@ export default function SignupForm() {
 			)}
 
 			{/* Error from auth state */}
-			{signupError.value && !validationError.value && (
+			{updateError.value && !validationError.value && !successMessage.value && (
 				<div class='rounded-md bg-red-50 dark:bg-red-900/50 p-4'>
 					<div class='flex'>
 						<div class='flex-shrink-0'>
@@ -195,10 +257,10 @@ export default function SignupForm() {
 						</div>
 						<div class='ml-3'>
 							<h3 class='text-sm font-medium text-red-800 dark:text-red-200'>
-								{signupError.value}
+								{updateError.value}
 							</h3>
-							{(signupError.value.includes('BB Server') ||
-								signupError.value.includes('BB App Required')) && (
+							{(updateError.value.includes('BB Server') ||
+								updateError.value.includes('BB App Required')) && (
 								<div class='mt-3 space-y-2'>
 									<div class='text-sm text-red-700 dark:text-red-300'>
 										<p class='font-medium mb-1'>To fix this:</p>
@@ -206,7 +268,7 @@ export default function SignupForm() {
 											<li>Download and install the BB Desktop App (see below)</li>
 											<li>Launch the BB Desktop App</li>
 											<li>Ensure the server toggle is enabled (green)</li>
-											<li>Try signing up again</li>
+											<li>Try updating your password again</li>
 										</ol>
 									</div>
 									<p class='text-xs text-red-600 dark:text-red-400'>
@@ -225,80 +287,13 @@ export default function SignupForm() {
 				</div>
 			)}
 
-			{/* Name fields (first and last) */}
-			<div>
-				<div class='grid grid-cols-2 gap-4'>
-					<div>
-						<label
-							htmlFor='firstName'
-							class='block text-sm font-medium text-gray-700 dark:text-gray-200'
-						>
-							First Name <span class='text-red-500'>*</span>
-						</label>
-						<div class='mt-1'>
-							<input
-								id='firstName'
-								name='firstName'
-								type='text'
-								autoComplete='given-name'
-								required
-								class='appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm dark:bg-gray-700 dark:text-white'
-								value={firstName.value}
-								onInput={(e) => firstName.value = (e.target as HTMLInputElement).value}
-							/>
-						</div>
-					</div>
-					<div>
-						<label
-							htmlFor='lastName'
-							class='block text-sm font-medium text-gray-700 dark:text-gray-200'
-						>
-							Last Name <span class='text-gray-400'>(optional)</span>
-						</label>
-						<div class='mt-1'>
-							<input
-								id='lastName'
-								name='lastName'
-								type='text'
-								autoComplete='family-name'
-								class='appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm dark:bg-gray-700 dark:text-white'
-								value={lastName.value}
-								onInput={(e) => lastName.value = (e.target as HTMLInputElement).value}
-							/>
-						</div>
-					</div>
-				</div>
-			</div>
-
-			{/* Email field */}
-			<div>
-				<label
-					htmlFor='email'
-					class='block text-sm font-medium text-gray-700 dark:text-gray-200'
-				>
-					Email address
-				</label>
-				<div class='mt-1'>
-					<input
-						id='email'
-						name='email'
-						type='email'
-						autoComplete='email'
-						required
-						class='appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm dark:bg-gray-700 dark:text-white'
-						value={email.value}
-						onInput={(e) => email.value = (e.target as HTMLInputElement).value}
-					/>
-				</div>
-			</div>
-
 			{/* Password field */}
 			<div>
 				<label
 					htmlFor='password'
 					class='block text-sm font-medium text-gray-700 dark:text-gray-200'
 				>
-					Password
+					New Password
 				</label>
 				<div class='mt-1'>
 					<input
@@ -311,10 +306,11 @@ export default function SignupForm() {
 						value={password.value}
 						onInput={(e) => password.value = (e.target as HTMLInputElement).value}
 						onFocus={() => showRequirements.value = true}
+						disabled={!!successMessage.value}
 					/>
 				</div>
 				{/* Password requirements checklist */}
-				{showRequirements.value && (
+				{showRequirements.value && !successMessage.value && (
 					<div class='mt-2 space-y-2'>
 						<p class='text-sm font-medium text-gray-700 dark:text-gray-300'>
 							Password requirements:
@@ -376,7 +372,7 @@ export default function SignupForm() {
 					htmlFor='confirm-password'
 					class='block text-sm font-medium text-gray-700 dark:text-gray-200'
 				>
-					Confirm Password
+					Confirm New Password
 				</label>
 				<div class='mt-1'>
 					<input
@@ -388,63 +384,8 @@ export default function SignupForm() {
 						class='appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-purple-500 focus:border-purple-500 sm:text-sm dark:bg-gray-700 dark:text-white'
 						value={confirmPassword.value}
 						onInput={(e) => confirmPassword.value = (e.target as HTMLInputElement).value}
+						disabled={!!successMessage.value}
 					/>
-				</div>
-			</div>
-
-			{/* Terms & Conditions Checkbox */}
-			<div class='mt-4'>
-				<div class='flex items-start'>
-					<div class='flex items-center h-5'>
-						<input
-							id='terms'
-							name='terms'
-							type='checkbox'
-							required
-							class='h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded dark:border-gray-600 dark:bg-gray-700'
-							checked={acceptedTerms.value}
-							onChange={(e) => acceptedTerms.value = (e.target as HTMLInputElement).checked}
-						/>
-					</div>
-					<div class='ml-3 text-sm'>
-						<label htmlFor='terms' class='font-medium text-gray-700 dark:text-gray-200'>
-							I agree to the{' '}
-							<ExternalLink
-								href='https://beyondbetter.app/terms-and-conditions'
-								class='text-purple-600 hover:text-purple-500'
-							>
-								Terms and Conditions
-							</ExternalLink>{' '}
-							and{' '}
-							<ExternalLink
-								href='https://beyondbetter.app/privacy-policy'
-								class='text-purple-600 hover:text-purple-500'
-							>
-								Privacy Policy
-							</ExternalLink>
-						</label>
-					</div>
-				</div>
-			</div>
-
-			{/* Marketing Consent Checkbox */}
-			<div class='mt-4'>
-				<div class='flex items-start'>
-					<div class='flex items-center h-5'>
-						<input
-							id='marketing'
-							name='marketing'
-							type='checkbox'
-							class='h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded dark:border-gray-600 dark:bg-gray-700'
-							checked={marketingConsent.value}
-							onChange={(e) => marketingConsent.value = (e.target as HTMLInputElement).checked}
-						/>
-					</div>
-					<div class='ml-3 text-sm'>
-						<label htmlFor='marketing' class='font-medium text-gray-700 dark:text-gray-200'>
-							Keep me updated with BB news, tips and features
-						</label>
-					</div>
 				</div>
 			</div>
 
@@ -485,9 +426,24 @@ export default function SignupForm() {
 							</svg>
 						)
 						: null}
-					{successMessage.value ? 'Sign up complete' : 'Sign up'}
+					{successMessage.value ? 'Password updated' : 'Update password'}
 				</button>
 			</div>
+
+			{/* Additional links */}
+			{!successMessage.value && (
+				<div class='text-center'>
+					<p class='text-sm text-gray-600 dark:text-gray-400'>
+						Remember your password?{' '}
+						<a
+							href='/auth/login'
+							class='font-medium text-purple-600 hover:text-purple-500'
+						>
+							Back to login
+						</a>
+					</p>
+				</div>
+			)}
 		</form>
 	);
 }

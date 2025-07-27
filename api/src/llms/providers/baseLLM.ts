@@ -246,7 +246,8 @@ class LLM {
 				try {
 					llmSpeakWithResponse = await this.speakWith(messageRequest, interaction);
 
-					const statusCode = llmSpeakWithResponse.messageResponse.providerMessageResponseMeta.statusCode;
+					const statusCode = llmSpeakWithResponse.messageResponse?.providerMessageResponseMeta?.statusCode ||
+						500;
 
 					if (statusCode >= 200 && statusCode < 300) {
 						break; // Successful response, break out of the retry loop
