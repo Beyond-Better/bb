@@ -105,10 +105,10 @@ export function CollaborationHeader({
 		// );
 
 		return {
-			model: currentCollaboration.value.collaborationParams.rolesModelConfig.orchestrator?.model || 'Unknown',
+			model: currentCollaboration.value.collaborationParams?.rolesModelConfig.orchestrator?.model || 'Unknown',
 			provider: currentCollaboration.value.lastInteractionMetadata?.llmProviderName || 'Unknown',
 			//modelConfig: currentCollaboration.value.lastInteractionMetadata?.modelConfig,
-			modelConfig: currentCollaboration.value.collaborationParams.rolesModelConfig.orchestrator ||
+			modelConfig: currentCollaboration.value.collaborationParams?.rolesModelConfig.orchestrator ||
 				{ model: 'unknown', temperature: 1, maxTokens: 0 },
 			//tokenUsageTurn: entryWithTokenUsageTurn?.tokenUsageStatsForCollaboration?.tokenUsageTurn,
 			tokenUsageTurn: currentCollaboration.value.lastInteractionMetadata?.tokenUsageStatsForInteraction
