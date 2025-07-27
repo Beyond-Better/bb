@@ -241,6 +241,10 @@ pub async fn perform_atomic_update(app: AppHandle) -> Result<(), String> {
             
             // Attempt graceful restart with error handling
             restart_application_safely(&app).await?;
+            
+            // Note: restart_application_safely initiates restart asynchronously
+            // and returns immediately, so we return Ok here
+            Ok(())
         }
         None => {
             info!("No application update available");
@@ -346,6 +350,10 @@ pub async fn perform_dui_update_only(app: AppHandle) -> Result<(), String> {
             
             // Attempt graceful restart with error handling
             restart_application_safely(&app).await?;
+            
+            // Note: restart_application_safely initiates restart asynchronously
+            // and returns immediately, so we return Ok here
+            Ok(())
         }
         None => {
             info!("No Application update available");
@@ -1040,24 +1048,38 @@ async fn restart_application_safely(app: &AppHandle) -> Result<(), String> {
         
         // Try direct restart first
         info!("Attempting direct application restart...");
-        app_clone.restart();
         
-        // If direct restart fails (shouldn't reach here), try alternative
-        warn!("Direct restart returned unexpectedly, trying alternative method...");
-        
+        // On macOS, try alternative restart method first as it's more reliable
         #[cfg(target_os = "macos")]
         {
             if let Ok(current_exe) = std::env::current_exe() {
-                info!("Attempting external restart via 'open' command");
-                let _ = std::process::Command::new("open")
+                info!("Using external restart via 'open' command for better reliability");
+                match std::process::Command::new("open")
                     .arg("-n")
                     .arg(&current_exe)
-                    .spawn();
-                    
-                // Give it a moment then exit current process
-                tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
-                std::process::exit(0);
+                    .spawn()
+                {
+                    Ok(_) => {
+                        info!("External restart command launched successfully");
+                        // Give it a moment then exit current process
+                        tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
+                        std::process::exit(0);
+                    }
+                    Err(e) => {
+                        warn!("External restart failed: {}, trying direct restart", e);
+                        app_clone.restart(); // This doesn't return on success
+                    }
+                }
+            } else {
+                warn!("Could not get current executable path, trying direct restart");
+                app_clone.restart(); // This doesn't return on success
             }
+        }
+        
+        // For non-macOS platforms, use direct restart
+        #[cfg(not(target_os = "macos"))]
+        {
+            app_clone.restart(); // This doesn't return on success
         }
     });
     
