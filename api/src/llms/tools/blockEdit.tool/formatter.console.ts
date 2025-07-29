@@ -16,18 +16,18 @@ export const formatLogEntryToolUse = (toolInput: LLMToolInputSchema): LLMToolLog
     ${
 		operations.map((op, index) =>
 			stripIndents`
-      ${LLMTool.TOOL_STYLES_CONSOLE.base.label(`Operation ${index + 1}:`)} ${LLMTool.TOOL_STYLES_CONSOLE.content.keyword(op.type)}
-      ${op.index !== undefined ? `${LLMTool.TOOL_STYLES_CONSOLE.base.label('Index:')} ${LLMTool.TOOL_STYLES_CONSOLE.content.number(op.index.toString())}` : ''}
-      ${op._key ? `${LLMTool.TOOL_STYLES_CONSOLE.base.label('Key:')} ${LLMTool.TOOL_STYLES_CONSOLE.content.string(op._key)}` : ''}
-      ${op.position !== undefined ? `${LLMTool.TOOL_STYLES_CONSOLE.base.label('Position:')} ${LLMTool.TOOL_STYLES_CONSOLE.content.number(op.position.toString())}` : ''}
-      ${op.content ? `${LLMTool.TOOL_STYLES_CONSOLE.base.label('Content Type:')} ${LLMTool.TOOL_STYLES_CONSOLE.content.keyword(op.content._type)}` : ''}
-      ${op.content?.style ? `${LLMTool.TOOL_STYLES_CONSOLE.base.label('Content Style:')} ${LLMTool.TOOL_STYLES_CONSOLE.content.keyword(op.content.style)}` : ''}
-      ${op.block ? `${LLMTool.TOOL_STYLES_CONSOLE.base.label('Block Type:')} ${LLMTool.TOOL_STYLES_CONSOLE.content.keyword(op.block._type)}` : ''}
-      ${op.block?.style ? `${LLMTool.TOOL_STYLES_CONSOLE.base.label('Block Style:')} ${LLMTool.TOOL_STYLES_CONSOLE.content.keyword(op.block.style)}` : ''}
-      ${op.from !== undefined ? `${LLMTool.TOOL_STYLES_CONSOLE.base.label('From:')} ${LLMTool.TOOL_STYLES_CONSOLE.content.number(op.from.toString())}` : ''}
-      ${op.fromKey ? `${LLMTool.TOOL_STYLES_CONSOLE.base.label('From Key:')} ${LLMTool.TOOL_STYLES_CONSOLE.content.string(op.fromKey)}` : ''}
-      ${op.to !== undefined ? `${LLMTool.TOOL_STYLES_CONSOLE.base.label('To:')} ${LLMTool.TOOL_STYLES_CONSOLE.content.number(op.to.toString())}` : ''}
-      ${op.toPosition !== undefined ? `${LLMTool.TOOL_STYLES_CONSOLE.base.label('To Position:')} ${LLMTool.TOOL_STYLES_CONSOLE.content.number(op.toPosition.toString())}` : ''}
+      ${LLMTool.TOOL_STYLES_CONSOLE.base.label(`Operation ${index + 1}:`)} ${LLMTool.TOOL_STYLES_CONSOLE.base.label(op.type)}
+      ${op.index !== undefined ? `${LLMTool.TOOL_STYLES_CONSOLE.base.label('Index:')} ${LLMTool.TOOL_STYLES_CONSOLE.content.number(op.index)}` : ''}
+      ${op._key ? `${LLMTool.TOOL_STYLES_CONSOLE.base.label('Key:')} ${op._key}` : ''}
+      ${op.position !== undefined ? `${LLMTool.TOOL_STYLES_CONSOLE.base.label('Position:')} ${LLMTool.TOOL_STYLES_CONSOLE.content.number(op.position)}` : ''}
+      ${op.content ? `${LLMTool.TOOL_STYLES_CONSOLE.base.label('Content Type:')} ${LLMTool.TOOL_STYLES_CONSOLE.base.label(op.content._type)}` : ''}
+      ${op.content?.style ? `${LLMTool.TOOL_STYLES_CONSOLE.base.label('Content Style:')} ${op.content.style}` : ''}
+      ${op.block ? `${LLMTool.TOOL_STYLES_CONSOLE.base.label('Block Type:')} ${LLMTool.TOOL_STYLES_CONSOLE.base.label(op.block._type)}` : ''}
+      ${op.block?.style ? `${LLMTool.TOOL_STYLES_CONSOLE.base.label('Block Style:')} ${op.block.style}` : ''}
+      ${op.from !== undefined ? `${LLMTool.TOOL_STYLES_CONSOLE.base.label('From:')} ${LLMTool.TOOL_STYLES_CONSOLE.content.number(op.from)}` : ''}
+      ${op.fromKey ? `${LLMTool.TOOL_STYLES_CONSOLE.base.label('From Key:')} ${op.fromKey}` : ''}
+      ${op.to !== undefined ? `${LLMTool.TOOL_STYLES_CONSOLE.base.label('To:')} ${LLMTool.TOOL_STYLES_CONSOLE.content.number(op.to)}` : ''}
+      ${op.toPosition !== undefined ? `${LLMTool.TOOL_STYLES_CONSOLE.base.label('To Position:')} ${LLMTool.TOOL_STYLES_CONSOLE.content.number(op.toPosition)}` : ''}
       `
 		).join('\n')
 	}

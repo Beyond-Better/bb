@@ -6,11 +6,11 @@ import type { DataSourceProviderType } from 'shared/types/dataSource.ts';
  */
 export interface PortableTextBlock {
 	_type: string;
-	_key: string;
+	_key: string; // Required field
 	style?: string;
 	children?: Array<{
 		_type: 'span';
-		_key: string;
+		_key: string; // Required field
 		text: string;
 		marks?: string[];
 	}>;

@@ -22,12 +22,7 @@ import type {
 	ToolHandlingErrorOptions,
 } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
-
-// Interface for BlockResourceAccessor capability
-interface BlockResourceAccessor {
-	getDocumentAsPortableText(resourceUri: string): Promise<any[]>;
-	applyPortableTextOperations(resourceUri: string, operations: any[]): Promise<any[]>;
-}
+import type { BlockResourceAccessor, PortableTextOperationResult } from 'api/src/dataSources/interfaces/blockResourceAccessor.ts';
 
 export default class LLMToolBlockEdit extends LLMTool {
 	get inputSchema(): LLMToolInputSchema {
@@ -280,8 +275,8 @@ export default class LLMToolBlockEdit extends LLMTool {
 			const operationResults = await blockAccessor.applyPortableTextOperations(resourceUri, operations);
 
 			// Process results
-			const successfulOperations = operationResults.filter(result => result.success);
-			const failedOperations = operationResults.filter(result => !result.success);
+			const successfulOperations = operationResults.filter((result: PortableTextOperationResult) => result.success);
+			const failedOperations = operationResults.filter((result: PortableTextOperationResult) => !result.success);
 
 			const allOperationsSucceeded = failedOperations.length === 0;
 			const allOperationsFailed = successfulOperations.length === 0;
@@ -295,7 +290,7 @@ export default class LLMToolBlockEdit extends LLMTool {
 					interaction,
 					dataSourceRoot,
 					resourcePath,
-					JSON.stringify(successfulOperations.map(r => ({
+					JSON.stringify(successfulOperations.map((r: PortableTextOperationResult) => ({
 						type: r.type,
 						success: r.success,
 						message: r.message,
