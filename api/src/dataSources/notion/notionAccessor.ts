@@ -14,6 +14,11 @@ import type {
 	RichTextItemResponse,
 } from './notionClient.ts';
 import { notionPageToMarkdown } from './notionToMarkdown.ts';
+import {
+	convertNotionToPortableText,
+	convertPortableTextToNotion,
+	type PortableTextBlock,
+} from './portableTextConverter.ts';
 import { extractResourcePath } from 'shared/dataSource.ts';
 import type { DataSourceConnection } from 'api/dataSources/interfaces/dataSourceConnection.ts';
 import type {
@@ -30,6 +35,40 @@ import type {
 import { createError, ErrorType } from 'api/utils/error.ts';
 import type { ResourceHandlingErrorOptions } from 'api/errors/error.ts';
 import type { DataSourceCapability, DataSourceMetadata } from 'shared/types/dataSource.ts';
+
+/**
+ * Portable Text operation types
+ */
+export interface PortableTextOperation {
+	type: 'update' | 'insert' | 'delete' | 'move';
+	// For update operations
+	index?: number;
+	_key?: string;
+	content?: PortableTextBlock;
+	// For insert operations
+	position?: number;
+	block?: PortableTextBlock;
+	// For delete operations - use index or _key
+	// For move operations
+	from?: number;
+	to?: number;
+	fromKey?: string;
+	toPosition?: number;
+}
+
+/**
+ * Result of a Portable Text operation
+ */
+export interface PortableTextOperationResult {
+	operationIndex: number;
+	type: PortableTextOperation['type'];
+	success: boolean;
+	message: string;
+	error?: string;
+	originalIndex?: number;
+	newIndex?: number;
+	affectedKey?: string;
+}
 
 /**
  * Resource types supported by Notion
@@ -1187,13 +1226,398 @@ export class NotionAccessor extends BBResourceAccessor {
 	}
 
 	/**
+	 * Get a Notion page as Portable Text blocks
+	 * @param resourceUri URI of the page resource
+	 * @returns Array of Portable Text blocks
+	 */
+	async getDocumentAsPortableText(resourceUri: string): Promise<PortableTextBlock[]> {
+		try {
+			// Parse the resource URI to get the page ID
+			const parsed = this.parseNotionUri(resourceUri);
+			if (!parsed || parsed.type !== NotionResourceType.Page) {
+				throw new Error(`Invalid or unsupported resource URI for Portable Text: ${resourceUri}`);
+			}
+
+			// Get the page and its blocks using existing methods
+			const page = await this.client.getPage(parsed.id);
+			const blocks = await this.client.getAllPageBlocks(parsed.id);
+
+			logger.debug(`NotionAccessor: Retrieved ${blocks.length} blocks for page ${parsed.id}`);
+
+			// Convert blocks to Portable Text
+			const portableTextBlocks = convertNotionToPortableText(blocks);
+
+			logger.info(`NotionAccessor: Converted ${blocks.length} Notion blocks to ${portableTextBlocks.length} Portable Text blocks for page ${parsed.id}`);
+
+			return portableTextBlocks;
+		} catch (error) {
+			logger.error(`NotionAccessor: Error getting document as Portable Text: ${errorMessage(error)}`);
+			throw createError(
+				ErrorType.ResourceHandling,
+				`Failed to get Notion page as Portable Text: ${errorMessage(error)}`,
+				{
+					filePath: resourceUri,
+					operation: 'read',
+				} as ResourceHandlingErrorOptions,
+			);
+		}
+	}
+
+	/**
+	 * Apply Portable Text operations to a Notion page
+	 * @param resourceUri URI of the page resource
+	 * @param operations Array of operations to apply
+	 * @returns Array of operation results
+	 */
+	async applyPortableTextOperations(
+		resourceUri: string,
+		operations: PortableTextOperation[],
+	): Promise<PortableTextOperationResult[]> {
+		try {
+			// Parse the resource URI to get the page ID
+			const parsed = this.parseNotionUri(resourceUri);
+			if (!parsed || parsed.type !== NotionResourceType.Page) {
+				throw new Error(`Invalid or unsupported resource URI for Portable Text operations: ${resourceUri}`);
+			}
+
+			logger.info(`NotionAccessor: Applying ${operations.length} Portable Text operations to page ${parsed.id}`);
+
+			// Get current Portable Text representation
+			const currentBlocks = await this.getDocumentAsPortableText(resourceUri);
+			logger.debug(`NotionAccessor: Current document has ${currentBlocks.length} blocks`);
+
+			// Apply operations to the Portable Text
+			const { modifiedBlocks, operationResults } = this.applyOperationsToPortableText(
+				currentBlocks,
+				operations,
+			);
+
+			// Check if any operations succeeded
+			const successfulOperations = operationResults.filter(result => result.success);
+			if (successfulOperations.length === 0) {
+				logger.warn(`NotionAccessor: No operations succeeded for page ${parsed.id}`);
+				return operationResults;
+			}
+
+			logger.info(`NotionAccessor: ${successfulOperations.length} operations succeeded, updating page ${parsed.id}`);
+
+			// Convert back to Notion format
+			const notionBlocks = convertPortableTextToNotion(modifiedBlocks);
+			logger.debug(`NotionAccessor: Converted to ${notionBlocks.length} Notion blocks`);
+
+			// Update the page with new blocks
+			await this.updatePageBlocks(parsed.id, notionBlocks);
+
+			logger.info(`NotionAccessor: Successfully updated page ${parsed.id} with new blocks`);
+
+			return operationResults;
+		} catch (error) {
+			logger.error(`NotionAccessor: Error applying Portable Text operations: ${errorMessage(error)}`);
+			throw createError(
+				ErrorType.ResourceHandling,
+				`Failed to apply Portable Text operations: ${errorMessage(error)}`,
+				{
+					filePath: resourceUri,
+					operation: 'write',
+				} as ResourceHandlingErrorOptions,
+			);
+		}
+	}
+
+	/**
+	 * Apply operations to Portable Text blocks
+	 * @param blocks Original blocks
+	 * @param operations Operations to apply
+	 * @returns Modified blocks and operation results
+	 */
+	private applyOperationsToPortableText(
+		blocks: PortableTextBlock[],
+		operations: PortableTextOperation[],
+	): { modifiedBlocks: PortableTextBlock[]; operationResults: PortableTextOperationResult[] } {
+		const modifiedBlocks = [...blocks];
+		const operationResults: PortableTextOperationResult[] = [];
+
+		for (const [index, operation] of operations.entries()) {
+			try {
+				switch (operation.type) {
+					case 'update':
+						operationResults.push(this.applyUpdateOperation(modifiedBlocks, operation, index));
+						break;
+					case 'insert':
+						operationResults.push(this.applyInsertOperation(modifiedBlocks, operation, index));
+						break;
+					case 'delete':
+						operationResults.push(this.applyDeleteOperation(modifiedBlocks, operation, index));
+						break;
+					case 'move':
+						operationResults.push(this.applyMoveOperation(modifiedBlocks, operation, index));
+						break;
+					default:
+						operationResults.push({
+							operationIndex: index,
+							type: operation.type,
+							success: false,
+							message: `Unsupported operation type: ${operation.type}`,
+						});
+				}
+			} catch (error) {
+				logger.warn(`NotionAccessor: Operation ${index} failed: ${errorMessage(error)}`);
+				operationResults.push({
+					operationIndex: index,
+					type: operation.type,
+					success: false,
+					message: `Operation failed: ${errorMessage(error)}`,
+					error: errorMessage(error),
+				});
+			}
+		}
+
+		return { modifiedBlocks, operationResults };
+	}
+
+	/**
+	 * Apply update operation to blocks
+	 */
+	private applyUpdateOperation(
+		blocks: PortableTextBlock[],
+		operation: PortableTextOperation,
+		operationIndex: number,
+	): PortableTextOperationResult {
+		if (!operation.content) {
+			return {
+				operationIndex,
+				type: 'update',
+				success: false,
+				message: 'Update operation requires content',
+			};
+		}
+
+		let targetIndex = -1;
+
+		// Find block by index or _key
+		if (typeof operation.index === 'number') {
+			if (operation.index >= 0 && operation.index < blocks.length) {
+				targetIndex = operation.index;
+			}
+		} else if (operation._key) {
+			targetIndex = blocks.findIndex(block => block._key === operation._key);
+		}
+
+		if (targetIndex === -1) {
+			return {
+				operationIndex,
+				type: 'update',
+				success: false,
+				message: `Block not found for update operation (index: ${operation.index}, key: ${operation._key})`,
+			};
+		}
+
+		// Update the block
+		blocks[targetIndex] = { ...operation.content };
+
+		return {
+			operationIndex,
+			type: 'update',
+			success: true,
+			message: `Updated block at index ${targetIndex}`,
+			originalIndex: targetIndex,
+			affectedKey: operation.content._key,
+		};
+	}
+
+	/**
+	 * Apply insert operation to blocks
+	 */
+	private applyInsertOperation(
+		blocks: PortableTextBlock[],
+		operation: PortableTextOperation,
+		operationIndex: number,
+	): PortableTextOperationResult {
+		if (!operation.block) {
+			return {
+				operationIndex,
+				type: 'insert',
+				success: false,
+				message: 'Insert operation requires block',
+			};
+		}
+
+		const position = operation.position ?? blocks.length;
+
+		if (position < 0 || position > blocks.length) {
+			return {
+				operationIndex,
+				type: 'insert',
+				success: false,
+				message: `Invalid insert position: ${position} (valid range: 0-${blocks.length})`,
+			};
+		}
+
+		// Insert the block
+		blocks.splice(position, 0, operation.block);
+
+		return {
+			operationIndex,
+			type: 'insert',
+			success: true,
+			message: `Inserted block at position ${position}`,
+			newIndex: position,
+			affectedKey: operation.block._key,
+		};
+	}
+
+	/**
+	 * Apply delete operation to blocks
+	 */
+	private applyDeleteOperation(
+		blocks: PortableTextBlock[],
+		operation: PortableTextOperation,
+		operationIndex: number,
+	): PortableTextOperationResult {
+		let targetIndex = -1;
+
+		// Find block by index or _key
+		if (typeof operation.index === 'number') {
+			if (operation.index >= 0 && operation.index < blocks.length) {
+				targetIndex = operation.index;
+			}
+		} else if (operation._key) {
+			targetIndex = blocks.findIndex(block => block._key === operation._key);
+		}
+
+		if (targetIndex === -1) {
+			return {
+				operationIndex,
+				type: 'delete',
+				success: false,
+				message: `Block not found for delete operation (index: ${operation.index}, key: ${operation._key})`,
+			};
+		}
+
+		// Store the key before deletion
+		const deletedKey = blocks[targetIndex]._key;
+
+		// Delete the block
+		blocks.splice(targetIndex, 1);
+
+		return {
+			operationIndex,
+			type: 'delete',
+			success: true,
+			message: `Deleted block at index ${targetIndex}`,
+			originalIndex: targetIndex,
+			affectedKey: deletedKey,
+		};
+	}
+
+	/**
+	 * Apply move operation to blocks
+	 */
+	private applyMoveOperation(
+		blocks: PortableTextBlock[],
+		operation: PortableTextOperation,
+		operationIndex: number,
+	): PortableTextOperationResult {
+		let fromIndex = -1;
+		let toIndex = -1;
+
+		// Find source block
+		if (typeof operation.from === 'number') {
+			if (operation.from >= 0 && operation.from < blocks.length) {
+				fromIndex = operation.from;
+			}
+		} else if (operation.fromKey) {
+			fromIndex = blocks.findIndex(block => block._key === operation.fromKey);
+		}
+
+		// Find target position
+		if (typeof operation.to === 'number') {
+			toIndex = operation.to;
+		} else if (typeof operation.toPosition === 'number') {
+			toIndex = operation.toPosition;
+		}
+
+		if (fromIndex === -1) {
+			return {
+				operationIndex,
+				type: 'move',
+				success: false,
+				message: `Source block not found for move operation (from: ${operation.from}, fromKey: ${operation.fromKey})`,
+			};
+		}
+
+		if (toIndex === -1 || toIndex < 0 || toIndex > blocks.length) {
+			return {
+				operationIndex,
+				type: 'move',
+				success: false,
+				message: `Invalid target position for move operation: ${toIndex} (valid range: 0-${blocks.length})`,
+			};
+		}
+
+		if (fromIndex === toIndex) {
+			return {
+				operationIndex,
+				type: 'move',
+				success: false,
+				message: `Source and target positions are the same: ${fromIndex}`,
+			};
+		}
+
+		// Move the block
+		const [movedBlock] = blocks.splice(fromIndex, 1);
+		const actualToIndex = toIndex > fromIndex ? toIndex - 1 : toIndex;
+		blocks.splice(actualToIndex, 0, movedBlock);
+
+		return {
+			operationIndex,
+			type: 'move',
+			success: true,
+			message: `Moved block from index ${fromIndex} to ${actualToIndex}`,
+			originalIndex: fromIndex,
+			newIndex: actualToIndex,
+			affectedKey: movedBlock._key,
+		};
+	}
+
+	/**
+	 * Update page blocks by replacing all content
+	 * @param pageId Notion page ID
+	 * @param newBlocks New blocks to set
+	 */
+	private async updatePageBlocks(pageId: string, newBlocks: Partial<NotionBlock>[]): Promise<void> {
+		try {
+			// Clear existing blocks
+			const existingBlocks = await this.client.getAllPageBlocks(pageId);
+			for (const block of existingBlocks) {
+				try {
+					await this.client.deleteBlock(block.id);
+				} catch (error) {
+					logger.warn(`NotionAccessor: Failed to delete block ${block.id}: ${errorMessage(error)}`);
+					// Continue with other blocks even if one fails
+				}
+			}
+
+			// Add new blocks
+			if (newBlocks.length > 0) {
+				await this.client.appendBlockChildren(pageId, newBlocks);
+			}
+
+			logger.info(`NotionAccessor: Updated page ${pageId} with ${newBlocks.length} new blocks`);
+		} catch (error) {
+			logger.error(`NotionAccessor: Error updating page blocks: ${errorMessage(error)}`);
+			throw error;
+		}
+	}
+
+	/**
 	 * Check if this accessor has a specific capability
 	 * @param capability The capability to check for
 	 * @returns True if the capability is supported, false otherwise
 	 */
 	override hasCapability(capability: DataSourceCapability): boolean {
-		// Notion currently supports read, list, search and write (for pages only)
-		return ['read', 'list', 'search', 'write'].includes(capability);
+		// Notion currently supports read, list, search, write, and blockEdit (for Portable Text operations)
+		return ['read', 'list', 'search', 'write', 'blockEdit'].includes(capability);
 	}
 
 	/**
