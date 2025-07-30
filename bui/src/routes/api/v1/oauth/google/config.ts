@@ -1,0 +1,55 @@
+import { Handlers } from '$fresh/server.ts';
+
+/**
+ * Get Google OAuth configuration for the BUI
+ */
+export const handler: Handlers = {
+	GET(_req, _ctx) {
+		try {
+			// Get OAuth configuration from environment variables
+			const clientId = Deno.env.get('GOOGLE_OAUTH_CLIENT_ID');
+			const redirectUri = Deno.env.get('GOOGLE_OAUTH_REDIRECT_URI') || 
+				'http://localhost:3000/oauth/google/callback';
+
+			if (!clientId) {
+				return new Response(JSON.stringify({
+					error: {
+						code: 'MISSING_CONFIG',
+						message: 'Google OAuth client ID not configured',
+						reason: 'missing_client_id',
+					},
+				}), {
+					status: 500,
+					headers: { 'Content-Type': 'application/json' },
+				});
+			}
+
+			// Define required scopes for Google Docs integration
+			const scopes = [
+				'https://www.googleapis.com/auth/documents',
+				'https://www.googleapis.com/auth/drive.readonly',
+				'https://www.googleapis.com/auth/drive.file',
+			];
+
+			return new Response(JSON.stringify({
+				clientId,
+				scopes,
+				redirectUri,
+			}), {
+				status: 200,
+				headers: { 'Content-Type': 'application/json' },
+			});
+		} catch (error) {
+			console.error('OAuth: Google config error:', error);
+			return new Response(JSON.stringify({
+				error: {
+					code: 'SERVER_ERROR',
+					message: 'Internal server error',
+				},
+			}), {
+				status: 500,
+				headers: { 'Content-Type': 'application/json' },
+			});
+		}
+	},
+};

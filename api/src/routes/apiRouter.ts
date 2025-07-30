@@ -35,7 +35,6 @@ import userRouter from './api/userRouter.ts';
 import subscriptionRouter from './api/subscriptionRouter.ts';
 import configRouter from './api/configRouter.ts';
 import teamRouter from './api/teamRouter.ts';
-import oauthRouter from './api/oauthRouter.ts';
 
 const apiRouter = new Router();
 

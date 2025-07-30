@@ -9,7 +9,7 @@ export async function handleGoogleConfig(ctx: Context<BbState>) {
 	try {
 		// Get OAuth configuration from environment variables
 		const clientId = Deno.env.get('GOOGLE_OAUTH_CLIENT_ID');
-		const redirectUri = Deno.env.get('GOOGLE_OAUTH_REDIRECT_URI');
+		const redirectUri = Deno.env.get('GOOGLE_OAUTH_REDIRECT_URI') || 'http://localhost:3000/oauth/google/callback';
 
 		if (!clientId) {
 			ctx.response.status = 500;
@@ -83,7 +83,7 @@ export async function handleGoogleToken(ctx: Context<BbState>) {
 		// Get OAuth configuration from environment variables
 		const clientId = Deno.env.get('GOOGLE_OAUTH_CLIENT_ID');
 		const clientSecret = Deno.env.get('GOOGLE_OAUTH_CLIENT_SECRET');
-		const redirectUri = Deno.env.get('GOOGLE_OAUTH_REDIRECT_URI');
+		const redirectUri = Deno.env.get('GOOGLE_OAUTH_REDIRECT_URI') || 'http://localhost:3000/oauth/google/callback';
 
 		if (!clientId || !clientSecret || !redirectUri) {
 			logger.error('OAuth: Missing Google OAuth configuration');
