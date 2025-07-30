@@ -16,18 +16,62 @@ export const formatLogEntryToolUse = (toolInput: LLMToolInputSchema): LLMToolLog
     ${
 		operations.map((op, index) =>
 			stripIndents`
-      ${LLMTool.TOOL_STYLES_CONSOLE.base.label(`Operation ${index + 1}:`)} ${LLMTool.TOOL_STYLES_CONSOLE.base.label(op.type)}
-      ${op.index !== undefined ? `${LLMTool.TOOL_STYLES_CONSOLE.base.label('Index:')} ${LLMTool.TOOL_STYLES_CONSOLE.content.number(op.index)}` : ''}
+      ${LLMTool.TOOL_STYLES_CONSOLE.base.label(`Operation ${index + 1}:`)} ${
+				LLMTool.TOOL_STYLES_CONSOLE.base.label(op.type)
+			}
+      ${
+				op.index !== undefined
+					? `${LLMTool.TOOL_STYLES_CONSOLE.base.label('Index:')} ${
+						LLMTool.TOOL_STYLES_CONSOLE.content.number(op.index)
+					}`
+					: ''
+			}
       ${op._key ? `${LLMTool.TOOL_STYLES_CONSOLE.base.label('Key:')} ${op._key}` : ''}
-      ${op.position !== undefined ? `${LLMTool.TOOL_STYLES_CONSOLE.base.label('Position:')} ${LLMTool.TOOL_STYLES_CONSOLE.content.number(op.position)}` : ''}
-      ${op.content ? `${LLMTool.TOOL_STYLES_CONSOLE.base.label('Content Type:')} ${LLMTool.TOOL_STYLES_CONSOLE.base.label(op.content._type)}` : ''}
+      ${
+				op.position !== undefined
+					? `${LLMTool.TOOL_STYLES_CONSOLE.base.label('Position:')} ${
+						LLMTool.TOOL_STYLES_CONSOLE.content.number(op.position)
+					}`
+					: ''
+			}
+      ${
+				op.content
+					? `${LLMTool.TOOL_STYLES_CONSOLE.base.label('Content Type:')} ${
+						LLMTool.TOOL_STYLES_CONSOLE.base.label(op.content._type)
+					}`
+					: ''
+			}
       ${op.content?.style ? `${LLMTool.TOOL_STYLES_CONSOLE.base.label('Content Style:')} ${op.content.style}` : ''}
-      ${op.block ? `${LLMTool.TOOL_STYLES_CONSOLE.base.label('Block Type:')} ${LLMTool.TOOL_STYLES_CONSOLE.base.label(op.block._type)}` : ''}
+      ${
+				op.block
+					? `${LLMTool.TOOL_STYLES_CONSOLE.base.label('Block Type:')} ${
+						LLMTool.TOOL_STYLES_CONSOLE.base.label(op.block._type)
+					}`
+					: ''
+			}
       ${op.block?.style ? `${LLMTool.TOOL_STYLES_CONSOLE.base.label('Block Style:')} ${op.block.style}` : ''}
-      ${op.from !== undefined ? `${LLMTool.TOOL_STYLES_CONSOLE.base.label('From:')} ${LLMTool.TOOL_STYLES_CONSOLE.content.number(op.from)}` : ''}
+      ${
+				op.from !== undefined
+					? `${LLMTool.TOOL_STYLES_CONSOLE.base.label('From:')} ${
+						LLMTool.TOOL_STYLES_CONSOLE.content.number(op.from)
+					}`
+					: ''
+			}
       ${op.fromKey ? `${LLMTool.TOOL_STYLES_CONSOLE.base.label('From Key:')} ${op.fromKey}` : ''}
-      ${op.to !== undefined ? `${LLMTool.TOOL_STYLES_CONSOLE.base.label('To:')} ${LLMTool.TOOL_STYLES_CONSOLE.content.number(op.to)}` : ''}
-      ${op.toPosition !== undefined ? `${LLMTool.TOOL_STYLES_CONSOLE.base.label('To Position:')} ${LLMTool.TOOL_STYLES_CONSOLE.content.number(op.toPosition)}` : ''}
+      ${
+				op.to !== undefined
+					? `${LLMTool.TOOL_STYLES_CONSOLE.base.label('To:')} ${
+						LLMTool.TOOL_STYLES_CONSOLE.content.number(op.to)
+					}`
+					: ''
+			}
+      ${
+				op.toPosition !== undefined
+					? `${LLMTool.TOOL_STYLES_CONSOLE.base.label('To Position:')} ${
+						LLMTool.TOOL_STYLES_CONSOLE.content.number(op.toPosition)
+					}`
+					: ''
+			}
       `
 		).join('\n')
 	}
@@ -50,9 +94,7 @@ export const formatLogEntryToolResult = (
 		!bbResponse.toLowerCase().includes('failed');
 
 	// Count successful operations
-	const successCount = results.filter((r) =>
-		r.includes('✅') || r.toLowerCase().includes('succeeded')
-	).length;
+	const successCount = results.filter((r) => r.includes('✅') || r.toLowerCase().includes('succeeded')).length;
 
 	// Extract operation counts from bbResponse if available
 	const operationMatch = bbResponse.match(/(\d+)\/(\d+) operations succeeded/);
@@ -66,7 +108,7 @@ export const formatLogEntryToolResult = (
 	return {
 		title: LLMTool.TOOL_STYLES_CONSOLE.content.title('Tool Result', 'Block Edit'),
 		subtitle: LLMTool.TOOL_STYLES_CONSOLE.content.subtitle(
-			isSuccess ? `${successCount}/${totalOperations} operations` : 'failed'
+			isSuccess ? `${successCount}/${totalOperations} operations` : 'failed',
 		),
 		content,
 		preview: isSuccess ? bbResponse : 'Operation failed',

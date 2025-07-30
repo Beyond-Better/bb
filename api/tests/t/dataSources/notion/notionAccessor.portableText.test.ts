@@ -1,12 +1,16 @@
 /**
  * Tests for NotionAccessor Portable Text methods
  */
-import { assert, assertEquals, assertRejects, assertThrows } from '@std/assert';
-import { stub, returnsNext } from '@std/testing/mock';
-import { NotionAccessor } from 'api/dataSources/notion/notionAccessor.ts';
-import type { NotionClient, NotionBlock, NotionPage } from 'api/dataSources/notion/notionClient.ts';
+import { assertEquals, assertRejects } from '@std/assert';
+//import { stub, returnsNext } from '@std/testing/mock';
+import { NotionAccessor } from 'api/dataSources/notionAccessor.ts';
+import type { NotionBlock, NotionClient, NotionPage } from 'api/dataSources/notionClient.ts';
 import type { DataSourceConnection } from 'api/dataSources/interfaces/dataSourceConnection.ts';
-import type { PortableTextOperation, PortableTextOperationResult } from 'api/dataSources/notion/notionAccessor.ts';
+import type { DataSourceAccessMethod } from 'shared/types/dataSource.ts';
+import type {
+	PortableTextOperation,
+	//PortableTextOperationResult
+} from 'api/types/portableText.ts';
 import { generatePortableTextKey } from 'api/dataSources/notion/portableTextConverter.ts';
 
 // Mock Notion client
@@ -35,18 +39,23 @@ class MockNotionClient implements Partial<NotionClient> {
 		return this.blocks.get(pageId) || [];
 	}
 
-	async deleteBlock(blockId: string): Promise<void> {
+	async deleteBlock(blockId: string): Promise<NotionBlock> {
 		// Mock implementation - remove block from all pages
 		for (const [_, blocks] of this.blocks) {
-			const index = blocks.findIndex(b => b.id === blockId);
+			const index = blocks.findIndex((b) => b.id === blockId);
 			if (index !== -1) {
+				const deletedBlock = blocks[index];
 				blocks.splice(index, 1);
-				return;
+				return deletedBlock;
 			}
 		}
+		return {} as NotionBlock;
 	}
 
-	async appendBlockChildren(pageId: string, blocks: Partial<NotionBlock>[]): Promise<NotionBlock[]> {
+	async appendBlockChildren(
+		pageId: string,
+		blocks: Partial<NotionBlock>[],
+	): Promise<{ object: string; results: NotionBlock[] }> {
 		const existingBlocks = this.blocks.get(pageId) || [];
 		const newBlocks = blocks.map((block, index) => ({
 			object: 'block' as const,
@@ -56,10 +65,10 @@ class MockNotionClient implements Partial<NotionClient> {
 			last_edited_time: new Date().toISOString(),
 			...block,
 		})) as NotionBlock[];
-		
+
 		existingBlocks.push(...newBlocks);
 		this.blocks.set(pageId, existingBlocks);
-		return newBlocks;
+		return { object: '', results: newBlocks };
 	}
 }
 
@@ -68,13 +77,14 @@ class MockDataSourceConnection implements Partial<DataSourceConnection> {
 	id = 'test-connection';
 	name = 'Test Connection';
 	config = { workspaceId: 'test-workspace' };
+	accessMethod = 'bb' as DataSourceAccessMethod;
 
 	async isResourceWithinDataSource(_resourceUri: string): Promise<boolean> {
 		return true;
 	}
 
 	getUriForResource(resourcePath: string): string {
-		return `notion://${resourcePath}`;
+		return `bb+notion+test-connection+notion://${resourcePath}`;
 	}
 }
 
@@ -83,6 +93,7 @@ function createTestBlock(id: string, type: string, content: string): NotionBlock
 	const block: NotionBlock = {
 		object: 'block',
 		id,
+		// deno-lint-ignore no-explicit-any
 		type: type as any,
 		created_time: '2025-01-01T00:00:00.000Z',
 		last_edited_time: '2025-01-01T00:00:00.000Z',
@@ -91,6 +102,7 @@ function createTestBlock(id: string, type: string, content: string): NotionBlock
 	// Add type-specific properties
 	switch (type) {
 		case 'paragraph':
+			// deno-lint-ignore no-explicit-any
 			(block as any).paragraph = {
 				rich_text: [{
 					type: 'text',
@@ -108,6 +120,7 @@ function createTestBlock(id: string, type: string, content: string): NotionBlock
 			};
 			break;
 		case 'heading_1':
+			// deno-lint-ignore no-explicit-any
 			(block as any).heading_1 = {
 				rich_text: [{
 					type: 'text',
@@ -166,7 +179,7 @@ Deno.test({
 	fn: async () => {
 		const mockClient = new MockNotionClient();
 		const mockConnection = new MockDataSourceConnection();
-		
+
 		const pageId = 'test-page-id';
 		const testPage = createTestPage(pageId, 'Test Page');
 		const testBlocks = [
@@ -179,11 +192,11 @@ Deno.test({
 		mockClient.setBlocks(pageId, testBlocks);
 
 		const accessor = new NotionAccessor(
-			mockConnection as DataSourceConnection,
-			mockClient as NotionClient,
+			mockConnection as unknown as DataSourceConnection,
+			mockClient as unknown as NotionClient,
 		);
 
-		const result = await accessor.getDocumentAsPortableText(`notion://page/${pageId}`);
+		const result = await accessor.getDocumentAsPortableText(`bb+notion+test-connection+notion://page/${pageId}`);
 
 		assertEquals(result.length, 3);
 		assertEquals(result[0]._type, 'block');
@@ -205,14 +218,14 @@ Deno.test({
 	fn: async () => {
 		const mockClient = new MockNotionClient();
 		const mockConnection = new MockDataSourceConnection();
-		
+
 		const accessor = new NotionAccessor(
-			mockConnection as DataSourceConnection,
-			mockClient as NotionClient,
+			mockConnection as unknown as DataSourceConnection,
+			mockClient as unknown as NotionClient,
 		);
 
 		await assertRejects(
-			() => accessor.getDocumentAsPortableText('notion://invalid/resource'),
+			() => accessor.getDocumentAsPortableText('bb+notion+test-connection+notion://invalid/resource'),
 			Error,
 			'Invalid or unsupported resource URI',
 		);
@@ -226,14 +239,14 @@ Deno.test({
 	fn: async () => {
 		const mockClient = new MockNotionClient();
 		const mockConnection = new MockDataSourceConnection();
-		
+
 		const accessor = new NotionAccessor(
-			mockConnection as DataSourceConnection,
-			mockClient as NotionClient,
+			mockConnection as unknown as DataSourceConnection,
+			mockClient as unknown as NotionClient,
 		);
 
 		await assertRejects(
-			() => accessor.getDocumentAsPortableText('notion://database/test-db-id'),
+			() => accessor.getDocumentAsPortableText('bb+notion+test-connection+notion://database/test-db-id'),
 			Error,
 			'Invalid or unsupported resource URI',
 		);
@@ -247,7 +260,7 @@ Deno.test({
 	fn: async () => {
 		const mockClient = new MockNotionClient();
 		const mockConnection = new MockDataSourceConnection();
-		
+
 		const pageId = 'test-page-id';
 		const testPage = createTestPage(pageId, 'Test Page');
 		const testBlocks = [
@@ -258,8 +271,8 @@ Deno.test({
 		mockClient.setBlocks(pageId, testBlocks);
 
 		const accessor = new NotionAccessor(
-			mockConnection as DataSourceConnection,
-			mockClient as NotionClient,
+			mockConnection as unknown as DataSourceConnection,
+			mockClient as unknown as NotionClient,
 		);
 
 		const operations: PortableTextOperation[] = [{
@@ -277,7 +290,10 @@ Deno.test({
 			},
 		}];
 
-		const results = await accessor.applyPortableTextOperations(`notion://page/${pageId}`, operations);
+		const results = await accessor.applyPortableTextOperations(
+			`bb+notion+test-connection+notion://page/${pageId}`,
+			operations,
+		);
 
 		assertEquals(results.length, 1);
 		assertEquals(results[0].success, true);
@@ -294,7 +310,7 @@ Deno.test({
 	fn: async () => {
 		const mockClient = new MockNotionClient();
 		const mockConnection = new MockDataSourceConnection();
-		
+
 		const pageId = 'test-page-id';
 		const testPage = createTestPage(pageId, 'Test Page');
 		const testBlocks = [
@@ -305,8 +321,8 @@ Deno.test({
 		mockClient.setBlocks(pageId, testBlocks);
 
 		const accessor = new NotionAccessor(
-			mockConnection as DataSourceConnection,
-			mockClient as NotionClient,
+			mockConnection as unknown as DataSourceConnection,
+			mockClient as unknown as NotionClient,
 		);
 
 		const operations: PortableTextOperation[] = [{
@@ -324,7 +340,10 @@ Deno.test({
 			},
 		}];
 
-		const results = await accessor.applyPortableTextOperations(`notion://page/${pageId}`, operations);
+		const results = await accessor.applyPortableTextOperations(
+			`bb+notion+test-connection+notion://page/${pageId}`,
+			operations,
+		);
 
 		assertEquals(results.length, 1);
 		assertEquals(results[0].success, true);
@@ -342,7 +361,7 @@ Deno.test({
 	fn: async () => {
 		const mockClient = new MockNotionClient();
 		const mockConnection = new MockDataSourceConnection();
-		
+
 		const pageId = 'test-page-id';
 		const testPage = createTestPage(pageId, 'Test Page');
 		const testBlocks = [
@@ -354,8 +373,8 @@ Deno.test({
 		mockClient.setBlocks(pageId, testBlocks);
 
 		const accessor = new NotionAccessor(
-			mockConnection as DataSourceConnection,
-			mockClient as NotionClient,
+			mockConnection as unknown as DataSourceConnection,
+			mockClient as unknown as NotionClient,
 		);
 
 		const operations: PortableTextOperation[] = [{
@@ -363,7 +382,10 @@ Deno.test({
 			index: 0,
 		}];
 
-		const results = await accessor.applyPortableTextOperations(`notion://page/${pageId}`, operations);
+		const results = await accessor.applyPortableTextOperations(
+			`bb+notion+test-connection+notion://page/${pageId}`,
+			operations,
+		);
 
 		assertEquals(results.length, 1);
 		assertEquals(results[0].success, true);
@@ -382,7 +404,7 @@ Deno.test({
 	fn: async () => {
 		const mockClient = new MockNotionClient();
 		const mockConnection = new MockDataSourceConnection();
-		
+
 		const pageId = 'test-page-id';
 		const testPage = createTestPage(pageId, 'Test Page');
 		const testBlocks = [
@@ -395,8 +417,8 @@ Deno.test({
 		mockClient.setBlocks(pageId, testBlocks);
 
 		const accessor = new NotionAccessor(
-			mockConnection as DataSourceConnection,
-			mockClient as NotionClient,
+			mockConnection as unknown as DataSourceConnection,
+			mockClient as unknown as NotionClient,
 		);
 
 		const operations: PortableTextOperation[] = [{
@@ -405,7 +427,10 @@ Deno.test({
 			to: 2,
 		}];
 
-		const results = await accessor.applyPortableTextOperations(`notion://page/${pageId}`, operations);
+		const results = await accessor.applyPortableTextOperations(
+			`bb+notion+test-connection+notion://page/${pageId}`,
+			operations,
+		);
 
 		assertEquals(results.length, 1);
 		assertEquals(results[0].success, true);
@@ -424,7 +449,7 @@ Deno.test({
 	fn: async () => {
 		const mockClient = new MockNotionClient();
 		const mockConnection = new MockDataSourceConnection();
-		
+
 		const pageId = 'test-page-id';
 		const testPage = createTestPage(pageId, 'Test Page');
 		const testBlocks = [
@@ -432,12 +457,12 @@ Deno.test({
 			createTestBlock('block2', 'paragraph', 'Second paragraph'),
 		];
 
-		mockClient.setPage(pageId, testBlocks);
+		mockClient.setPage(pageId, testPage);
 		mockClient.setBlocks(pageId, testBlocks);
 
 		const accessor = new NotionAccessor(
-			mockConnection as DataSourceConnection,
-			mockClient as NotionClient,
+			mockConnection as unknown as DataSourceConnection,
+			mockClient as unknown as NotionClient,
 		);
 
 		const operations: PortableTextOperation[] = [{
@@ -445,7 +470,10 @@ Deno.test({
 			_key: 'block2',
 		}];
 
-		const results = await accessor.applyPortableTextOperations(`notion://page/${pageId}`, operations);
+		const results = await accessor.applyPortableTextOperations(
+			`bb+notion+test-connection+notion://page/${pageId}`,
+			operations,
+		);
 
 		assertEquals(results.length, 1);
 		assertEquals(results[0].success, true);
@@ -461,7 +489,7 @@ Deno.test({
 	fn: async () => {
 		const mockClient = new MockNotionClient();
 		const mockConnection = new MockDataSourceConnection();
-		
+
 		const pageId = 'test-page-id';
 		const testPage = createTestPage(pageId, 'Test Page');
 		const testBlocks = [
@@ -472,8 +500,8 @@ Deno.test({
 		mockClient.setBlocks(pageId, testBlocks);
 
 		const accessor = new NotionAccessor(
-			mockConnection as DataSourceConnection,
-			mockClient as NotionClient,
+			mockConnection as unknown as DataSourceConnection,
+			mockClient as unknown as NotionClient,
 		);
 
 		const operations: PortableTextOperation[] = [
@@ -507,7 +535,10 @@ Deno.test({
 			},
 		];
 
-		const results = await accessor.applyPortableTextOperations(`notion://page/${pageId}`, operations);
+		const results = await accessor.applyPortableTextOperations(
+			`bb+notion+test-connection+notion://page/${pageId}`,
+			operations,
+		);
 
 		assertEquals(results.length, 2);
 		assertEquals(results[0].success, true);
@@ -524,7 +555,7 @@ Deno.test({
 	fn: async () => {
 		const mockClient = new MockNotionClient();
 		const mockConnection = new MockDataSourceConnection();
-		
+
 		const pageId = 'test-page-id';
 		const testPage = createTestPage(pageId, 'Test Page');
 		const testBlocks = [
@@ -535,15 +566,19 @@ Deno.test({
 		mockClient.setBlocks(pageId, testBlocks);
 
 		const accessor = new NotionAccessor(
-			mockConnection as DataSourceConnection,
-			mockClient as NotionClient,
+			mockConnection as unknown as DataSourceConnection,
+			mockClient as unknown as NotionClient,
 		);
 
 		const operations: PortableTextOperation[] = [{
+			// deno-lint-ignore no-explicit-any
 			type: 'invalid' as any,
 		}];
 
-		const results = await accessor.applyPortableTextOperations(`notion://page/${pageId}`, operations);
+		const results = await accessor.applyPortableTextOperations(
+			`bb+notion+test-connection+notion://page/${pageId}`,
+			operations,
+		);
 
 		assertEquals(results.length, 1);
 		assertEquals(results[0].success, false);
@@ -558,7 +593,7 @@ Deno.test({
 	fn: async () => {
 		const mockClient = new MockNotionClient();
 		const mockConnection = new MockDataSourceConnection();
-		
+
 		const pageId = 'test-page-id';
 		const testPage = createTestPage(pageId, 'Test Page');
 		const testBlocks = [
@@ -569,8 +604,8 @@ Deno.test({
 		mockClient.setBlocks(pageId, testBlocks);
 
 		const accessor = new NotionAccessor(
-			mockConnection as DataSourceConnection,
-			mockClient as NotionClient,
+			mockConnection as unknown as DataSourceConnection,
+			mockClient as unknown as NotionClient,
 		);
 
 		const operations: PortableTextOperation[] = [{
@@ -578,7 +613,10 @@ Deno.test({
 			index: 0,
 		}];
 
-		const results = await accessor.applyPortableTextOperations(`notion://page/${pageId}`, operations);
+		const results = await accessor.applyPortableTextOperations(
+			`bb+notion+test-connection+notion://page/${pageId}`,
+			operations,
+		);
 
 		assertEquals(results.length, 1);
 		assertEquals(results[0].success, false);
@@ -593,7 +631,7 @@ Deno.test({
 	fn: async () => {
 		const mockClient = new MockNotionClient();
 		const mockConnection = new MockDataSourceConnection();
-		
+
 		const pageId = 'test-page-id';
 		const testPage = createTestPage(pageId, 'Test Page');
 		const testBlocks = [
@@ -604,8 +642,8 @@ Deno.test({
 		mockClient.setBlocks(pageId, testBlocks);
 
 		const accessor = new NotionAccessor(
-			mockConnection as DataSourceConnection,
-			mockClient as NotionClient,
+			mockConnection as unknown as DataSourceConnection,
+			mockClient as unknown as NotionClient,
 		);
 
 		const operations: PortableTextOperation[] = [{
@@ -613,7 +651,10 @@ Deno.test({
 			position: 1,
 		}];
 
-		const results = await accessor.applyPortableTextOperations(`notion://page/${pageId}`, operations);
+		const results = await accessor.applyPortableTextOperations(
+			`bb+notion+test-connection+notion://page/${pageId}`,
+			operations,
+		);
 
 		assertEquals(results.length, 1);
 		assertEquals(results[0].success, false);
@@ -628,7 +669,7 @@ Deno.test({
 	fn: async () => {
 		const mockClient = new MockNotionClient();
 		const mockConnection = new MockDataSourceConnection();
-		
+
 		const pageId = 'test-page-id';
 		const testPage = createTestPage(pageId, 'Test Page');
 		const testBlocks = [
@@ -639,8 +680,8 @@ Deno.test({
 		mockClient.setBlocks(pageId, testBlocks);
 
 		const accessor = new NotionAccessor(
-			mockConnection as DataSourceConnection,
-			mockClient as NotionClient,
+			mockConnection as unknown as DataSourceConnection,
+			mockClient as unknown as NotionClient,
 		);
 
 		const operations: PortableTextOperation[] = [{
@@ -654,7 +695,10 @@ Deno.test({
 			},
 		}];
 
-		const results = await accessor.applyPortableTextOperations(`notion://page/${pageId}`, operations);
+		const results = await accessor.applyPortableTextOperations(
+			`bb+notion+test-connection+notion://page/${pageId}`,
+			operations,
+		);
 
 		assertEquals(results.length, 1);
 		assertEquals(results[0].success, false);
@@ -669,7 +713,7 @@ Deno.test({
 	fn: async () => {
 		const mockClient = new MockNotionClient();
 		const mockConnection = new MockDataSourceConnection();
-		
+
 		const pageId = 'test-page-id';
 		const testPage = createTestPage(pageId, 'Test Page');
 		const testBlocks = [
@@ -680,8 +724,8 @@ Deno.test({
 		mockClient.setBlocks(pageId, testBlocks);
 
 		const accessor = new NotionAccessor(
-			mockConnection as DataSourceConnection,
-			mockClient as NotionClient,
+			mockConnection as unknown as DataSourceConnection,
+			mockClient as unknown as NotionClient,
 		);
 
 		const operations: PortableTextOperation[] = [{
@@ -699,7 +743,10 @@ Deno.test({
 			},
 		}];
 
-		const results = await accessor.applyPortableTextOperations(`notion://page/${pageId}`, operations);
+		const results = await accessor.applyPortableTextOperations(
+			`bb+notion+test-connection+notion://page/${pageId}`,
+			operations,
+		);
 
 		assertEquals(results.length, 1);
 		assertEquals(results[0].success, false);
@@ -714,7 +761,7 @@ Deno.test({
 	fn: async () => {
 		const mockClient = new MockNotionClient();
 		const mockConnection = new MockDataSourceConnection();
-		
+
 		const pageId = 'test-page-id';
 		const testPage = createTestPage(pageId, 'Test Page');
 		const testBlocks = [
@@ -725,8 +772,8 @@ Deno.test({
 		mockClient.setBlocks(pageId, testBlocks);
 
 		const accessor = new NotionAccessor(
-			mockConnection as DataSourceConnection,
-			mockClient as NotionClient,
+			mockConnection as unknown as DataSourceConnection,
+			mockClient as unknown as NotionClient,
 		);
 
 		const operations: PortableTextOperation[] = [
@@ -734,7 +781,10 @@ Deno.test({
 			{ type: 'delete', _key: 'nonexistent' }, // Nonexistent key
 		];
 
-		const results = await accessor.applyPortableTextOperations(`notion://page/${pageId}`, operations);
+		const results = await accessor.applyPortableTextOperations(
+			`bb+notion+test-connection+notion://page/${pageId}`,
+			operations,
+		);
 
 		assertEquals(results.length, 2);
 		assertEquals(results[0].success, false);

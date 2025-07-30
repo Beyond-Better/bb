@@ -142,6 +142,19 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		},
 	},
 	{
+		'toolNamePath': 'blockEdit.tool',
+		'metadata': {
+			'name': 'block_edit',
+			'description':
+				'Apply Portable Text operations to edit document blocks in supported data sources. Supports update, insert, delete, and move operations on structured document content. Designed for document-based systems like Notion that use block-based content representation.',
+			'version': '1.0.0',
+			'author': 'BB Team',
+			'license': 'MIT',
+			'mutates': true,
+			'protocolType': 'bb',
+		},
+	},
+	{
 		'toolNamePath': 'displayResource.tool',
 		'metadata': {
 			'name': 'display_resource',

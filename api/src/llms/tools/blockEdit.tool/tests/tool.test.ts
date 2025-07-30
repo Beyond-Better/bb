@@ -7,7 +7,13 @@ import { makeOrchestratorControllerStub } from 'api/tests/stubs.ts';
 import type { DataSourceConnection } from 'api/dataSources/dataSourceConnection.ts';
 import { createTestInteraction, getProjectEditor, getToolManager, withTestProject } from 'api/tests/testSetup.ts';
 import { generatePortableTextKey } from 'api/dataSources/notion/portableTextConverter.ts';
-import type { PortableTextBlock, PortableTextOperation } from 'api/dataSources/interfaces/blockResourceAccessor.ts';
+import { applyOperationsToPortableText } from 'api/utils/portableTextMutator.ts';
+import type {
+	PortableTextBlock,
+	PortableTextOperation,
+	PortableTextOperationResult,
+	PortableTextSpan,
+} from 'api/types/portableText.ts';
 import {
 	createHeading,
 	createParagraph,
@@ -68,211 +74,19 @@ class MockBlockResourceAccessor {
 	}
 
 	async applyPortableTextOperations(_resourceUri: string, operations: PortableTextOperation[]) {
-		const results = [];
+		// Use the shared utility function to apply operations
+		const { modifiedBlocks, operationResults } = applyOperationsToPortableText(
+			this.mockPortableTextBlocks,
+			operations,
+		);
 
-		for (let i = 0; i < operations.length; i++) {
-			const operation = operations[i];
+		// Update our mock data with the modified blocks, ensuring _key is present
+		this.mockPortableTextBlocks = modifiedBlocks.map((block) => ({
+			...block,
+			_key: block._key || generatePortableTextKey(),
+		})) as PortableTextBlock[];
 
-			try {
-				switch (operation.type) {
-					case 'update': {
-						if (!operation.content) {
-							results.push({
-								operationIndex: i,
-								type: 'update',
-								success: false,
-								message: 'Update operation requires content',
-							});
-							continue;
-						}
-
-						let updateIndex = -1;
-						if (typeof operation.index === 'number') {
-							updateIndex = operation.index;
-						} else if (operation._key) {
-							updateIndex = this.mockPortableTextBlocks.findIndex((b) => b._key === operation._key);
-						}
-
-						if (updateIndex === -1 || updateIndex >= this.mockPortableTextBlocks.length) {
-							results.push({
-								operationIndex: i,
-								type: 'update',
-								success: false,
-								message: `Block not found for update operation`,
-							});
-							continue;
-						}
-
-						// Update the mock data - ensure _key is preserved
-						this.mockPortableTextBlocks[updateIndex] = {
-							...operation.content,
-							_key: operation.content._key || this.mockPortableTextBlocks[updateIndex]._key,
-						} as PortableTextBlock;
-
-						results.push({
-							operationIndex: i,
-							type: 'update',
-							success: true,
-							message: `Updated block at index ${updateIndex}`,
-							originalIndex: updateIndex,
-							affectedKey: operation.content._key,
-						});
-						break;
-					}
-					case 'insert': {
-						if (!operation.block) {
-							results.push({
-								operationIndex: i,
-								type: 'insert',
-								success: false,
-								message: 'Insert operation requires block',
-							});
-							continue;
-						}
-
-						const position = operation.position ?? this.mockPortableTextBlocks.length;
-						if (position < 0 || position > this.mockPortableTextBlocks.length) {
-							results.push({
-								operationIndex: i,
-								type: 'insert',
-								success: false,
-								message: `Invalid insert position: ${position}`,
-							});
-							continue;
-						}
-
-						// Ensure block has required _key
-						const blockToInsert = {
-							...operation.block,
-							_key: operation.block._key || generatePortableTextKey(),
-						};
-
-						// Insert the block
-						this.mockPortableTextBlocks.splice(position, 0, blockToInsert as PortableTextBlock);
-
-						results.push({
-							operationIndex: i,
-							type: 'insert',
-							success: true,
-							message: `Inserted block at position ${position}`,
-							newIndex: position,
-							affectedKey: blockToInsert._key,
-						});
-						break;
-					}
-					case 'delete': {
-						let deleteIndex = -1;
-						if (typeof operation.index === 'number') {
-							deleteIndex = operation.index;
-						} else if (operation._key) {
-							deleteIndex = this.mockPortableTextBlocks.findIndex((b) => b._key === operation._key);
-						}
-
-						if (deleteIndex === -1 || deleteIndex >= this.mockPortableTextBlocks.length) {
-							results.push({
-								operationIndex: i,
-								type: 'delete',
-								success: false,
-								message: `Block not found for delete operation`,
-							});
-							continue;
-						}
-
-						const deletedKey = this.mockPortableTextBlocks[deleteIndex]._key;
-						this.mockPortableTextBlocks.splice(deleteIndex, 1);
-
-						results.push({
-							operationIndex: i,
-							type: 'delete',
-							success: true,
-							message: `Deleted block at index ${deleteIndex}`,
-							originalIndex: deleteIndex,
-							affectedKey: deletedKey,
-						});
-						break;
-					}
-					case 'move': {
-						let fromIndex = -1;
-						if (typeof operation.from === 'number') {
-							fromIndex = operation.from;
-						} else if (operation.fromKey) {
-							fromIndex = this.mockPortableTextBlocks.findIndex((b) => b._key === operation.fromKey);
-						}
-
-						let toIndex = -1;
-						if (typeof operation.to === 'number') {
-							toIndex = operation.to;
-						} else if (typeof operation.toPosition === 'number') {
-							toIndex = operation.toPosition;
-						}
-
-						if (fromIndex === -1 || fromIndex >= this.mockPortableTextBlocks.length) {
-							results.push({
-								operationIndex: i,
-								type: 'move',
-								success: false,
-								message: `Source block not found for move operation`,
-							});
-							continue;
-						}
-
-						if (toIndex === -1 || toIndex < 0 || toIndex > this.mockPortableTextBlocks.length) {
-							results.push({
-								operationIndex: i,
-								type: 'move',
-								success: false,
-								message: `Invalid target position for move operation: ${toIndex}`,
-							});
-							continue;
-						}
-
-						if (fromIndex === toIndex) {
-							results.push({
-								operationIndex: i,
-								type: 'move',
-								success: false,
-								message: `Source and target positions are the same: ${fromIndex}`,
-							});
-							continue;
-						}
-
-						// Move the block
-						const [movedBlock] = this.mockPortableTextBlocks.splice(fromIndex, 1);
-						const actualToIndex = toIndex > fromIndex ? toIndex - 1 : toIndex;
-						this.mockPortableTextBlocks.splice(actualToIndex, 0, movedBlock);
-
-						results.push({
-							operationIndex: i,
-							type: 'move',
-							success: true,
-							message: `Moved block from index ${fromIndex} to ${actualToIndex}`,
-							originalIndex: fromIndex,
-							newIndex: actualToIndex,
-							affectedKey: movedBlock._key,
-						});
-						break;
-					}
-					default:
-						results.push({
-							operationIndex: i,
-							type: operation.type,
-							success: false,
-							message: `Unsupported operation type: ${operation.type}`,
-						});
-				}
-			} catch (error) {
-				const errorMessage = error instanceof Error ? error.message : String(error);
-				results.push({
-					operationIndex: i,
-					type: operation.type,
-					success: false,
-					message: `Operation failed: ${errorMessage}`,
-					error: errorMessage,
-				});
-			}
-		}
-
-		return results;
+		return operationResults;
 	}
 }
 
@@ -412,7 +226,8 @@ Deno.test({
 				assert(result.toolResults.length >= 2, 'toolResults should have at least 2 elements');
 
 				const operationResult = result.toolResults.find((r: LLMMessageContentPart) =>
-					(r as LLMMessageContentPartTextBlock).text && (r as LLMMessageContentPartTextBlock).text.includes('✅ Operation 1 (update)')
+					(r as LLMMessageContentPartTextBlock).text &&
+					(r as LLMMessageContentPartTextBlock).text.includes('✅ Operation 1 (update)')
 				);
 				assert(operationResult, 'Should find successful operation result');
 
@@ -515,7 +330,8 @@ Deno.test({
 
 				assert(Array.isArray(result.toolResults), 'toolResults should be an array');
 				const operationResult = result.toolResults.find((r: LLMMessageContentPart) =>
-					(r as LLMMessageContentPartTextBlock).text && (r as LLMMessageContentPartTextBlock).text.includes('✅ Operation 1 (insert)')
+					(r as LLMMessageContentPartTextBlock).text &&
+					(r as LLMMessageContentPartTextBlock).text.includes('✅ Operation 1 (insert)')
 				);
 				assert(operationResult, 'Should find successful insert operation result');
 
@@ -531,7 +347,11 @@ Deno.test({
 				assertEquals(updatedContent[1].style, 'normal', 'Inserted block should have normal style');
 				// Verify other blocks are in correct positions
 				assertEquals(updatedContent[0].children[0].text, 'Original content', 'First block unchanged');
-				assertEquals(updatedContent[2].children[0].text, 'Original heading', 'Second block moved to position 2');
+				assertEquals(
+					updatedContent[2].children[0].text,
+					'Original heading',
+					'Second block moved to position 2',
+				);
 				assertEquals(updatedContent[3].children[0].text, 'Third paragraph', 'Third block moved to position 3');
 			} finally {
 				logChangeAndCommitStub.restore();
@@ -600,7 +420,8 @@ Deno.test({
 
 				assert(Array.isArray(result.toolResults), 'toolResults should be an array');
 				const operationResult = result.toolResults.find((r: LLMMessageContentPart) =>
-					(r as LLMMessageContentPartTextBlock).text && (r as LLMMessageContentPartTextBlock).text.includes('✅ Operation 1 (delete)')
+					(r as LLMMessageContentPartTextBlock).text &&
+					(r as LLMMessageContentPartTextBlock).text.includes('✅ Operation 1 (delete)')
 				);
 				assert(operationResult, 'Should find successful delete operation result');
 
@@ -690,7 +511,8 @@ Deno.test({
 
 				assert(Array.isArray(result.toolResults), 'toolResults should be an array');
 				const operationResult = result.toolResults.find((r: LLMMessageContentPart) =>
-					(r as LLMMessageContentPartTextBlock).text && (r as LLMMessageContentPartTextBlock).text.includes('✅ Operation 1 (move)')
+					(r as LLMMessageContentPartTextBlock).text &&
+					(r as LLMMessageContentPartTextBlock).text.includes('✅ Operation 1 (move)')
 				);
 				assert(operationResult, 'Should find successful move operation result');
 
@@ -812,10 +634,12 @@ Deno.test({
 
 				// Should have both success and failure results
 				const successResult = result.toolResults.find((r: LLMMessageContentPart) =>
-					(r as LLMMessageContentPartTextBlock).text && (r as LLMMessageContentPartTextBlock).text.includes('✅ Operation 1 (update)')
+					(r as LLMMessageContentPartTextBlock).text &&
+					(r as LLMMessageContentPartTextBlock).text.includes('✅ Operation 1 (update)')
 				);
 				const failureResult = result.toolResults.find((r: LLMMessageContentPart) =>
-					(r as LLMMessageContentPartTextBlock).text && (r as LLMMessageContentPartTextBlock).text.includes('❌ Operation 2 (update)')
+					(r as LLMMessageContentPartTextBlock).text &&
+					(r as LLMMessageContentPartTextBlock).text.includes('❌ Operation 2 (update)')
 				);
 
 				assert(successResult, 'Should find successful operation result');
@@ -1034,7 +858,8 @@ Deno.test({
 				assert(Array.isArray(result.toolResults), 'toolResults should be an array');
 				// Should show operation failure
 				const failureResult = result.toolResults.find((r: LLMMessageContentPart) =>
-					(r as LLMMessageContentPartTextBlock).text && (r as LLMMessageContentPartTextBlock).text.includes('❌ Operation 1 (update)')
+					(r as LLMMessageContentPartTextBlock).text &&
+					(r as LLMMessageContentPartTextBlock).text.includes('❌ Operation 1 (update)')
 				);
 				assert(failureResult, 'Should find failed operation result');
 

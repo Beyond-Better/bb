@@ -1,17 +1,19 @@
 /**
  * Tests for portableTextMutator utility functions
  */
-import { assert, assertEquals, assertThrows } from '@std/assert';
+import { assertEquals } from '@std/assert';
 import {
 	applyOperationsToPortableText,
-	validatePortableTextOperation,
 	findBlockByKey,
 	summarizeOperations,
-	type PortableTextBlock,
-	type PortableTextOperation,
-	type PortableTextOperationResult,
-	type PortableTextSpan,
-} from '../../../src/utils/portableTextMutator.utils.ts';
+	validatePortableTextOperation,
+} from 'api/utils/portableTextMutator.ts';
+import type {
+	PortableTextBlock,
+	PortableTextOperation,
+	//PortableTextOperationResult,
+	//PortableTextSpan,
+} from 'api/types/portableText.ts';
 
 // Helper function to create test blocks
 function createTestBlock(key: string, text: string, style: string = 'normal'): PortableTextBlock {
@@ -27,14 +29,14 @@ function createTestBlock(key: string, text: string, style: string = 'normal'): P
 	};
 }
 
-// Helper function to create test span
-function createTestSpan(key: string, text: string): PortableTextSpan {
-	return {
-		_type: 'span',
-		_key: key,
-		text,
-	};
-}
+// // Helper function to create test span
+// function createTestSpan(key: string, text: string): PortableTextSpan {
+// 	return {
+// 		_type: 'span',
+// 		_key: key,
+// 		text,
+// 	};
+// }
 
 Deno.test({
 	name: 'applyOperationsToPortableText - update operation by index',
@@ -363,12 +365,13 @@ Deno.test({
 	sanitizeOps: false,
 	fn: () => {
 		const blocks = [createTestBlock('block1', 'First block')];
-		
+
 		const operations: PortableTextOperation[] = [{
+			// deno-lint-ignore no-explicit-any
 			type: 'invalid' as any,
 		}];
 
-		const { modifiedBlocks, operationResults } = applyOperationsToPortableText(blocks, operations);
+		const { modifiedBlocks: _modifiedBlocks, operationResults } = applyOperationsToPortableText(blocks, operations);
 
 		assertEquals(operationResults.length, 1);
 		assertEquals(operationResults[0].success, false);
@@ -418,8 +421,11 @@ Deno.test({
 		];
 
 		for (const operation of validOperations) {
-			assertEquals(validatePortableTextOperation(operation), true, 
-				`Operation should be valid: ${JSON.stringify(operation)}`);
+			assertEquals(
+				validatePortableTextOperation(operation),
+				true,
+				`Operation should be valid: ${JSON.stringify(operation)}`,
+			);
 		}
 	},
 });
@@ -430,6 +436,7 @@ Deno.test({
 	sanitizeOps: false,
 	fn: () => {
 		const invalidOperations: PortableTextOperation[] = [
+			// deno-lint-ignore no-explicit-any
 			{ type: 'invalid' as any },
 			{ type: 'update' }, // Missing content and index/key
 			{ type: 'update', content: createTestBlock('block1', 'text') }, // Missing index/key
@@ -441,8 +448,11 @@ Deno.test({
 		];
 
 		for (const operation of invalidOperations) {
-			assertEquals(validatePortableTextOperation(operation), false, 
-				`Operation should be invalid: ${JSON.stringify(operation)}`);
+			assertEquals(
+				validatePortableTextOperation(operation),
+				false,
+				`Operation should be invalid: ${JSON.stringify(operation)}`,
+			);
 		}
 	},
 });
@@ -517,7 +527,7 @@ Deno.test({
 		];
 
 		const summary = summarizeOperations(operations);
-		
+
 		assertEquals(summary.includes('4 operations'), true);
 		assertEquals(summary.includes('#0: Update block 0'), true);
 		assertEquals(summary.includes('#1: Insert block at position 1'), true);
@@ -556,7 +566,7 @@ Deno.test({
 		];
 
 		const summary = summarizeOperations(operations);
-		
+
 		assertEquals(summary.includes('#0: Update block block-key'), true);
 		assertEquals(summary.includes('#1: Move block from source-key to 2'), true);
 	},
@@ -568,7 +578,7 @@ Deno.test({
 	sanitizeOps: false,
 	fn: () => {
 		const blocks: PortableTextBlock[] = [];
-		
+
 		const operations: PortableTextOperation[] = [{
 			type: 'insert',
 			position: 0,
@@ -607,7 +617,7 @@ Deno.test({
 		assertEquals(operationResults.length, 1);
 		assertEquals(operationResults[0].success, false);
 		assertEquals(operationResults[0].message.includes('same'), true);
-		
+
 		// Blocks should remain unchanged
 		assertEquals(modifiedBlocks.length, 3);
 		assertEquals(modifiedBlocks[0]._key, 'block1');

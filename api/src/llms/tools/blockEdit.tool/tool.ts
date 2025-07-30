@@ -22,7 +22,10 @@ import type {
 	ToolHandlingErrorOptions,
 } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
-import type { BlockResourceAccessor, PortableTextOperationResult } from 'api/src/dataSources/interfaces/blockResourceAccessor.ts';
+import type {
+	BlockResourceAccessor,
+	PortableTextOperationResult,
+} from 'api/dataSources/interfaces/blockResourceAccessor.ts';
 
 export default class LLMToolBlockEdit extends LLMTool {
 	get inputSchema(): LLMToolInputSchema {
@@ -96,7 +99,8 @@ export default class LLMToolBlockEdit extends LLMTool {
 													items: {
 														type: 'string',
 													},
-													description: 'Text formatting marks (e.g., "strong", "em", "code").',
+													description:
+														'Text formatting marks (e.g., "strong", "em", "code").',
 												},
 											},
 											required: ['_type', 'text'],
@@ -149,7 +153,8 @@ export default class LLMToolBlockEdit extends LLMTool {
 													items: {
 														type: 'string',
 													},
-													description: 'Text formatting marks (e.g., "strong", "em", "code").',
+													description:
+														'Text formatting marks (e.g., "strong", "em", "code").',
 												},
 											},
 											required: ['_type', 'text'],
@@ -275,7 +280,9 @@ export default class LLMToolBlockEdit extends LLMTool {
 			const operationResults = await blockAccessor.applyPortableTextOperations(resourceUri, operations);
 
 			// Process results
-			const successfulOperations = operationResults.filter((result: PortableTextOperationResult) => result.success);
+			const successfulOperations = operationResults.filter((result: PortableTextOperationResult) =>
+				result.success
+			);
 			const failedOperations = operationResults.filter((result: PortableTextOperationResult) => !result.success);
 
 			const allOperationsSucceeded = failedOperations.length === 0;
@@ -304,7 +311,9 @@ export default class LLMToolBlockEdit extends LLMTool {
 				result: { success: boolean; operationIndex: number; message: string; type: string },
 			) => ({
 				type: 'text',
-				text: `${result.success ? '✅' : '❌'} Operation ${result.operationIndex + 1} (${result.type}): ${result.message}`,
+				text: `${result.success ? '✅' : '❌'} Operation ${
+					result.operationIndex + 1
+				} (${result.type}): ${result.message}`,
 			}));
 
 			const dsConnectionStatus = notFound.length > 0
@@ -317,7 +326,8 @@ export default class LLMToolBlockEdit extends LLMTool {
 
 			toolResultContentParts.unshift({
 				type: 'text',
-				text: `Block edit operations applied to resource: ${resourcePath}. ${operationStatus}. ${successfulOperations.length}/${operations.length} operations succeeded.`,
+				text:
+					`Block edit operations applied to resource: ${resourcePath}. ${operationStatus}. ${successfulOperations.length}/${operations.length} operations succeeded.`,
 			});
 
 			toolResultContentParts.unshift({
@@ -326,13 +336,15 @@ export default class LLMToolBlockEdit extends LLMTool {
 			});
 
 			const toolResults = toolResultContentParts;
-			const toolResponse = `${dsConnectionStatus}\n${operationStatus}: ${successfulOperations.length}/${operations.length} operations succeeded`;
+			const toolResponse =
+				`${dsConnectionStatus}\n${operationStatus}: ${successfulOperations.length}/${operations.length} operations succeeded`;
 			const bbResponse = `BB applied block edit operations.\n${dsConnectionStatus}`;
 
 			return { toolResults, toolResponse, bbResponse };
-
 		} catch (error) {
-			const errorMessage = `Failed to apply block edit operations to ${resourcePath}: ${(error as Error).message}`;
+			const errorMessage = `Failed to apply block edit operations to ${resourcePath}: ${
+				(error as Error).message
+			}`;
 			logger.error(`LLMToolBlockEdit: ${errorMessage}`);
 
 			throw createError(ErrorType.ResourceHandling, errorMessage, {

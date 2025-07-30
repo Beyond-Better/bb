@@ -1,21 +1,6 @@
 import type { LLMToolRunResultContent } from 'api/llms/llmTool.ts';
 import type { DataSourceProviderType } from 'shared/types/dataSource.ts';
-
-/**
- * Represents a Portable Text block structure.
- */
-export interface PortableTextBlock {
-	_type: string;
-	_key: string; // Required field
-	style?: string;
-	children?: Array<{
-		_type: 'span';
-		_key: string; // Required field
-		text: string;
-		marks?: string[];
-	}>;
-	[key: string]: any; // Additional properties for different block types
-}
+import type { PortableTextBlock } from 'api/types/portableText.ts';
 
 /**
  * Represents a single block edit operation to be performed on a document.

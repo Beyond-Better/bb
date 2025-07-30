@@ -6,8 +6,10 @@ import type { Signal } from '@preact/signals';
 import type { AppState } from '../hooks/useAppState.ts';
 import { CustomSelect, type SelectOption } from './CustomSelect.tsx';
 import { FileBrowser } from './FileBrowser.tsx';
+import { GoogleOAuthFlow } from './GoogleOAuthFlow.tsx';
 import { generateId } from 'shared/projectData.ts';
 import type { DataSourceProviderInfo } from 'shared/types/dataSource.ts';
+import type { AuthConfig } from 'api/dataSources/interfaces/authentication.ts';
 
 interface DataSourceModalProps {
 	dsConnection?: ClientDataSourceConnection;
@@ -173,6 +175,67 @@ export function DataSourceModal({ dsConnection, onClose, onSave, appState, dsPro
 	// Render different config fields based on the data source providerType
 	const renderConfigFields = () => {
 		switch (formData.providerType) {
+			case 'googledocs':
+				return (
+					<div className='space-y-4 col-span-2'>
+						{/* Google OAuth Authentication */}
+						<GoogleOAuthFlow
+							onAuth={(authConfig: AuthConfig) => {
+								setFormData((prev) => ({
+									...prev,
+									config: {
+										...prev.config,
+										authConfig
+									}
+								}));
+							}}
+							onError={(error: string) => {
+								setErrors((prev) => ({ ...prev, auth: error }));
+							}}
+							authConfig={formData.config.authConfig as AuthConfig}
+							className='mb-4'
+						/>
+						{errors.auth && (
+							<div className='text-red-500 text-xs mt-1'>{errors.auth}</div>
+						)}
+
+						{/* Optional Configuration Fields */}
+						<div className='grid grid-cols-2 gap-4'>
+							<div className='space-y-2'>
+								<label className='block text-sm font-medium text-gray-700 dark:text-gray-300'>
+									Display Name (Optional)
+								</label>
+								<input
+									type='text'
+									value={formData.config.displayName as string || ''}
+									onChange={(e) => handleConfigChange('displayName', (e.target as HTMLInputElement).value)}
+									placeholder='My Google Docs'
+									className='w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-gray-100'
+								/>
+								<div className='text-xs text-gray-500 dark:text-gray-400'>
+									Friendly name for this Google connection
+								</div>
+							</div>
+
+							<div className='space-y-2'>
+								<label className='block text-sm font-medium text-gray-700 dark:text-gray-300'>
+									Default Drive/Folder ID (Optional)
+								</label>
+								<input
+									type='text'
+									value={formData.config.defaultFolderId as string || ''}
+									onChange={(e) => handleConfigChange('defaultFolderId', (e.target as HTMLInputElement).value)}
+									placeholder='1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms'
+									className='w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-gray-100'
+								/>
+								<div className='text-xs text-gray-500 dark:text-gray-400'>
+									Restrict access to a specific Drive folder (leave empty for full access)
+								</div>
+							</div>
+						</div>
+					</div>
+				);
+
 			case 'filesystem':
 				return (
 					<div className='space-y-4 col-span-2'>

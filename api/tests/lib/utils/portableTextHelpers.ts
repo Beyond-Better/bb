@@ -1,11 +1,11 @@
 /**
  * Portable Text test utilities
- * 
+ *
  * Helper functions for creating and validating Portable Text blocks in tests.
  * These utilities provide a consistent way to generate test data for block editing operations.
  */
 
-import type { PortableTextBlock, PortableTextSpan } from 'api/dataSources/interfaces/blockResourceAccessor.ts';
+import type { PortableTextBlock, PortableTextSpan } from 'api/types/portableText.ts';
 
 /**
  * Generate a unique key for Portable Text elements
@@ -18,12 +18,12 @@ export function generateTestKey(prefix: string = 'test'): string {
 
 /**
  * Create a Portable Text block with the specified content
- * 
+ *
  * @param text - The text content for the block
  * @param style - Block style (default: 'normal')
  * @param _key - Unique key (auto-generated if not provided)
  * @returns A complete PortableTextBlock
- * 
+ *
  * @example
  * ```typescript
  * const block = createPortableTextBlock('Hello world', 'normal');
@@ -32,7 +32,7 @@ export function generateTestKey(prefix: string = 'test'): string {
 export function createPortableTextBlock(
 	text: string,
 	style: string = 'normal',
-	_key?: string
+	_key?: string,
 ): PortableTextBlock {
 	const blockKey = _key || generateTestKey('block');
 	const spanKey = generateTestKey('span');
@@ -53,12 +53,12 @@ export function createPortableTextBlock(
 
 /**
  * Create a Portable Text span with the specified content and formatting
- * 
+ *
  * @param text - The text content for the span
  * @param marks - Optional formatting marks (e.g., ['strong', 'em'])
  * @param _key - Unique key (auto-generated if not provided)
  * @returns A complete PortableTextSpan
- * 
+ *
  * @example
  * ```typescript
  * const span = createPortableTextSpan('Bold text', ['strong']);
@@ -67,7 +67,7 @@ export function createPortableTextBlock(
 export function createPortableTextSpan(
 	text: string,
 	marks?: string[],
-	_key?: string
+	_key?: string,
 ): PortableTextSpan {
 	return {
 		_type: 'span',
@@ -79,12 +79,12 @@ export function createPortableTextSpan(
 
 /**
  * Create a heading block of the specified level
- * 
+ *
  * @param level - Heading level (1-6)
  * @param text - The heading text
  * @param _key - Unique key (auto-generated if not provided)
  * @returns A PortableTextBlock configured as a heading
- * 
+ *
  * @example
  * ```typescript
  * const heading = createHeading(1, 'Main Title');
@@ -101,11 +101,11 @@ export function createHeading(level: number, text: string, _key?: string): Porta
 
 /**
  * Create a normal paragraph block
- * 
+ *
  * @param text - The paragraph text
  * @param _key - Unique key (auto-generated if not provided)
  * @returns A PortableTextBlock configured as a normal paragraph
- * 
+ *
  * @example
  * ```typescript
  * const paragraph = createParagraph('This is a paragraph of text.');
@@ -117,12 +117,12 @@ export function createParagraph(text: string, _key?: string): PortableTextBlock 
 
 /**
  * Create a code block with optional language specification
- * 
+ *
  * @param code - The code content
  * @param language - Optional programming language identifier
  * @param _key - Unique key (auto-generated if not provided)
  * @returns A PortableTextBlock configured as a code block
- * 
+ *
  * @example
  * ```typescript
  * const codeBlock = createCodeBlock('console.log("Hello");', 'javascript');
@@ -151,11 +151,11 @@ export function createCodeBlock(code: string, language?: string, _key?: string):
 
 /**
  * Create a blockquote block
- * 
+ *
  * @param text - The quoted text
  * @param _key - Unique key (auto-generated if not provided)
  * @returns A PortableTextBlock configured as a blockquote
- * 
+ *
  * @example
  * ```typescript
  * const quote = createBlockquote('This is a quote from someone.');
@@ -167,31 +167,35 @@ export function createBlockquote(text: string, _key?: string): PortableTextBlock
 
 /**
  * Create a list item block
- * 
+ *
  * @param text - The list item text
  * @param listType - Type of list ('bullet' or 'number')
  * @param _key - Unique key (auto-generated if not provided)
  * @returns A PortableTextBlock configured as a list item
- * 
+ *
  * @example
  * ```typescript
  * const bulletItem = createListItem('First item', 'bullet');
  * const numberItem = createListItem('First item', 'number');
  * ```
  */
-export function createListItem(text: string, listType: 'bullet' | 'number' = 'bullet', _key?: string): PortableTextBlock {
+export function createListItem(
+	text: string,
+	listType: 'bullet' | 'number' = 'bullet',
+	_key?: string,
+): PortableTextBlock {
 	const style = listType === 'bullet' ? 'bulletList' : 'numberList';
 	return createPortableTextBlock(text, style, _key);
 }
 
 /**
  * Create a complex block with multiple spans and formatting
- * 
+ *
  * @param spans - Array of span configurations
  * @param style - Block style (default: 'normal')
  * @param _key - Unique key (auto-generated if not provided)
  * @returns A PortableTextBlock with multiple spans
- * 
+ *
  * @example
  * ```typescript
  * const complexBlock = createComplexBlock([
@@ -206,35 +210,36 @@ export function createListItem(text: string, listType: 'bullet' | 'number' = 'bu
 export function createComplexBlock(
 	spans: Array<{ text: string; marks?: string[] }>,
 	style: string = 'normal',
-	_key?: string
+	_key?: string,
 ): PortableTextBlock {
 	return {
 		_type: 'block',
 		_key: _key || generateTestKey('block'),
 		style,
-		children: spans.map(span => createPortableTextSpan(span.text, span.marks)),
+		children: spans.map((span) => createPortableTextSpan(span.text, span.marks)),
 	};
 }
 
 /**
  * Basic validation for a Portable Text block
- * 
+ *
  * Checks that the block has the required properties and structure.
  * This is a basic validation - more comprehensive validation would
  * check the entire Portable Text specification.
- * 
+ *
  * @param block - The object to validate
  * @returns True if the block appears to be valid, false otherwise
- * 
+ *
  * @example
  * ```typescript
  * const block = createParagraph('Test');
  * const isValid = validatePortableTextBlock(block); // true
- * 
+ *
  * const invalid = { _type: 'block' }; // missing _key
  * const isInvalid = validatePortableTextBlock(invalid); // false
  * ```
  */
+// deno-lint-ignore no-explicit-any
 export function validatePortableTextBlock(block: any): boolean {
 	// Check basic structure
 	if (!block || typeof block !== 'object') {
@@ -268,10 +273,11 @@ export function validatePortableTextBlock(block: any): boolean {
 
 /**
  * Basic validation for a Portable Text span
- * 
+ *
  * @param span - The object to validate
  * @returns True if the span appears to be valid, false otherwise
  */
+// deno-lint-ignore no-explicit-any
 export function validatePortableTextSpan(span: any): boolean {
 	if (!span || typeof span !== 'object') {
 		return false;
@@ -300,10 +306,10 @@ export function validatePortableTextSpan(span: any): boolean {
 
 /**
  * Create a document with multiple blocks for testing
- * 
+ *
  * @param blockCount - Number of blocks to create (default: 3)
  * @returns Array of PortableTextBlocks representing a test document
- * 
+ *
  * @example
  * ```typescript
  * const document = createTestDocument(5);

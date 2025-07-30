@@ -3,26 +3,8 @@
  * Converts between Notion's block format and Portable Text specification.
  */
 import { logger } from 'shared/logger.ts';
-import type { NotionBlock, RichTextItemResponse } from './notionClient.ts';
-
-// Portable Text type definitions
-export interface PortableTextBlock {
-	_type: string;
-	_key?: string;
-	style?: string;
-	listItem?: string;
-	level?: number;
-	children?: PortableTextSpan[];
-	// Custom properties for specific block types
-	[key: string]: unknown;
-}
-
-export interface PortableTextSpan {
-	_type: 'span';
-	_key?: string;
-	text: string;
-	marks?: string[];
-}
+import type { NotionBlock, RichTextItemResponse } from 'api/dataSources/notionClient.ts';
+import type { PortableTextBlock, PortableTextSpan } from 'api/types/portableText.ts';
 
 // Custom block types for Notion-specific content
 export interface NotionCustomBlock extends PortableTextBlock {
@@ -48,6 +30,7 @@ export interface NotionTableBlock extends PortableTextBlock {
 }
 
 // Supported Notion block types
+/*
 const SUPPORTED_BLOCK_TYPES = [
 	'paragraph',
 	'heading_1',
@@ -70,6 +53,7 @@ const SUPPORTED_BLOCK_TYPES = [
 	'pdf',
 	'equation',
 ] as const;
+ */
 
 /**
  * Convert Notion blocks to Portable Text format
@@ -190,7 +174,10 @@ function convertNotionBlockToPortableText(block: NotionBlock): PortableTextBlock
 				...baseBlock,
 				_type: 'code',
 				language: block.code?.language || 'text',
-				code: block.code?.rich_text?.map(rt => rt.plain_text || rt.text?.content || '').join('') || '',
+				code:
+					block.code?.rich_text?.map((rt: { plain_text: string; text: { content: string } }) =>
+						rt.plain_text || rt.text?.content || ''
+					).join('') || '',
 			};
 
 		case 'quote':
@@ -354,6 +341,7 @@ function convertRichTextToSpans(richText: RichTextItemResponse[]): PortableTextS
 
 		// Store link URL as additional data if present
 		if (text.href || text.text?.link?.url) {
+			// deno-lint-ignore no-explicit-any
 			(span as any).linkUrl = text.href || text.text?.link?.url;
 		}
 
@@ -404,10 +392,13 @@ function convertPortableTextBlockToNotion(block: PortableTextBlock): Partial<Not
 				...baseBlock,
 				type: 'code',
 				code: {
+					// deno-lint-ignore no-explicit-any
 					language: (block as any).language || 'text',
 					rich_text: [{
 						type: 'text',
+						// deno-lint-ignore no-explicit-any
 						text: { content: (block as any).code || '' },
+						// deno-lint-ignore no-explicit-any
 						plain_text: (block as any).code || '',
 					}],
 				},
@@ -420,18 +411,19 @@ function convertPortableTextBlockToNotion(block: PortableTextBlock): Partial<Not
 				divider: {},
 			};
 
-		case 'notion_callout':
+		case 'notion_callout': {
 			const calloutBlock = block as NotionCustomBlock;
 			return {
 				...baseBlock,
 				type: 'callout',
 				callout: {
 					rich_text: convertSpansToRichText(block.children || []),
+					// deno-lint-ignore no-explicit-any
 					icon: calloutBlock.notionData?.icon || { emoji: (calloutBlock as any).icon || '💡' },
 					color: calloutBlock.notionData?.color || 'default',
 				},
 			};
-
+		}
 		case 'notion_toggle':
 			return {
 				...baseBlock,
@@ -441,20 +433,21 @@ function convertPortableTextBlockToNotion(block: PortableTextBlock): Partial<Not
 				},
 			};
 
-		case 'notion_embed':
+		case 'notion_embed': {
 			const embedBlock = block as NotionEmbedBlock;
 			return convertPortableTextEmbedToNotion(embedBlock, baseBlock);
-
-		case 'notion_equation':
+		}
+		case 'notion_equation': {
 			const equationBlock = block as NotionCustomBlock;
 			return {
 				...baseBlock,
 				type: 'equation',
 				equation: {
+					// deno-lint-ignore no-explicit-any
 					expression: (equationBlock as any).expression || '',
 				},
 			};
-
+		}
 		default:
 			// Handle custom Notion block types
 			if (block._type.startsWith('notion_')) {
@@ -505,6 +498,7 @@ function convertPortableTextBlockByStyle(
 					type: 'to_do',
 					to_do: {
 						rich_text: richText,
+						// deno-lint-ignore no-explicit-any
 						checked: (block as any).checked || false,
 					},
 				};
@@ -563,7 +557,7 @@ function convertPortableTextBlockByStyle(
 function convertPortableTextEmbedToNotion(
 	embedBlock: NotionEmbedBlock,
 	baseBlock: Partial<NotionBlock>,
-): Partial<NotionBlock> {
+): Partial<NotionBlock | null> {
 	const caption = convertSpansToRichText(embedBlock.caption || []);
 
 	switch (embedBlock.embedType) {
@@ -667,15 +661,13 @@ function convertSpansToRichText(spans: PortableTextSpan[]): RichTextItemResponse
 			type: 'text',
 			text: {
 				content: span.text,
-				link: span.marks?.includes('link') && (span as any).linkUrl
-					? { url: (span as any).linkUrl }
-					: null,
+				// deno-lint-ignore no-explicit-any
+				link: span.marks?.includes('link') && (span as any).linkUrl ? { url: (span as any).linkUrl } : null,
 			},
 			annotations,
 			plain_text: span.text,
-			href: span.marks?.includes('link') && (span as any).linkUrl
-				? (span as any).linkUrl
-				: null,
+			// deno-lint-ignore no-explicit-any
+			href: span.marks?.includes('link') && (span as any).linkUrl ? (span as any).linkUrl : null,
 		};
 
 		return richTextItem;
@@ -688,7 +680,7 @@ function convertSpansToRichText(spans: PortableTextSpan[]): RichTextItemResponse
  * @returns Unique key string
  */
 export function generatePortableTextKey(prefix: string = 'block'): string {
-	return `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+	return `${prefix}-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 }
 
 /**

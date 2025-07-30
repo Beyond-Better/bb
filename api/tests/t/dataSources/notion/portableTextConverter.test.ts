@@ -1,24 +1,28 @@
 /**
  * Comprehensive tests for Notion Portable Text conversion functions
  */
-import { assertEquals, assertExists, assertThrows } from '@std/assert';
-import type { NotionBlock } from '../notionClient.ts';
+import { assertEquals, assertExists } from '@std/assert';
+import type { NotionBlock } from 'api/dataSources/notionClient.ts';
 import {
 	convertNotionToPortableText,
 	convertPortableTextToNotion,
 	generatePortableTextKey,
-	validatePortableText,
-	type PortableTextBlock,
-	type PortableTextSpan,
 	type NotionCustomBlock,
 	type NotionEmbedBlock,
-} from '../portableTextConverter.ts';
+	validatePortableText,
+} from 'api/dataSources/notion/portableTextConverter.ts';
+import type {
+	PortableTextBlock,
+	//PortableTextSpan,
+} from 'api/types/portableText.ts';
 
 // Helper function to create a basic Notion block
+// deno-lint-ignore no-explicit-any
 function createNotionBlock(type: string, id: string, data: any): NotionBlock {
 	return {
 		object: 'block',
 		id,
+		// deno-lint-ignore no-explicit-any
 		type: type as any,
 		created_time: '2025-01-01T00:00:00.000Z',
 		last_edited_time: '2025-01-01T00:00:00.000Z',
@@ -27,6 +31,7 @@ function createNotionBlock(type: string, id: string, data: any): NotionBlock {
 }
 
 // Helper function to create rich text
+// deno-lint-ignore no-explicit-any
 function createRichText(content: string, annotations: any = {}, href?: string): any {
 	return {
 		type: 'text',
@@ -81,6 +86,7 @@ Deno.test({
 
 		assertEquals(result[0].children![3].text, 'italic text');
 		assertEquals(result[0].children![3].marks, ['em', 'link']);
+		// deno-lint-ignore no-explicit-any
 		assertEquals((result[0].children![3] as any).linkUrl, 'https://example.com');
 
 		assertEquals(result[0].children![5].text, 'code');
@@ -155,11 +161,13 @@ Deno.test({
 
 		// Checked todo
 		assertEquals(result[2].listItem, 'checkbox');
+		// deno-lint-ignore no-explicit-any
 		assertEquals((result[2] as any).checked, true);
 		assertEquals(result[2].children![0].text, 'Completed todo');
 
 		// Unchecked todo
 		assertEquals(result[3].listItem, 'checkbox');
+		// deno-lint-ignore no-explicit-any
 		assertEquals((result[3] as any).checked, false);
 		assertEquals(result[3].children![0].text, 'Uncompleted todo');
 	},
@@ -181,7 +189,9 @@ Deno.test({
 
 		assertEquals(result.length, 1);
 		assertEquals(result[0]._type, 'code');
+		// deno-lint-ignore no-explicit-any
 		assertEquals((result[0] as any).language, 'typescript');
+		// deno-lint-ignore no-explicit-any
 		assertEquals((result[0] as any).code, 'const x: number = 42;');
 	},
 });
@@ -220,6 +230,7 @@ Deno.test({
 		// Callout
 		assertEquals(result[2]._type, 'notion_callout');
 		assertEquals((result[2] as NotionCustomBlock).notionType, 'callout');
+		// deno-lint-ignore no-explicit-any
 		assertEquals((result[2] as any).icon, '💡');
 
 		// Toggle
@@ -330,6 +341,7 @@ Deno.test({
 			created_time: '2025-01-01T00:00:00.000Z',
 			last_edited_time: '2025-01-01T00:00:00.000Z',
 			unsupported_type: { some_data: 'value' },
+			// deno-lint-ignore no-explicit-any
 		} as any;
 
 		const result = convertNotionToPortableText([unsupportedBlock]);
@@ -353,11 +365,13 @@ Deno.test({
 				style: 'normal',
 				children: [
 					{
+						_key: 'test-id-child-1',
 						_type: 'span',
 						text: 'Hello ',
 						marks: [],
 					},
 					{
+						_key: 'test-id-child-2',
 						_type: 'span',
 						text: 'world',
 						marks: ['strong'],
@@ -389,19 +403,19 @@ Deno.test({
 				_type: 'block',
 				_key: 'h1-id',
 				style: 'h1',
-				children: [{ _type: 'span', text: 'Title' }],
+				children: [{ _key: 'h1-id-child-1', _type: 'span', text: 'Title' }],
 			},
 			{
 				_type: 'block',
 				_key: 'h2-id',
 				style: 'h2',
-				children: [{ _type: 'span', text: 'Subtitle' }],
+				children: [{ _key: 'h1-id-child-2', _type: 'span', text: 'Subtitle' }],
 			},
 			{
 				_type: 'block',
 				_key: 'h3-id',
 				style: 'h3',
-				children: [{ _type: 'span', text: 'Sub-subtitle' }],
+				children: [{ _key: 'h1-id-child-3', _type: 'span', text: 'Sub-subtitle' }],
 			},
 		];
 
@@ -441,6 +455,7 @@ Deno.test({
 				listItem: 'checkbox',
 				checked: true,
 				children: [{ _type: 'span', text: 'Checked item' }],
+				// deno-lint-ignore no-explicit-any
 			} as any,
 		];
 
@@ -450,6 +465,7 @@ Deno.test({
 		assertEquals(result[0].type, 'bulleted_list_item');
 		assertEquals(result[1].type, 'numbered_list_item');
 		assertEquals(result[2].type, 'to_do');
+		// deno-lint-ignore no-explicit-any
 		assertEquals((result[2] as any).to_do.checked, true);
 	},
 });
@@ -465,6 +481,7 @@ Deno.test({
 				_key: 'code-id',
 				language: 'javascript',
 				code: 'console.log("Hello");',
+				// deno-lint-ignore no-explicit-any
 			} as any,
 		];
 
@@ -472,7 +489,9 @@ Deno.test({
 
 		assertEquals(result.length, 1);
 		assertEquals(result[0].type, 'code');
+		// deno-lint-ignore no-explicit-any
 		assertEquals((result[0] as any).code.language, 'javascript');
+		// deno-lint-ignore no-explicit-any
 		assertEquals((result[0] as any).code.rich_text[0].text.content, 'console.log("Hello");');
 	},
 });
@@ -499,6 +518,7 @@ Deno.test({
 				icon: '💡',
 				children: [{ _type: 'span', text: 'Callout text' }],
 				notionType: 'callout',
+				// deno-lint-ignore no-explicit-any
 			} as any,
 		];
 
@@ -527,6 +547,7 @@ Deno.test({
 					{ _type: 'span', text: 'code', marks: ['code'] },
 					{ _type: 'span', text: 'strikethrough', marks: ['strike-through'] },
 					{ _type: 'span', text: 'underline', marks: ['underline'] },
+					// deno-lint-ignore no-explicit-any
 					{ _type: 'span', text: 'link', marks: ['link'], linkUrl: 'https://example.com' } as any,
 				],
 			},
@@ -593,6 +614,7 @@ Deno.test({
 				_key: 'code-id',
 				language: 'typescript',
 				code: 'const x = 1;',
+				// deno-lint-ignore no-explicit-any
 			} as any,
 			{
 				_type: 'divider',
@@ -610,6 +632,7 @@ Deno.test({
 	sanitizeOps: false,
 	fn: () => {
 		// Not an array
+		// deno-lint-ignore no-explicit-any
 		assertEquals(validatePortableText('not an array' as any), false);
 
 		// Missing _type
@@ -620,6 +643,7 @@ Deno.test({
 				children: [{ _type: 'span', text: 'Text' }],
 			},
 		];
+		// deno-lint-ignore no-explicit-any
 		assertEquals(validatePortableText(missingType as any), false);
 
 		// Block without children
@@ -630,6 +654,7 @@ Deno.test({
 				style: 'normal',
 			},
 		];
+		// deno-lint-ignore no-explicit-any
 		assertEquals(validatePortableText(blockWithoutChildren as any), false);
 
 		// Invalid span type
@@ -646,6 +671,7 @@ Deno.test({
 				],
 			},
 		];
+		// deno-lint-ignore no-explicit-any
 		assertEquals(validatePortableText(invalidSpanType as any), false);
 
 		// Span without text
@@ -661,6 +687,7 @@ Deno.test({
 				],
 			},
 		];
+		// deno-lint-ignore no-explicit-any
 		assertEquals(validatePortableText(spanWithoutText as any), false);
 	},
 });

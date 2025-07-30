@@ -17,13 +17,14 @@ import { notionPageToMarkdown } from './notionToMarkdown.ts';
 import {
 	convertNotionToPortableText,
 	convertPortableTextToNotion,
-	type PortableTextBlock,
 } from 'api/dataSources/notion/portableTextConverter.ts';
-import {
-	applyOperationsToPortableText,
-	type PortableTextOperation,
-	type PortableTextOperationResult,
-} from '../../utils/portableTextMutator.utils.ts';
+import { applyOperationsToPortableText } from 'api/utils/portableTextMutator.ts';
+import type {
+	PortableTextBlock,
+	PortableTextOperation,
+	PortableTextOperationResult,
+	PortableTextSpan,
+} from 'api/types/portableText.ts';
 import { extractResourcePath } from 'shared/dataSource.ts';
 import type { DataSourceConnection } from 'api/dataSources/interfaces/dataSourceConnection.ts';
 import type {
@@ -40,9 +41,6 @@ import type {
 import { createError, ErrorType } from 'api/utils/error.ts';
 import type { ResourceHandlingErrorOptions } from 'api/errors/error.ts';
 import type { DataSourceCapability, DataSourceMetadata } from 'shared/types/dataSource.ts';
-
-// Re-export types from the utility for backward compatibility
-export type { PortableTextOperation, PortableTextOperationResult } from '../../utils/portableTextMutator.utils.ts';
 
 /**
  * Resource types supported by Notion
@@ -85,7 +83,7 @@ export class NotionAccessor extends BBResourceAccessor {
 		const workspaceId = connection.config.workspaceId as string;
 		if (!workspaceId || typeof workspaceId !== 'string') {
 			throw new Error(`Invalid workspaceId in connection ${connection.id}: ${workspaceId}`);
-
+		}
 
 		this.workspaceId = workspaceId;
 		logger.debug(`NotionAccessor: Created for ${connection.id} with workspace ${this.workspaceId}`);
@@ -175,7 +173,7 @@ export class NotionAccessor extends BBResourceAccessor {
 				default:
 					return false;
 			}
-
+		} catch (_error) {
 			// Resource doesn't exist or another error occurred
 			return false;
 		}
@@ -237,7 +235,7 @@ export class NotionAccessor extends BBResourceAccessor {
 				{
 					filePath: resourceUri,
 					operation: 'read',
- as ResourceHandlingErrorOptions,
+				} as ResourceHandlingErrorOptions,
 			);
 		}
 	}
@@ -449,49 +447,49 @@ export class NotionAccessor extends BBResourceAccessor {
 			case 'paragraph':
 				if (block.paragraph?.rich_text) {
 					const text = block.paragraph.rich_text
-						.map((rt: any) => rt.plain_text || '').join('');
+						.map((rt: { plain_text: string }) => rt.plain_text || '').join('');
 					parts.push(text);
 				}
 				break;
 			case 'heading_1':
 				if (block.heading_1?.rich_text) {
 					const text = block.heading_1.rich_text
-						.map((rt: any) => rt.plain_text || '').join('');
+						.map((rt: { plain_text: string }) => rt.plain_text || '').join('');
 					parts.push(`# ${text}`);
 				}
 				break;
 			case 'heading_2':
 				if (block.heading_2?.rich_text) {
 					const text = block.heading_2.rich_text
-						.map((rt: any) => rt.plain_text || '').join('');
+						.map((rt: { plain_text: string }) => rt.plain_text || '').join('');
 					parts.push(`## ${text}`);
 				}
 				break;
 			case 'heading_3':
 				if (block.heading_3?.rich_text) {
 					const text = block.heading_3.rich_text
-						.map((rt: any) => rt.plain_text || '').join('');
+						.map((rt: { plain_text: string }) => rt.plain_text || '').join('');
 					parts.push(`### ${text}`);
 				}
 				break;
 			case 'bulleted_list_item':
 				if (block.bulleted_list_item?.rich_text) {
 					const text = block.bulleted_list_item.rich_text
-						.map((rt: any) => rt.plain_text || '').join('');
+						.map((rt: { plain_text: string }) => rt.plain_text || '').join('');
 					parts.push(`- ${text}`);
 				}
 				break;
 			case 'numbered_list_item':
 				if (block.numbered_list_item?.rich_text) {
 					const text = block.numbered_list_item.rich_text
-						.map((rt: any) => rt.plain_text || '').join('');
+						.map((rt: { plain_text: string }) => rt.plain_text || '').join('');
 					parts.push(`1. ${text}`);
 				}
 				break;
 			case 'to_do':
 				if (block.to_do?.rich_text) {
 					const text = block.to_do.rich_text
-						.map((rt: any) => rt.plain_text || '').join('');
+						.map((rt: { plain_text: string }) => rt.plain_text || '').join('');
 					const checked = block.to_do.checked ? '[x]' : '[ ]';
 					parts.push(`- ${checked} ${text}`);
 				}
@@ -499,7 +497,7 @@ export class NotionAccessor extends BBResourceAccessor {
 			case 'code':
 				if (block.code?.rich_text) {
 					const text = block.code.rich_text
-						.map((rt: any) => rt.plain_text || '').join('');
+						.map((rt: { plain_text: string }) => rt.plain_text || '').join('');
 					const language = block.code.language || '';
 					parts.push(`\`\`\`${language}\n${text}\n\`\`\``);
 				}
@@ -641,7 +639,7 @@ export class NotionAccessor extends BBResourceAccessor {
 		_options: ResourceWriteOptions = {},
 	): Promise<ResourceWriteResult> {
 		// Get the current page
-		const page = await this.client.getPage(pageId);
+		const _page = await this.client.getPage(pageId);
 
 		// Clear existing blocks
 		const existingBlocks = await this.client.getAllPageBlocks(pageId);
@@ -702,6 +700,7 @@ export class NotionAccessor extends BBResourceAccessor {
 			}
 
 			// Create the page properties
+			// deno-lint-ignore no-explicit-any
 			const properties: Record<string, any> = {};
 
 			// Set up parent reference
@@ -732,7 +731,7 @@ export class NotionAccessor extends BBResourceAccessor {
 			}
 
 			// Prepare blocks for the content
-			let blocks: Partial<NotionBlock>[] = [];
+			const blocks: Partial<NotionBlock>[] = [];
 
 			// Add title block for page parent
 			if (parsed.type === NotionResourceType.Page) {
@@ -741,7 +740,7 @@ export class NotionAccessor extends BBResourceAccessor {
 					heading_1: {
 						rich_text: [this.createRichText(title)],
 					},
-	
+				});
 			}
 
 			// Add content blocks if provided
@@ -952,7 +951,7 @@ export class NotionAccessor extends BBResourceAccessor {
 
 					// For content search, attempt to search within page content
 					if (isContentSearch) {
-			
+						try {
 							// Load page content for content search
 							const pageContent = await this.loadPageResource(page.id);
 							const content = pageContent.content as string;
@@ -1213,7 +1212,7 @@ export class NotionAccessor extends BBResourceAccessor {
 			}
 
 			// Get the page and its blocks using existing methods
-			const page = await this.client.getPage(parsed.id);
+			const _page = await this.client.getPage(parsed.id);
 			const blocks = await this.client.getAllPageBlocks(parsed.id);
 
 			logger.debug(`NotionAccessor: Retrieved ${blocks.length} blocks for page ${parsed.id}`);
@@ -1221,7 +1220,9 @@ export class NotionAccessor extends BBResourceAccessor {
 			// Convert blocks to Portable Text
 			const portableTextBlocks = convertNotionToPortableText(blocks);
 
-			logger.info(`NotionAccessor: Converted ${blocks.length} Notion blocks to ${portableTextBlocks.length} Portable Text blocks for page ${parsed.id}`);
+			logger.info(
+				`NotionAccessor: Converted ${blocks.length} Notion blocks to ${portableTextBlocks.length} Portable Text blocks for page ${parsed.id}`,
+			);
 
 			return portableTextBlocks;
 		} catch (error) {
@@ -1267,13 +1268,15 @@ export class NotionAccessor extends BBResourceAccessor {
 			);
 
 			// Check if any operations succeeded
-			const successfulOperations = operationResults.filter(result => result.success);
+			const successfulOperations = operationResults.filter((result) => result.success);
 			if (successfulOperations.length === 0) {
 				logger.warn(`NotionAccessor: No operations succeeded for page ${parsed.id}`);
 				return operationResults;
 			}
 
-			logger.info(`NotionAccessor: ${successfulOperations.length} operations succeeded, updating page ${parsed.id}`);
+			logger.info(
+				`NotionAccessor: ${successfulOperations.length} operations succeeded, updating page ${parsed.id}`,
+			);
 
 			// Convert back to Notion format
 			const notionBlocks = convertPortableTextToNotion(modifiedBlocks);
@@ -1297,53 +1300,6 @@ export class NotionAccessor extends BBResourceAccessor {
 			);
 		}
 	}
-
-
-
-
-			try {
-
-
-
-
-
-
-						break;
-
-
-						break;
-
-
-						break;
-
-
-
-
-
-
-
-				}
-			} catch (error) {
-	
-	
-	
-	
-	
-	
-	
-				});
-			}
-		}
-
-	}
-
-
-
-
-
-
-
-
 
 	/**
 	 * Update page blocks by replacing all content

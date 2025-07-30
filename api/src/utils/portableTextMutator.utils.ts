@@ -1,6 +1,6 @@
 /**
  * Portable Text mutator utility
- * 
+ *
  * Provides generic operations for manipulating Portable Text blocks including
  * update, insert, delete, and move operations. This utility is independent
  * of any specific data source and can be used with any Portable Text implementation.
@@ -8,63 +8,12 @@
 
 import { logger } from 'shared/logger.ts';
 import { errorMessage } from 'shared/error.ts';
-
-/**
- * Basic Portable Text block interface
- */
-export interface PortableTextBlock {
-	_type: string;
-	_key?: string;
-	style?: string;
-	listItem?: string;
-	level?: number;
-	children?: PortableTextSpan[];
-	[key: string]: unknown; // Allow additional properties
-}
-
-/**
- * Portable Text span interface
- */
-export interface PortableTextSpan {
-	_type: 'span';
-	_key?: string;
-	text: string;
-	marks?: string[];
-}
-
-/**
- * Portable Text operation types
- */
-export interface PortableTextOperation {
-	type: 'update' | 'insert' | 'delete' | 'move';
-	// For update operations
-	index?: number;
-	_key?: string;
-	content?: PortableTextBlock;
-	// For insert operations
-	position?: number;
-	block?: PortableTextBlock;
-	// For delete operations - use index or _key
-	// For move operations
-	from?: number;
-	to?: number;
-	fromKey?: string;
-	toPosition?: number;
-}
-
-/**
- * Result of a Portable Text operation
- */
-export interface PortableTextOperationResult {
-	operationIndex: number;
-	type: PortableTextOperation['type'];
-	success: boolean;
-	message: string;
-	error?: string;
-	originalIndex?: number;
-	newIndex?: number;
-	affectedKey?: string;
-}
+import type {
+	PortableTextBlock,
+	//PortableTextSpan,
+	PortableTextOperation,
+	PortableTextOperationResult,
+} from 'api/types/portableText.ts';
 
 /**
  * Apply operations to Portable Text blocks
@@ -142,7 +91,7 @@ function applyUpdateOperation(
 			targetIndex = operation.index;
 		}
 	} else if (operation._key) {
-		targetIndex = blocks.findIndex(block => block._key === operation._key);
+		targetIndex = blocks.findIndex((block) => block._key === operation._key);
 	}
 
 	if (targetIndex === -1) {
@@ -224,7 +173,7 @@ function applyDeleteOperation(
 			targetIndex = operation.index;
 		}
 	} else if (operation._key) {
-		targetIndex = blocks.findIndex(block => block._key === operation._key);
+		targetIndex = blocks.findIndex((block) => block._key === operation._key);
 	}
 
 	if (targetIndex === -1) {
@@ -269,7 +218,7 @@ function applyMoveOperation(
 			fromIndex = operation.from;
 		}
 	} else if (operation.fromKey) {
-		fromIndex = blocks.findIndex(block => block._key === operation.fromKey);
+		fromIndex = blocks.findIndex((block) => block._key === operation.fromKey);
 	}
 
 	// Find target position
@@ -284,7 +233,8 @@ function applyMoveOperation(
 			operationIndex,
 			type: 'move',
 			success: false,
-			message: `Source block not found for move operation (from: ${operation.from}, fromKey: ${operation.fromKey})`,
+			message:
+				`Source block not found for move operation (from: ${operation.from}, fromKey: ${operation.fromKey})`,
 		};
 	}
 
@@ -340,8 +290,8 @@ export function validatePortableTextOperation(operation: PortableTextOperation):
 		case 'delete':
 			return !!(typeof operation.index === 'number' || operation._key);
 		case 'move':
-			return !!((typeof operation.from === 'number' || operation.fromKey) && 
-					  (typeof operation.to === 'number' || typeof operation.toPosition === 'number'));
+			return !!((typeof operation.from === 'number' || operation.fromKey) &&
+				(typeof operation.to === 'number' || typeof operation.toPosition === 'number'));
 		default:
 			return false;
 	}
@@ -354,7 +304,7 @@ export function validatePortableTextOperation(operation: PortableTextOperation):
  * @returns The index of the block, or -1 if not found
  */
 export function findBlockByKey(blocks: PortableTextBlock[], key: string): number {
-	return blocks.findIndex(block => block._key === key);
+	return blocks.findIndex((block) => block._key === key);
 }
 
 /**

@@ -2,7 +2,7 @@
  * Utility for converting Notion blocks to Markdown.
  */
 import { logger } from 'shared/logger.ts';
-import type { NotionBlock, NotionPage } from './notionClient.ts';
+import type { NotionBlock, NotionPage } from 'api/dataSources/notionClient.ts';
 
 /**
  * Options for Notion to Markdown conversion
@@ -191,6 +191,7 @@ function blockToMarkdown(
  * @param richText Array of rich text objects
  * @returns Markdown formatted text
  */
+// deno-lint-ignore no-explicit-any
 function renderRichText(richText: any[] = []): string {
 	if (!richText || !Array.isArray(richText)) return '';
 
@@ -235,7 +236,7 @@ function renderHeading(block: NotionBlock, maxLevel: number): string {
 	const actualLevel = Math.min(level, maxLevel);
 	const prefix = '#'.repeat(actualLevel);
 
-	let content;
+	let content: string;
 	switch (block.type) {
 		case 'heading_1':
 			content = renderRichText(block.heading_1?.rich_text);
@@ -260,7 +261,7 @@ function renderHeading(block: NotionBlock, maxLevel: number): string {
  * @param index Current block index
  * @returns Markdown string
  */
-function renderBulletListItem(block: NotionBlock, allBlocks: NotionBlock[], index: number): string {
+function renderBulletListItem(block: NotionBlock, _allBlocks: NotionBlock[], _index: number): string {
 	const text = renderRichText(block.bulleted_list_item?.rich_text);
 	return text ? `- ${text}\n` : '';
 }
