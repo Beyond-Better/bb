@@ -7,10 +7,10 @@ import { BBResourceAccessor } from '../base/bbResourceAccessor.ts';
 import type {
 	NotionBlock,
 	NotionClient,
-	NotionComment,
+	//NotionComment,
 	NotionDatabase,
 	NotionPage,
-	NotionUser,
+	//NotionUser,
 	RichTextItemResponse,
 } from './notionClient.ts';
 import { notionPageToMarkdown } from './notionToMarkdown.ts';
@@ -18,7 +18,12 @@ import {
 	convertNotionToPortableText,
 	convertPortableTextToNotion,
 	type PortableTextBlock,
-} from './portableTextConverter.ts';
+} from 'api/dataSources/notion/portableTextConverter.ts';
+import {
+	applyOperationsToPortableText,
+	type PortableTextOperation,
+	type PortableTextOperationResult,
+} from '../../utils/portableTextMutator.utils.ts';
 import { extractResourcePath } from 'shared/dataSource.ts';
 import type { DataSourceConnection } from 'api/dataSources/interfaces/dataSourceConnection.ts';
 import type {
@@ -36,39 +41,8 @@ import { createError, ErrorType } from 'api/utils/error.ts';
 import type { ResourceHandlingErrorOptions } from 'api/errors/error.ts';
 import type { DataSourceCapability, DataSourceMetadata } from 'shared/types/dataSource.ts';
 
-/**
- * Portable Text operation types
- */
-export interface PortableTextOperation {
-	type: 'update' | 'insert' | 'delete' | 'move';
-	// For update operations
-	index?: number;
-	_key?: string;
-	content?: PortableTextBlock;
-	// For insert operations
-	position?: number;
-	block?: PortableTextBlock;
-	// For delete operations - use index or _key
-	// For move operations
-	from?: number;
-	to?: number;
-	fromKey?: string;
-	toPosition?: number;
-}
-
-/**
- * Result of a Portable Text operation
- */
-export interface PortableTextOperationResult {
-	operationIndex: number;
-	type: PortableTextOperation['type'];
-	success: boolean;
-	message: string;
-	error?: string;
-	originalIndex?: number;
-	newIndex?: number;
-	affectedKey?: string;
-}
+// Re-export types from the utility for backward compatibility
+export type { PortableTextOperation, PortableTextOperationResult } from '../../utils/portableTextMutator.utils.ts';
 
 /**
  * Resource types supported by Notion
@@ -111,7 +85,7 @@ export class NotionAccessor extends BBResourceAccessor {
 		const workspaceId = connection.config.workspaceId as string;
 		if (!workspaceId || typeof workspaceId !== 'string') {
 			throw new Error(`Invalid workspaceId in connection ${connection.id}: ${workspaceId}`);
-		}
+
 
 		this.workspaceId = workspaceId;
 		logger.debug(`NotionAccessor: Created for ${connection.id} with workspace ${this.workspaceId}`);
@@ -201,7 +175,7 @@ export class NotionAccessor extends BBResourceAccessor {
 				default:
 					return false;
 			}
-		} catch (error) {
+
 			// Resource doesn't exist or another error occurred
 			return false;
 		}
@@ -263,7 +237,7 @@ export class NotionAccessor extends BBResourceAccessor {
 				{
 					filePath: resourceUri,
 					operation: 'read',
-				} as ResourceHandlingErrorOptions,
+ as ResourceHandlingErrorOptions,
 			);
 		}
 	}
@@ -767,7 +741,7 @@ export class NotionAccessor extends BBResourceAccessor {
 					heading_1: {
 						rich_text: [this.createRichText(title)],
 					},
-				});
+	
 			}
 
 			// Add content blocks if provided
@@ -978,7 +952,7 @@ export class NotionAccessor extends BBResourceAccessor {
 
 					// For content search, attempt to search within page content
 					if (isContentSearch) {
-						try {
+			
 							// Load page content for content search
 							const pageContent = await this.loadPageResource(page.id);
 							const content = pageContent.content as string;
@@ -1286,8 +1260,8 @@ export class NotionAccessor extends BBResourceAccessor {
 			const currentBlocks = await this.getDocumentAsPortableText(resourceUri);
 			logger.debug(`NotionAccessor: Current document has ${currentBlocks.length} blocks`);
 
-			// Apply operations to the Portable Text
-			const { modifiedBlocks, operationResults } = this.applyOperationsToPortableText(
+			// Apply operations to the Portable Text using the utility
+			const { modifiedBlocks, operationResults } = applyOperationsToPortableText(
 				currentBlocks,
 				operations,
 			);
@@ -1324,261 +1298,52 @@ export class NotionAccessor extends BBResourceAccessor {
 		}
 	}
 
-	/**
-	 * Apply operations to Portable Text blocks
-	 * @param blocks Original blocks
-	 * @param operations Operations to apply
-	 * @returns Modified blocks and operation results
-	 */
-	private applyOperationsToPortableText(
-		blocks: PortableTextBlock[],
-		operations: PortableTextOperation[],
-	): { modifiedBlocks: PortableTextBlock[]; operationResults: PortableTextOperationResult[] } {
-		const modifiedBlocks = [...blocks];
-		const operationResults: PortableTextOperationResult[] = [];
 
-		for (const [index, operation] of operations.entries()) {
+
+
 			try {
-				switch (operation.type) {
-					case 'update':
-						operationResults.push(this.applyUpdateOperation(modifiedBlocks, operation, index));
+
+
+
+
+
+
 						break;
-					case 'insert':
-						operationResults.push(this.applyInsertOperation(modifiedBlocks, operation, index));
+
+
 						break;
-					case 'delete':
-						operationResults.push(this.applyDeleteOperation(modifiedBlocks, operation, index));
+
+
 						break;
-					case 'move':
-						operationResults.push(this.applyMoveOperation(modifiedBlocks, operation, index));
-						break;
-					default:
-						operationResults.push({
-							operationIndex: index,
-							type: operation.type,
-							success: false,
-							message: `Unsupported operation type: ${operation.type}`,
-						});
+
+
+
+
+
+
+
 				}
 			} catch (error) {
-				logger.warn(`NotionAccessor: Operation ${index} failed: ${errorMessage(error)}`);
-				operationResults.push({
-					operationIndex: index,
-					type: operation.type,
-					success: false,
-					message: `Operation failed: ${errorMessage(error)}`,
-					error: errorMessage(error),
+	
+	
+	
+	
+	
+	
+	
 				});
 			}
 		}
 
-		return { modifiedBlocks, operationResults };
 	}
 
-	/**
-	 * Apply update operation to blocks
-	 */
-	private applyUpdateOperation(
-		blocks: PortableTextBlock[],
-		operation: PortableTextOperation,
-		operationIndex: number,
-	): PortableTextOperationResult {
-		if (!operation.content) {
-			return {
-				operationIndex,
-				type: 'update',
-				success: false,
-				message: 'Update operation requires content',
-			};
-		}
 
-		let targetIndex = -1;
 
-		// Find block by index or _key
-		if (typeof operation.index === 'number') {
-			if (operation.index >= 0 && operation.index < blocks.length) {
-				targetIndex = operation.index;
-			}
-		} else if (operation._key) {
-			targetIndex = blocks.findIndex(block => block._key === operation._key);
-		}
 
-		if (targetIndex === -1) {
-			return {
-				operationIndex,
-				type: 'update',
-				success: false,
-				message: `Block not found for update operation (index: ${operation.index}, key: ${operation._key})`,
-			};
-		}
 
-		// Update the block
-		blocks[targetIndex] = { ...operation.content };
 
-		return {
-			operationIndex,
-			type: 'update',
-			success: true,
-			message: `Updated block at index ${targetIndex}`,
-			originalIndex: targetIndex,
-			affectedKey: operation.content._key,
-		};
-	}
 
-	/**
-	 * Apply insert operation to blocks
-	 */
-	private applyInsertOperation(
-		blocks: PortableTextBlock[],
-		operation: PortableTextOperation,
-		operationIndex: number,
-	): PortableTextOperationResult {
-		if (!operation.block) {
-			return {
-				operationIndex,
-				type: 'insert',
-				success: false,
-				message: 'Insert operation requires block',
-			};
-		}
 
-		const position = operation.position ?? blocks.length;
-
-		if (position < 0 || position > blocks.length) {
-			return {
-				operationIndex,
-				type: 'insert',
-				success: false,
-				message: `Invalid insert position: ${position} (valid range: 0-${blocks.length})`,
-			};
-		}
-
-		// Insert the block
-		blocks.splice(position, 0, operation.block);
-
-		return {
-			operationIndex,
-			type: 'insert',
-			success: true,
-			message: `Inserted block at position ${position}`,
-			newIndex: position,
-			affectedKey: operation.block._key,
-		};
-	}
-
-	/**
-	 * Apply delete operation to blocks
-	 */
-	private applyDeleteOperation(
-		blocks: PortableTextBlock[],
-		operation: PortableTextOperation,
-		operationIndex: number,
-	): PortableTextOperationResult {
-		let targetIndex = -1;
-
-		// Find block by index or _key
-		if (typeof operation.index === 'number') {
-			if (operation.index >= 0 && operation.index < blocks.length) {
-				targetIndex = operation.index;
-			}
-		} else if (operation._key) {
-			targetIndex = blocks.findIndex(block => block._key === operation._key);
-		}
-
-		if (targetIndex === -1) {
-			return {
-				operationIndex,
-				type: 'delete',
-				success: false,
-				message: `Block not found for delete operation (index: ${operation.index}, key: ${operation._key})`,
-			};
-		}
-
-		// Store the key before deletion
-		const deletedKey = blocks[targetIndex]._key;
-
-		// Delete the block
-		blocks.splice(targetIndex, 1);
-
-		return {
-			operationIndex,
-			type: 'delete',
-			success: true,
-			message: `Deleted block at index ${targetIndex}`,
-			originalIndex: targetIndex,
-			affectedKey: deletedKey,
-		};
-	}
-
-	/**
-	 * Apply move operation to blocks
-	 */
-	private applyMoveOperation(
-		blocks: PortableTextBlock[],
-		operation: PortableTextOperation,
-		operationIndex: number,
-	): PortableTextOperationResult {
-		let fromIndex = -1;
-		let toIndex = -1;
-
-		// Find source block
-		if (typeof operation.from === 'number') {
-			if (operation.from >= 0 && operation.from < blocks.length) {
-				fromIndex = operation.from;
-			}
-		} else if (operation.fromKey) {
-			fromIndex = blocks.findIndex(block => block._key === operation.fromKey);
-		}
-
-		// Find target position
-		if (typeof operation.to === 'number') {
-			toIndex = operation.to;
-		} else if (typeof operation.toPosition === 'number') {
-			toIndex = operation.toPosition;
-		}
-
-		if (fromIndex === -1) {
-			return {
-				operationIndex,
-				type: 'move',
-				success: false,
-				message: `Source block not found for move operation (from: ${operation.from}, fromKey: ${operation.fromKey})`,
-			};
-		}
-
-		if (toIndex === -1 || toIndex < 0 || toIndex > blocks.length) {
-			return {
-				operationIndex,
-				type: 'move',
-				success: false,
-				message: `Invalid target position for move operation: ${toIndex} (valid range: 0-${blocks.length})`,
-			};
-		}
-
-		if (fromIndex === toIndex) {
-			return {
-				operationIndex,
-				type: 'move',
-				success: false,
-				message: `Source and target positions are the same: ${fromIndex}`,
-			};
-		}
-
-		// Move the block
-		const [movedBlock] = blocks.splice(fromIndex, 1);
-		const actualToIndex = toIndex > fromIndex ? toIndex - 1 : toIndex;
-		blocks.splice(actualToIndex, 0, movedBlock);
-
-		return {
-			operationIndex,
-			type: 'move',
-			success: true,
-			message: `Moved block from index ${fromIndex} to ${actualToIndex}`,
-			originalIndex: fromIndex,
-			newIndex: actualToIndex,
-			affectedKey: movedBlock._key,
-		};
-	}
 
 	/**
 	 * Update page blocks by replacing all content
