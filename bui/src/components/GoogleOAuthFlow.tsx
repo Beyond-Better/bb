@@ -36,7 +36,10 @@ interface OAuthTokenResponse {
  */
 export function GoogleOAuthFlow({ onAuth, onError, authConfig, className = '' }: GoogleOAuthFlowProps) {
 	const [isLoading, setIsLoading] = useState(false);
-	const [isAuthenticated, setIsAuthenticated] = useState(!!authConfig?.tokenData?.refreshToken);
+	const [isAuthenticated, setIsAuthenticated] = useState(!!authConfig?.oauth2?.refreshToken);
+
+	// PKCE state - stored during the auth flow
+	const [pkceVerifier, setPkceVerifier] = useState<string | null>(null);
 
 	// Required scopes for Google Docs and Drive access
 	const REQUIRED_SCOPES = [
@@ -64,15 +67,29 @@ export function GoogleOAuthFlow({ onAuth, onError, authConfig, className = '' }:
 				clientSecret: '', // Don't expose client secret in frontend
 				redirectUri: config.redirectUri || globalThis.location.origin + '/oauth/google/callback',
 			};
-		} catch (error) {
+		} catch (_error) {
 			throw new Error('OAuth configuration not available. Please check your server configuration.');
 		}
 	};
 
 	/**
-	 * Generate OAuth authorization URL
+	 * Generate PKCE parameters for secure OAuth flow
+	 * PKCE (Proof Key for Code Exchange) eliminates need for client secrets
 	 */
-	const generateAuthUrl = (clientId: string, redirectUri: string, state: string) => {
+	const generatePkceParams = async () => {
+		// Generate cryptographically random code verifier (43-128 chars)
+		const codeVerifier = generateRandomString(128);
+		
+		// Create SHA256 hash of verifier and base64url encode it
+		const codeChallenge = await generateCodeChallenge(codeVerifier);
+		
+		return { codeVerifier, codeChallenge };
+	};
+
+	/**
+	 * Generate OAuth authorization URL with PKCE parameters
+	 */
+	const generateAuthUrl = (clientId: string, redirectUri: string, state: string, codeChallenge: string) => {
 		const params = new URLSearchParams({
 			client_id: clientId,
 			redirect_uri: redirectUri,
@@ -81,26 +98,33 @@ export function GoogleOAuthFlow({ onAuth, onError, authConfig, className = '' }:
 			access_type: 'offline',
 			prompt: 'consent',
 			state: state,
+			// PKCE parameters
+			code_challenge: codeChallenge,
+			code_challenge_method: 'S256',
 		});
 
 		return `${GOOGLE_AUTH_URL}?${params.toString()}`;
 	};
 
 	/**
-	 * Handle OAuth popup flow
+	 * Handle OAuth popup flow with PKCE
 	 */
 	const handleOAuthFlow = async () => {
 		setIsLoading(true);
 
 		try {
-			// Get OAuth configuration
+			// Get OAuth configuration (clientId from app config)
 			const oauthConfig = await getOAuthConfig();
 
-			// Generate state parameter for security
+			// Generate PKCE parameters for secure flow
+			const { codeVerifier, codeChallenge } = await generatePkceParams();
+			setPkceVerifier(codeVerifier); // Store for token exchange
+
+			// Generate state parameter for CSRF protection
 			const state = crypto.randomUUID();
 
-			// Generate authorization URL
-			const authUrl = generateAuthUrl(oauthConfig.clientId, oauthConfig.redirectUri, state);
+			// Generate authorization URL with PKCE challenge
+			const authUrl = generateAuthUrl(oauthConfig.clientId, oauthConfig.redirectUri, state, codeChallenge);
 
 			// Open popup window
 			const popup = globalThis.open(
@@ -116,28 +140,27 @@ export function GoogleOAuthFlow({ onAuth, onError, authConfig, className = '' }:
 			// Listen for the OAuth callback
 			const authResult = await waitForOAuthCallback(popup, state);
 
-			// Exchange authorization code for tokens
-			const tokens = await exchangeCodeForTokens(authResult.code, state);
+			// Exchange authorization code for tokens using PKCE
+			const tokens = await exchangeCodeForTokens(authResult.code, codeVerifier, state);
 
-			// Create AuthConfig object
+			// Create AuthConfig object (clientId not stored - comes from app config)
 			const authConfig: AuthConfig = {
 				method: 'oauth2',
-				credentials: {
+				oauth2: {
+					// Only store user-specific credentials, not app config
 					accessToken: tokens.access_token,
-					clientId: oauthConfig.clientId,
-					clientSecret: oauthConfig.clientSecret,
-				},
-				tokenData: {
 					refreshToken: tokens.refresh_token || '',
 					expiresAt: Date.now() + (tokens.expires_in * 1000),
-					scope: tokens.scope,
+					scopes: tokens.scope,
 				},
 			};
 
 			setIsAuthenticated(true);
+			setPkceVerifier(null); // Clear PKCE verifier after use
 			onAuth(authConfig);
 		} catch (error) {
 			console.error('OAuth flow error:', error);
+			setPkceVerifier(null); // Clear PKCE verifier on error
 			onError(error instanceof Error ? error.message : 'Authentication failed');
 		} finally {
 			setIsLoading(false);
@@ -191,21 +214,25 @@ export function GoogleOAuthFlow({ onAuth, onError, authConfig, className = '' }:
 	};
 
 	/**
-	 * Exchange authorization code for access tokens
+	 * Exchange authorization code for access tokens using PKCE
 	 */
-	const exchangeCodeForTokens = async (code: string, state: string): Promise<OAuthTokenResponse> => {
+	const exchangeCodeForTokens = async (code: string, codeVerifier: string, state: string): Promise<OAuthTokenResponse> => {
 		try {
 			const response = await fetch('/api/v1/oauth/google/token', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
 				},
-				body: JSON.stringify({ code, state }),
+				body: JSON.stringify({ 
+					code, 
+					codeVerifier, // PKCE verification parameter
+					state 
+				}),
 			});
 
 			if (!response.ok) {
 				const errorData = await response.json().catch(() => ({}));
-				throw new Error(errorData.error?.message || 'Failed to exchange authorization code');
+				throw new Error(errorData.error?.message || 'Failed to exchange authorization code using PKCE');
 			}
 
 			const result = await response.json();
@@ -217,7 +244,7 @@ export function GoogleOAuthFlow({ onAuth, onError, authConfig, className = '' }:
 				token_type: result.tokenType,
 			};
 		} catch (error) {
-			throw new Error(`Token exchange failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+			throw new Error(`PKCE token exchange failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
 		}
 	};
 
@@ -226,14 +253,15 @@ export function GoogleOAuthFlow({ onAuth, onError, authConfig, className = '' }:
 	 */
 	const handleDisconnect = () => {
 		setIsAuthenticated(false);
+		setPkceVerifier(null); // Clear any pending PKCE state
 		onAuth({
 			method: 'oauth2',
-			credentials: {
-				clientId: '',
-				clientSecret: '',
+			oauth2: {
+				// Clear user credentials (clientId comes from app config)
 				accessToken: '',
+				refreshToken: '',
+				scopes: '',
 			},
-			tokenData: undefined,
 		});
 	};
 
@@ -241,8 +269,10 @@ export function GoogleOAuthFlow({ onAuth, onError, authConfig, className = '' }:
 	 * Check if current authentication is valid
 	 */
 	const isAuthValid = () => {
-		if (!authConfig?.tokenData) return false;
-		return authConfig.tokenData.expiresAt > Date.now();
+		//console.log('GoogleOAuthFlow:', authConfig.oauth2);
+		if (authConfig?.oauth2?.accessToken && authConfig?.oauth2?.refreshToken) return true;
+		//if (!authConfig?.oauth2?.expiresAt) return false;
+		//return authConfig.oauth2?.expiresAt > Date.now();
 	};
 
 	const authStatus = isAuthenticated && isAuthValid() ? 'connected' : 'disconnected';
@@ -273,9 +303,9 @@ export function GoogleOAuthFlow({ onAuth, onError, authConfig, className = '' }:
 				</div>
 
 				{/* Scope Information */}
-				{authStatus === 'connected' && authConfig?.tokenData?.scope && (
+				{authStatus === 'connected' && authConfig?.oauth2?.scopes && (
 					<div className='text-xs text-gray-500 dark:text-gray-400'>
-						Scopes: {authConfig.tokenData.scope}
+						Scopes: {authConfig.oauth2.scopes}
 					</div>
 				)}
 			</div>
@@ -364,4 +394,39 @@ export function GoogleOAuthFlow({ onAuth, onError, authConfig, className = '' }:
 			</div>
 		</div>
 	);
+}
+
+/**
+ * PKCE Utility Functions
+ * Generate cryptographically secure parameters for OAuth PKCE flow
+ */
+
+/**
+ * Generate a cryptographically random string for PKCE code verifier
+ * @param length Length of the generated string (43-128 chars per RFC 7636)
+ */
+function generateRandomString(length: number): string {
+	const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
+	const array = new Uint8Array(length);
+	crypto.getRandomValues(array);
+	return Array.from(array, byte => charset[byte % charset.length]).join('');
+}
+
+/**
+ * Generate PKCE code challenge from code verifier using SHA256
+ * @param codeVerifier The code verifier string
+ * @returns Base64url-encoded SHA256 hash of the verifier
+ */
+async function generateCodeChallenge(codeVerifier: string): Promise<string> {
+	// Create SHA256 hash of the code verifier
+	const encoder = new TextEncoder();
+	const data = encoder.encode(codeVerifier);
+	const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+	
+	// Convert to base64url encoding (RFC 4648 Section 5)
+	const base64 = btoa(String.fromCharCode(...new Uint8Array(hashBuffer)));
+	return base64
+		.replace(/\+/g, '-')  // Replace + with -
+		.replace(/\//g, '_')  // Replace / with _
+		.replace(/=/g, '');   // Remove padding =
 }

@@ -7,9 +7,11 @@ export const handler: Handlers = {
 	GET(_req, _ctx) {
 		try {
 			// Get OAuth configuration from environment variables
-			const clientId = Deno.env.get('GOOGLE_OAUTH_CLIENT_ID');
+			// Note: clientId is application config, not stored in user credentials
+			const clientId = Deno.env.get('GOOGLE_OAUTH_CLIENT_ID') || '';
 			const redirectUri = Deno.env.get('GOOGLE_OAUTH_REDIRECT_URI') || 
-				'http://localhost:3000/oauth/google/callback';
+				'https://localhost:8080/oauth/google/callback';
+				//'https://chat.beyondbetter.app/oauth/google/callback';
 
 			if (!clientId) {
 				return new Response(JSON.stringify({
@@ -30,6 +32,9 @@ export const handler: Handlers = {
 				'https://www.googleapis.com/auth/drive.readonly',
 				'https://www.googleapis.com/auth/drive.file',
 			];
+
+			// Return config for PKCE OAuth flow (no client secret needed)
+			// clientId is application-level config, not stored with user credentials
 
 			return new Response(JSON.stringify({
 				clientId,
