@@ -5,22 +5,24 @@ import { logger } from 'shared/logger.ts';
 import { errorMessage } from 'shared/error.ts';
 import { BBResourceAccessor } from '../base/bbResourceAccessor.ts';
 import type {
-	GoogleDocsClient,
-	GoogleDocument,
-	GoogleDriveFile,
-	GoogleStructuralElement,
-	GoogleParagraph,
-	GoogleTextRun,
 	GoogleDocsBatchUpdateRequest,
+	//GoogleDocument,
+	GoogleDriveFile,
+	//GoogleParagraph,
+	//GoogleStructuralElement,
+	//GoogleTextRun,
+} from './googledocs.types.ts';
+import type {
+	GoogleDocsClient,
 } from './googledocsClient.ts';
 import {
 	convertGoogleDocsToPortableText,
-	convertPortableTextToGoogleDocs,
-	validatePortableTextForGoogleDocs,
+	//convertPortableTextToGoogleDocs,
+	//validatePortableTextForGoogleDocs,
 } from './portableTextConverter.ts';
 import {
 	googledocsToMarkdown,
-	type GoogleDocsToMarkdownOptions,
+	//type GoogleDocsToMarkdownOptions,
 } from './googledocsToMarkdown.ts';
 import { extractResourcePath } from 'shared/dataSource.ts';
 import type { DataSourceConnection } from 'api/dataSources/interfaces/dataSourceConnection.ts';
@@ -39,7 +41,7 @@ import type {
 	PortableTextBlock,
 	PortableTextOperation,
 	PortableTextOperationResult,
-	PortableTextSpan,
+	//PortableTextSpan,
 } from 'api/types/portableText.ts';
 import { applyOperationsToPortableText } from 'api/utils/portableTextMutator.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
@@ -156,21 +158,25 @@ export class GoogleDocsAccessor extends BBResourceAccessor {
 
 		try {
 			switch (parsed.type) {
-				case GoogleDocsResourceType.Document:
+				case GoogleDocsResourceType.Document: {
 					// Try to get document metadata
 					await this.client.getDriveFileMetadata(parsed.id);
 					return true;
-				case GoogleDocsResourceType.Folder:
+				}
+				case GoogleDocsResourceType.Folder: {
 					// Try to get folder metadata
 					const file = await this.client.getDriveFileMetadata(parsed.id);
 					return file.mimeType === 'application/vnd.google-apps.folder';
-				case GoogleDocsResourceType.Search:
+				}
+				case GoogleDocsResourceType.Search: {
 					// Search resources always "exist" if they're valid queries
 					return decodeURIComponent(parsed.id).trim().length > 0;
-				case GoogleDocsResourceType.Drive:
+				}
+				case GoogleDocsResourceType.Drive: {
 					// Drive resource exists if we can list files
 					await this.client.listDocuments('', this.folderId, 1);
 					return true;
+				}
 				default:
 					return false;
 			}
@@ -239,7 +245,10 @@ export class GoogleDocsAccessor extends BBResourceAccessor {
 	 * @param options Loading options
 	 * @returns The loaded document with its content and metadata
 	 */
-	private async loadDocumentResource(documentId: string, _options: ResourceLoadOptions = {}): Promise<ResourceLoadResult> {
+	private async loadDocumentResource(
+		documentId: string,
+		_options: ResourceLoadOptions = {},
+	): Promise<ResourceLoadResult> {
 		// Get the document
 		const document = await this.client.getDocument(documentId);
 
@@ -256,7 +265,9 @@ export class GoogleDocsAccessor extends BBResourceAccessor {
 		try {
 			driveMetadata = await this.client.getDriveFileMetadata(documentId);
 		} catch (error) {
-			logger.warn(`GoogleDocsAccessor: Could not get Drive metadata for document ${documentId}: ${errorMessage(error)}`);
+			logger.warn(
+				`GoogleDocsAccessor: Could not get Drive metadata for document ${documentId}: ${errorMessage(error)}`,
+			);
 		}
 
 		// Create metadata
@@ -281,7 +292,10 @@ export class GoogleDocsAccessor extends BBResourceAccessor {
 	 * @param options Loading options
 	 * @returns The loaded folder with its content and metadata
 	 */
-	private async loadFolderResource(folderId: string, _options: ResourceLoadOptions = {}): Promise<ResourceLoadResult> {
+	private async loadFolderResource(
+		folderId: string,
+		_options: ResourceLoadOptions = {},
+	): Promise<ResourceLoadResult> {
 		// Get folder metadata
 		const folder = await this.client.getDriveFileMetadata(folderId);
 
@@ -294,7 +308,9 @@ export class GoogleDocsAccessor extends BBResourceAccessor {
 		// Add title and metadata
 		parts.push(`# ${folder.name || 'Untitled Folder'}\n`);
 		parts.push(`> Folder ID: ${folder.id}  `);
-		parts.push(`> Last modified: ${folder.modifiedTime ? new Date(folder.modifiedTime).toLocaleString() : 'Unknown'}  `);
+		parts.push(
+			`> Last modified: ${folder.modifiedTime ? new Date(folder.modifiedTime).toLocaleString() : 'Unknown'}  `,
+		);
 		if (folder.webViewLink) {
 			parts.push(`> URL: ${folder.webViewLink}\n`);
 		}
@@ -302,7 +318,11 @@ export class GoogleDocsAccessor extends BBResourceAccessor {
 		// Add documents list
 		parts.push(`## Documents (${documents.files.length})\n`);
 		for (const doc of documents.files) {
-			parts.push(`- [${doc.name}](googledocs://document/${doc.id}) - Modified: ${doc.modifiedTime ? new Date(doc.modifiedTime).toLocaleDateString() : 'Unknown'}`);
+			parts.push(
+				`- [${doc.name}](googledocs://document/${doc.id}) - Modified: ${
+					doc.modifiedTime ? new Date(doc.modifiedTime).toLocaleDateString() : 'Unknown'
+				}`,
+			);
 		}
 
 		const content = parts.join('\n');
@@ -346,7 +366,11 @@ export class GoogleDocsAccessor extends BBResourceAccessor {
 		if (results.files.length > 0) {
 			parts.push(`## Documents\n`);
 			for (const doc of results.files) {
-				parts.push(`- [${doc.name}](googledocs://document/${doc.id}) - Modified: ${doc.modifiedTime ? new Date(doc.modifiedTime).toLocaleDateString() : 'Unknown'}`);
+				parts.push(
+					`- [${doc.name}](googledocs://document/${doc.id}) - Modified: ${
+						doc.modifiedTime ? new Date(doc.modifiedTime).toLocaleDateString() : 'Unknown'
+					}`,
+				);
 			}
 		} else {
 			parts.push(`No documents found matching "${query}".`);
@@ -396,7 +420,11 @@ export class GoogleDocsAccessor extends BBResourceAccessor {
 		// Add documents list
 		parts.push(`## Documents\n`);
 		for (const doc of results.files) {
-			parts.push(`- [${doc.name}](googledocs://document/${doc.id}) - Modified: ${doc.modifiedTime ? new Date(doc.modifiedTime).toLocaleDateString() : 'Unknown'}`);
+			parts.push(
+				`- [${doc.name}](googledocs://document/${doc.id}) - Modified: ${
+					doc.modifiedTime ? new Date(doc.modifiedTime).toLocaleDateString() : 'Unknown'
+				}`,
+			);
 		}
 
 		const content = parts.join('\n');
@@ -416,8 +444,6 @@ export class GoogleDocsAccessor extends BBResourceAccessor {
 			metadata,
 		};
 	}
-
-
 
 	/**
 	 * Write a resource to Google Docs (create or update)
@@ -479,7 +505,7 @@ export class GoogleDocsAccessor extends BBResourceAccessor {
 		// Find the range of all text content (excluding the final newline)
 		if (document.body.content.length > 1) {
 			const endIndex = document.body.content[document.body.content.length - 1].endIndex - 1;
-			
+
 			// Delete existing content
 			requests.push({
 				deleteContentRange: {
@@ -768,7 +794,7 @@ export class GoogleDocsAccessor extends BBResourceAccessor {
 			logger.debug(`GoogleDocsAccessor: Retrieved document ${parsed.id} for Portable Text conversion`);
 
 			// Convert Google Docs structure to Portable Text
-			const portableTextBlocks = this.convertGoogleDocsToPortableText(document);
+			const portableTextBlocks = convertGoogleDocsToPortableText(document);
 
 			logger.info(
 				`GoogleDocsAccessor: Converted Google Docs document to ${portableTextBlocks.length} Portable Text blocks for document ${parsed.id}`,
@@ -805,7 +831,9 @@ export class GoogleDocsAccessor extends BBResourceAccessor {
 				throw new Error(`Invalid or unsupported resource URI for Portable Text operations: ${resourceUri}`);
 			}
 
-			logger.info(`GoogleDocsAccessor: Applying ${operations.length} Portable Text operations to document ${parsed.id}`);
+			logger.info(
+				`GoogleDocsAccessor: Applying ${operations.length} Portable Text operations to document ${parsed.id}`,
+			);
 
 			// Get current Portable Text representation
 			const currentBlocks = await this.getDocumentAsPortableText(resourceUri);
@@ -845,145 +873,6 @@ export class GoogleDocsAccessor extends BBResourceAccessor {
 				} as ResourceHandlingErrorOptions,
 			);
 		}
-	}
-
-	/**
-	 * Convert a Google Document to Portable Text blocks
-	 * @param document The Google Document
-	 * @returns Array of Portable Text blocks
-	 */
-	private convertGoogleDocsToPortableText(document: GoogleDocument): PortableTextBlock[] {
-		const blocks: PortableTextBlock[] = [];
-
-		// Add title as a heading block if present
-		if (document.title && document.title.trim()) {
-			blocks.push({
-				_type: 'block',
-				_key: `title-${Date.now()}`,
-				style: 'h1',
-				children: [
-					{
-						_type: 'span',
-						_key: `title-span-${Date.now()}`,
-						text: document.title,
-						marks: [],
-					},
-				],
-			});
-		}
-
-		// Process document body content
-		if (document.body && document.body.content) {
-			for (const element of document.body.content) {
-				const block = this.structuralElementToPortableText(element);
-				if (block) {
-					blocks.push(block);
-				}
-			}
-		}
-
-		return blocks;
-	}
-
-	/**
-	 * Convert a structural element to a Portable Text block
-	 * @param element The structural element
-	 * @returns Portable Text block or null
-	 */
-	private structuralElementToPortableText(element: GoogleStructuralElement): PortableTextBlock | null {
-		if (element.paragraph) {
-			return this.paragraphToPortableText(element.paragraph);
-		}
-
-		// For now, we'll handle other element types as simple text blocks
-		// This could be expanded to support tables, etc.
-		return null;
-	}
-
-	/**
-	 * Convert a paragraph to a Portable Text block
-	 * @param paragraph The paragraph
-	 * @returns Portable Text block
-	 */
-	private paragraphToPortableText(paragraph: GoogleParagraph): PortableTextBlock {
-		const children: PortableTextSpan[] = [];
-
-		// Process paragraph elements
-		for (const element of paragraph.elements) {
-			if (element.textRun) {
-				const span = this.textRunToPortableTextSpan(element.textRun);
-				if (span) {
-					children.push(span);
-				}
-			}
-		}
-
-		// Determine block style from paragraph style
-		let style = 'normal';
-		if (paragraph.paragraphStyle?.namedStyleType) {
-			switch (paragraph.paragraphStyle.namedStyleType) {
-				case 'HEADING_1':
-					style = 'h1';
-					break;
-				case 'HEADING_2':
-					style = 'h2';
-					break;
-				case 'HEADING_3':
-					style = 'h3';
-					break;
-				case 'HEADING_4':
-					style = 'h4';
-					break;
-				case 'HEADING_5':
-					style = 'h5';
-					break;
-				case 'HEADING_6':
-					style = 'h6';
-					break;
-			}
-		}
-
-		return {
-			_type: 'block',
-			_key: `block-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-			style,
-			children,
-		};
-	}
-
-	/**
-	 * Convert a text run to a Portable Text span
-	 * @param textRun The text run
-	 * @returns Portable Text span
-	 */
-	private textRunToPortableTextSpan(textRun: GoogleTextRun): PortableTextSpan | null {
-		if (!textRun.content) {
-			return null;
-		}
-
-		const marks: string[] = [];
-
-		// Apply text styling
-		if (textRun.textStyle) {
-			const style = textRun.textStyle;
-
-			if (style.bold) {
-				marks.push('strong');
-			}
-
-			if (style.italic) {
-				marks.push('em');
-			}
-
-			// Note: Links and other formatting would need additional handling in a full implementation
-		}
-
-		return {
-			_type: 'span',
-			_key: `span-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-			text: textRun.content,
-			marks,
-		};
 	}
 
 	/**
@@ -1031,6 +920,6 @@ export class GoogleDocsAccessor extends BBResourceAccessor {
 	 */
 	override hasCapability(capability: DataSourceCapability): boolean {
 		// Google Docs supports read, write, list, search, delete, and blockEdit (for Portable Text operations)
-		return ['read', 'write', 'list', 'search', 'delete', 'blockEdit'].includes(capability);
+		return ['blockRead', 'blockEdit', 'list', 'search', 'delete'].includes(capability);
 	}
 }

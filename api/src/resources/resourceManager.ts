@@ -160,10 +160,10 @@ export class ResourceManager {
 			dsConnection.config,
 			{
 				id: dsConnection.id,
-				auth: dsConnection.auth,
 				enabled: dsConnection.enabled,
 				isPrimary: dsConnection.isPrimary,
 				priority: dsConnection.priority,
+				auth: dsConnection.auth,
 			},
 		);
 

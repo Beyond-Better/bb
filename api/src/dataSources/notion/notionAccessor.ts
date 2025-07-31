@@ -12,7 +12,7 @@ import type {
 	NotionPage,
 	//NotionUser,
 	RichTextItemResponse,
-} from './notionClient.ts';
+} from 'api/dataSources/notionClient.ts';
 import { notionPageToMarkdown } from './notionToMarkdown.ts';
 import {
 	convertNotionToPortableText,
@@ -23,7 +23,7 @@ import type {
 	PortableTextBlock,
 	PortableTextOperation,
 	PortableTextOperationResult,
-	PortableTextSpan,
+	//PortableTextSpan,
 } from 'api/types/portableText.ts';
 import { extractResourcePath } from 'shared/dataSource.ts';
 import type { DataSourceConnection } from 'api/dataSources/interfaces/dataSourceConnection.ts';
@@ -1338,7 +1338,7 @@ export class NotionAccessor extends BBResourceAccessor {
 	 */
 	override hasCapability(capability: DataSourceCapability): boolean {
 		// Notion currently supports read, list, search, write, and blockEdit (for Portable Text operations)
-		return ['read', 'list', 'search', 'write', 'blockEdit'].includes(capability);
+		return ['blockRead', 'blockEdit', 'list', 'search', 'delete'].includes(capability);
 	}
 
 	/**

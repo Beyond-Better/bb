@@ -10,6 +10,7 @@ import { LLMProvider } from 'api/types/llms.ts';
 import type { ProjectId } from 'shared/types.ts';
 import type { CreateProjectData } from 'shared/types/project.ts';
 import { DefaultModelsConfigDefaults } from 'shared/types/models.ts';
+import type { DataSourceProviderType } from 'shared/types/dataSource.ts';
 import type { DefaultModels, DefaultModelsPartial } from 'shared/types/models.ts';
 export type { DefaultModels, DefaultModelsPartial };
 
@@ -130,6 +131,8 @@ export interface ApiConfig extends ServerConfig {
 		enabled: boolean;
 		budgetTokens: number;
 	};
+
+	dataSourceProviders?: Partial<Record<DataSourceProviderType, Record<string, unknown>>>;
 
 	/**
 	 * Provider-specific LLM configurations.
@@ -345,7 +348,7 @@ export interface IConfigManagerV2 {
 // IMPORTANT: When updating these defaults, also update the corresponding Rust defaults in:
 // dui/src-tauri/src/config.rs (impl Default for each config struct)
 // When updating these defaults, update impl Default for ApiConfig in dui/src-tauri/src/config.rs
-export const ApiConfigDefaults: Readonly<Omit<ApiConfig, 'llmProviders'>> = {
+export const ApiConfigDefaults: Readonly<Omit<ApiConfig, 'llmProviders', 'dataSourceProviders'>> = {
 	hostname: 'localhost',
 	port: 3162,
 	tls: {
@@ -364,6 +367,7 @@ export const ApiConfigDefaults: Readonly<Omit<ApiConfig, 'llmProviders'>> = {
 		enabled: true,
 		budgetTokens: 4000,
 	},
+	//dataSourceProviders: {},
 	//llmProviders: {},
 };
 

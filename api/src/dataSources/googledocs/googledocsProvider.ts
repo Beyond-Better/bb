@@ -8,6 +8,8 @@ import { GoogleDocsClient } from './googledocsClient.ts';
 import type { DataSourceConnection } from 'api/dataSources/interfaces/dataSourceConnection.ts';
 import type { ResourceAccessor } from 'api/dataSources/interfaces/resourceAccessor.ts';
 import type { DataSourceRegistry } from 'api/dataSources/dataSourceRegistry.ts';
+import type { ProjectConfig } from 'shared/config/types.ts';
+import { getProjectPersistenceManager } from 'api/storage/projectPersistenceManager.ts';
 
 /**
  * GoogleDocsProvider for BB-managed Google Docs data sources
@@ -22,12 +24,12 @@ export class GoogleDocsProvider extends BBDataSourceProvider {
 			'googledocs', // Provider ID
 			'Google Docs', // Human-readable name
 			'Google Docs workspace integration', // Description
-			['read', 'write', 'list', 'search', 'delete', 'blockEdit'], // Capabilities
+			['blockRead', 'blockEdit', 'list', 'search', 'delete'], // Capabilities
 			[], // Required config fields (all are optional)
 			'oauth2', // auth type
 		);
 
-		logger.debug('GoogleDocsProvider: Created Google Docs provider');
+		logger.info('GoogleDocsProvider: Created Google Docs provider');
 	}
 
 	/**
@@ -35,7 +37,7 @@ export class GoogleDocsProvider extends BBDataSourceProvider {
 	 * @param connection The connection to create an accessor for
 	 * @returns A GoogleDocsAccessor instance
 	 */
-	createAccessor(connection: DataSourceConnection): ResourceAccessor {
+	createAccessor(connection: DataSourceConnection, projectConfig?: ProjectConfig): ResourceAccessor {
 		// Verify the connection is for this provider
 		if (connection.providerType !== this.providerType) {
 			throw new Error(
@@ -43,8 +45,33 @@ export class GoogleDocsProvider extends BBDataSourceProvider {
 			);
 		}
 
+		const tokenUpdateCallback = async (newTokens: {
+			accessToken: string;
+			refreshToken?: string;
+			expiresAt?: number;
+		}) => {
+			// Update the data source connection
+			const projectPersistenceManager = await getProjectPersistenceManager();
+			const project = await projectPersistenceManager.getProject(projectConfig.projectId);
+
+			if (project) {
+				const updatedAuth = {
+					...connection.auth,
+					oauth2: {
+						...connection.auth?.oauth2,
+						accessToken: newTokens.accessToken,
+						refreshToken: newTokens.refreshToken || connection.auth?.oauth2?.refreshToken,
+						expiresAt: newTokens.expiresAt,
+					},
+				};
+				connection.update({ auth: updatedAuth });
+				await project.updateDsConnection(connection.id, { auth: updatedAuth });
+			}
+		};
+
+		logger.info('GoogleDocsProvider: Creating client with auth', { auth: connection.auth });
 		// Create a GoogleDocsClient from the auth config
-		const client = GoogleDocsClient.fromAuthConfig(connection.auth);
+		const client = GoogleDocsClient.fromAuthConfig(connection.auth, projectConfig, tokenUpdateCallback);
 		if (!client) {
 			throw new Error(`Failed to create Google Docs client for connection ${connection.id}`);
 		}
@@ -106,17 +133,18 @@ export class GoogleDocsProvider extends BBDataSourceProvider {
 	 */
 	static createGoogleDocsDataSource(
 		name: string,
-		accessToken: string,
-		clientId: string,
-		clientSecret: string,
+		//clientId: string,
+		//clientSecret: string,
 		registry: DataSourceRegistry,
 		options: {
 			id?: string;
 			enabled?: boolean;
 			isPrimary?: boolean;
 			priority?: number;
+			accessToken?: string;
 			refreshToken?: string;
 			expiresAt?: number;
+			scopes?: string;
 			folderId?: string;
 			driveId?: string;
 		} = {},
@@ -145,14 +173,13 @@ export class GoogleDocsProvider extends BBDataSourceProvider {
 				priority: options.priority,
 				auth: {
 					method: 'oauth2' as const,
-					credentials: {
-						clientId,
-						clientSecret,
-						accessToken,
-					},
-					tokenData: {
+					oauth2: {
+						//clientId,
+						//clientSecret,
+						accessToken: options.accessToken,
 						refreshToken: options.refreshToken,
 						expiresAt: options.expiresAt,
+						scopes: options.scopes,
 					},
 				},
 			},

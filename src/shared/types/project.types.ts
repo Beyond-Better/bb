@@ -11,6 +11,7 @@ import type {
 	DataSourceCapability,
 	DataSourceProviderInfo,
 	DataSourceProviderType,
+	DataSourceAuth,
 } from 'shared/types/dataSource.ts';
 import type { ProjectId } from 'shared/types.ts';
 import type {
@@ -95,6 +96,7 @@ export interface ClientDataSourceConnection {
 	capabilities: DataSourceCapability[];
 	description: string;
 	config: Record<string, unknown>;
+	auth: DataSourceAuth;
 	// Add any other properties needed by UI
 }
 

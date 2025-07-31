@@ -41,13 +41,6 @@ export function GoogleOAuthFlow({ onAuth, onError, authConfig, className = '' }:
 	// PKCE state - stored during the auth flow
 	const [pkceVerifier, setPkceVerifier] = useState<string | null>(null);
 
-	// Required scopes for Google Docs and Drive access
-	const REQUIRED_SCOPES = [
-		'https://www.googleapis.com/auth/documents',
-		'https://www.googleapis.com/auth/drive.readonly',
-		'https://www.googleapis.com/auth/drive.file',
-	].join(' ');
-
 	// OAuth endpoints
 	const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 	const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
@@ -64,8 +57,9 @@ export function GoogleOAuthFlow({ onAuth, onError, authConfig, className = '' }:
 			const config = await response.json();
 			return {
 				clientId: config.clientId,
-				clientSecret: '', // Don't expose client secret in frontend
+				//clientSecret: config.clientSecret,
 				redirectUri: config.redirectUri || globalThis.location.origin + '/oauth/google/callback',
+				scopes: config.scopes.join(' '),
 			};
 		} catch (_error) {
 			throw new Error('OAuth configuration not available. Please check your server configuration.');
@@ -89,12 +83,12 @@ export function GoogleOAuthFlow({ onAuth, onError, authConfig, className = '' }:
 	/**
 	 * Generate OAuth authorization URL with PKCE parameters
 	 */
-	const generateAuthUrl = (clientId: string, redirectUri: string, state: string, codeChallenge: string) => {
+	const generateAuthUrl = (clientId: string, redirectUri: string, scopes: string, state: string, codeChallenge: string) => {
 		const params = new URLSearchParams({
 			client_id: clientId,
 			redirect_uri: redirectUri,
 			response_type: 'code',
-			scope: REQUIRED_SCOPES,
+			scope: scopes,
 			access_type: 'offline',
 			prompt: 'consent',
 			state: state,
@@ -124,7 +118,7 @@ export function GoogleOAuthFlow({ onAuth, onError, authConfig, className = '' }:
 			const state = crypto.randomUUID();
 
 			// Generate authorization URL with PKCE challenge
-			const authUrl = generateAuthUrl(oauthConfig.clientId, oauthConfig.redirectUri, state, codeChallenge);
+			const authUrl = generateAuthUrl(oauthConfig.clientId, oauthConfig.redirectUri, oauthConfig.scopes, state, codeChallenge);
 
 			// Open popup window
 			const popup = globalThis.open(
@@ -245,6 +239,40 @@ export function GoogleOAuthFlow({ onAuth, onError, authConfig, className = '' }:
 			};
 		} catch (error) {
 			throw new Error(`PKCE token exchange failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+		}
+	};
+
+	/**
+	 * Refresh access token using refresh token
+	 */
+	const refreshAccessToken = async (refreshToken: string): Promise<OAuthTokenResponse> => {
+		try {
+			const response = await fetch('/api/v1/oauth/google/token', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({ 
+					refreshToken,
+					operation: 'refresh'
+				}),
+			});
+
+			if (!response.ok) {
+				const errorData = await response.json().catch(() => ({}));
+				throw new Error(errorData.error?.message || 'Failed to refresh access token');
+			}
+
+			const result = await response.json();
+			return {
+				access_token: result.accessToken,
+				refresh_token: result.refreshToken,
+				expires_in: result.expiresIn,
+				scope: result.scope,
+				token_type: result.tokenType,
+			};
+		} catch (error) {
+			throw new Error(`Token refresh failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
 		}
 	};
 

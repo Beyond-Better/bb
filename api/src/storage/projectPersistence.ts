@@ -530,10 +530,10 @@ class ProjectPersistence implements ProjectData {
 							dsConnectionObj.config,
 							{
 								id: dsConnectionObj.id,
-								auth: dsConnectionObj.auth,
 								enabled: dsConnectionObj.enabled,
 								isPrimary: dsConnectionObj.isPrimary,
 								priority: dsConnectionObj.priority,
+								auth: dsConnectionObj.auth,
 							},
 						);
 						this._dsConnectionsMap.set(dsConnection.id, dsConnection);
@@ -787,6 +787,7 @@ class ProjectPersistence implements ProjectData {
 				capabilities: dsProvider?.capabilities || [],
 				description: dsProvider?.description || '',
 				config: { ...ds.config }, // Create a copy to avoid modifying the original
+				auth: { ...ds.auth }, // Create a copy to avoid modifying the original
 			};
 
 			// Strip rootPath (HOME) from dataSourceRoot for filesystem data sources
@@ -1003,10 +1004,10 @@ class ProjectPersistence implements ProjectData {
 					dsConnection.config,
 					{
 						id: dsConnection.id,
-						auth: dsConnection.auth,
 						enabled: dsConnection.enabled,
 						isPrimary: dsConnection.isPrimary,
 						priority: dsConnection.priority,
+						auth: dsConnection.auth,
 					},
 				);
 				this._dsConnectionsMap.set(connection.id, connection);

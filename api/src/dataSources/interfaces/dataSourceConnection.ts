@@ -76,6 +76,11 @@ export interface DataSourceConnection {
 	priority: number;
 
 	/**
+	 * Update values for datasource
+	 */
+	update(updates: Partial<DataSourceConnectionValues>): void;
+
+	/**
 	 * Get a ResourceAccessor for a data source connection
 	 * @returns A ResourceAccessor instance
 	 */

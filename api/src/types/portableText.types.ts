@@ -6,7 +6,7 @@ export interface PortableTextBlock {
 	/** Block type identifier */
 	_type: string;
 	/** Unique identifier for the block */
-	_key?: string;
+	_key: string;
 	style?: string;
 	listItem?: string;
 	level?: number;

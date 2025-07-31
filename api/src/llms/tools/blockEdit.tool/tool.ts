@@ -22,10 +22,8 @@ import type {
 	ToolHandlingErrorOptions,
 } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
-import type {
-	BlockResourceAccessor,
-	PortableTextOperationResult,
-} from 'api/dataSources/interfaces/blockResourceAccessor.ts';
+import type { BlockResourceAccessor } from 'api/dataSources/interfaces/blockResourceAccessor.ts';
+import type { PortableTextOperationResult } from 'api/types/portableText.ts';
 
 export default class LLMToolBlockEdit extends LLMTool {
 	get inputSchema(): LLMToolInputSchema {

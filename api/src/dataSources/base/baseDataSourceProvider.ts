@@ -124,6 +124,11 @@ export abstract class BaseDataSourceProvider implements DataSourceProvider {
 		//const authType: DataSourceAuthMethod = this.authType;
 		if (this.authType !== auth.method) return false;
 		// Check that required auth fields are present
+		logger.info(
+			`BaseDataSourceProvider: auth for ${this.providerType}`,
+			auth,
+		);
+
 		switch (this.authType) {
 			case 'none': // No authentication required
 				return true;
@@ -137,7 +142,14 @@ export abstract class BaseDataSourceProvider implements DataSourceProvider {
 			case 'bearer': // Bearer token
 				return !!('bearer' in auth && auth.bearer &&
 					'tokenRef' in auth.bearer && auth.bearer.tokenRef);
-			case 'oauth2': // OAuth 2.0 (placeholder for future implementation)
+			case 'oauth2': // OAuth 2.0
+				return !!(
+					'oauth2' in auth && auth.oauth2 &&
+					//'clientId' in auth.oauth2 && auth.oauth2.clientId &&
+					//'clientSecret' in auth.oauth2 && auth.oauth2.clientSecret &&
+					'accessToken' in auth.oauth2 && auth.oauth2.accessToken
+					//&& (!auth.oauth2.expiresAt || auth.oauth2.expiresAt > Date.now())
+				);
 			case 'custom': // Custom auth method
 				return true;
 

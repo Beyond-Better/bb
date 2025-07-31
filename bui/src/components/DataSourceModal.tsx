@@ -30,6 +30,7 @@ const DEFAULT_DATA_SOURCE = (): ClientDataSourceConnection => ({
 	capabilities: ['read'],
 	description: '',
 	config: {},
+	auth: { method: 'none' },
 });
 
 /**
@@ -67,11 +68,18 @@ export function DataSourceModal({ dsConnection, onClose, onSave, appState, dsPro
 				newErrors.dataSourceRoot = 'Path is required';
 			}
 		} else if (formData.providerType === 'notion') {
-			if (!formData.config.apiKey) {
+			if (!formData.auth.apiKey) {
 				newErrors.apiKey = 'API Key is required';
 			}
-			if (!formData.config.workspace) {
-				newErrors.workspace = 'Workspace is required';
+			if (!formData.config.workspaceId) {
+				newErrors.workspaceId = 'Workspace is required';
+			}
+		} else if (formData.providerType === 'googledocs') {
+			if (!formData.auth?.oauth2?.accessToken) {
+				newErrors.accessToken = 'Access Token is required';
+			}
+			if (formData.auth?.oauth2?.expiresAt && formData.auth.oauth2.expiresAt <= Date.now()) {
+				newErrors.accessToken = 'Access Token has expired';
 			}
 		}
 
@@ -103,6 +111,7 @@ export function DataSourceModal({ dsConnection, onClose, onSave, appState, dsPro
 					capabilities: newDsProvider?.capabilities || [],
 					description: newDescription,
 					config: {},
+					auth: { method: 'none' },
 				};
 			}
 			return {
@@ -114,7 +123,7 @@ export function DataSourceModal({ dsConnection, onClose, onSave, appState, dsPro
 
 	// Handle config field changes
 	const handleConfigChange = (configField: string, value: unknown) => {
-		const newName = configField === 'dataSourceRoot' || configField === 'workspace' ? String(value) : null;
+		const newName = configField === 'dataSourceRoot' || configField === 'workspaceId' ? String(value) : null;
 		if ((!dsConnection || !dsConnection?.name) && newName) {
 			setFormData((prev: ClientDataSourceConnection) => ({
 				...prev,
@@ -126,6 +135,16 @@ export function DataSourceModal({ dsConnection, onClose, onSave, appState, dsPro
 			config: {
 				...prev.config,
 				[configField]: value,
+			},
+		}));
+	};
+	// Handle auth field changes
+	const handleAuthChange = (authField: string, value: unknown) => {
+		setFormData((prev: ClientDataSourceConnection) => ({
+			...prev,
+			auth: {
+				...prev.auth,
+				[authField]: value,
 			},
 		}));
 	};
@@ -175,67 +194,6 @@ export function DataSourceModal({ dsConnection, onClose, onSave, appState, dsPro
 	// Render different config fields based on the data source providerType
 	const renderConfigFields = () => {
 		switch (formData.providerType) {
-			case 'googledocs':
-				return (
-					<div className='space-y-4 col-span-2'>
-						{/* Google OAuth Authentication */}
-						<GoogleOAuthFlow
-							onAuth={(authConfig: AuthConfig) => {
-								setFormData((prev) => ({
-									...prev,
-									config: {
-										...prev.config,
-										authConfig
-									}
-								}));
-							}}
-							onError={(error: string) => {
-								setErrors((prev) => ({ ...prev, auth: error }));
-							}}
-							authConfig={formData.config.authConfig as AuthConfig}
-							className='mb-4'
-						/>
-						{errors.auth && (
-							<div className='text-red-500 text-xs mt-1'>{errors.auth}</div>
-						)}
-
-						{/* Optional Configuration Fields */}
-						<div className='grid grid-cols-2 gap-4'>
-							<div className='space-y-2'>
-								<label className='block text-sm font-medium text-gray-700 dark:text-gray-300'>
-									Display Name (Optional)
-								</label>
-								<input
-									type='text'
-									value={formData.config.displayName as string || ''}
-									onChange={(e) => handleConfigChange('displayName', (e.target as HTMLInputElement).value)}
-									placeholder='My Google Docs'
-									className='w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-gray-100'
-								/>
-								<div className='text-xs text-gray-500 dark:text-gray-400'>
-									Friendly name for this Google connection
-								</div>
-							</div>
-
-							<div className='space-y-2'>
-								<label className='block text-sm font-medium text-gray-700 dark:text-gray-300'>
-									Default Drive/Folder ID (Optional)
-								</label>
-								<input
-									type='text'
-									value={formData.config.defaultFolderId as string || ''}
-									onChange={(e) => handleConfigChange('defaultFolderId', (e.target as HTMLInputElement).value)}
-									placeholder='1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms'
-									className='w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-gray-100'
-								/>
-								<div className='text-xs text-gray-500 dark:text-gray-400'>
-									Restrict access to a specific Drive folder (leave empty for full access)
-								</div>
-							</div>
-						</div>
-					</div>
-				);
-
 			case 'filesystem':
 				return (
 					<div className='space-y-4 col-span-2'>
@@ -277,29 +235,93 @@ export function DataSourceModal({ dsConnection, onClose, onSave, appState, dsPro
 					<div className='grid grid-cols-2 gap-4 col-span-2'>
 						<div className='space-y-2'>
 							<label className='block text-sm font-medium text-gray-700 dark:text-gray-300'>
+								Workspace
+							</label>
+							<input
+								type='text'
+								value={formData.config.workspaceId as string || ''}
+								onChange={(e) =>
+									handleConfigChange('workspaceId', (e.target as HTMLInputElement).value)}
+								className='w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-gray-100'
+							/>
+							{errors.workspaceId &&
+								<div className='text-red-500 text-xs mt-1'>{errors.workspaceId}</div>}
+						</div>
+						<div className='space-y-2'>
+							<label className='block text-sm font-medium text-gray-700 dark:text-gray-300'>
 								API Key
 							</label>
 							<input
 								type='password'
-								value={formData.config.apiKey as string || ''}
+								value={formData.auth.apiKey as string || ''}
 								onChange={(e) => handleConfigChange('apiKey', (e.target as HTMLInputElement).value)}
 								className='w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-gray-100'
 							/>
 							{errors.apiKey &&
 								<div className='text-red-500 text-xs mt-1'>{errors.apiKey}</div>}
 						</div>
-						<div className='space-y-2'>
-							<label className='block text-sm font-medium text-gray-700 dark:text-gray-300'>
-								Workspace
-							</label>
-							<input
-								type='text'
-								value={formData.config.workspace as string || ''}
-								onChange={(e) => handleConfigChange('workspace', (e.target as HTMLInputElement).value)}
-								className='w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-gray-100'
-							/>
-							{errors.workspace &&
-								<div className='text-red-500 text-xs mt-1'>{errors.workspace}</div>}
+					</div>
+				);
+
+			case 'googledocs':
+				return (
+					<div className='space-y-4 col-span-2'>
+						{/* Google OAuth Authentication */}
+						<GoogleOAuthFlow
+							onAuth={(authConfig: AuthConfig) => {
+								setFormData((prev) => ({
+									...prev,
+									auth: {
+										...prev.auth,
+										...authConfig,
+									},
+								}));
+							}}
+							onError={(error: string) => {
+								setErrors((prev) => ({ ...prev, auth: error }));
+							}}
+							authConfig={formData.auth as AuthConfig}
+							className='mb-4'
+						/>
+						{errors.auth && <div className='text-red-500 text-xs mt-1'>{errors.auth}</div>}
+
+						{/* Optional Configuration Fields */}
+						<div className='grid grid-cols-2 gap-4'>
+							{
+								/*<div className='space-y-2'>
+								<label className='block text-sm font-medium text-gray-700 dark:text-gray-300'>
+									Display Name (Optional)
+								</label>
+								<input
+									type='text'
+									value={formData.config.displayName as string || ''}
+									onChange={(e) =>
+										handleConfigChange('displayName', (e.target as HTMLInputElement).value)}
+									placeholder='My Google Docs'
+									className='w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-gray-100'
+								/>
+								<div className='text-xs text-gray-500 dark:text-gray-400'>
+									Friendly name for this Google connection
+								</div>
+							</div>*/
+							}
+
+							<div className='space-y-2'>
+								<label className='block text-sm font-medium text-gray-700 dark:text-gray-300'>
+									Default Drive/Folder ID (Optional)
+								</label>
+								<input
+									type='text'
+									value={formData.config.defaultFolderId as string || ''}
+									onChange={(e) =>
+										handleConfigChange('defaultFolderId', (e.target as HTMLInputElement).value)}
+									placeholder='drive-id-xyz'
+									className='w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-gray-100'
+								/>
+								<div className='text-xs text-gray-500 dark:text-gray-400'>
+									Restrict access to a specific Drive folder (leave empty for full access)
+								</div>
+							</div>
 						</div>
 					</div>
 				);

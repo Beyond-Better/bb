@@ -8,22 +8,25 @@ export const handler: Handlers = {
 		try {
 			// Get OAuth configuration from environment variables
 			// Note: clientId is application config, not stored in user credentials
-			const clientId = Deno.env.get('GOOGLE_OAUTH_CLIENT_ID') || '';
-			const redirectUri = Deno.env.get('GOOGLE_OAUTH_REDIRECT_URI') || 
-				'https://localhost:8080/oauth/google/callback';
-				//'https://chat.beyondbetter.app/oauth/google/callback';
+			const clientId = Deno.env.get('GOOGLE_OAUTH_CLIENT_ID');
+			const redirectUri = Deno.env.get('GOOGLE_OAUTH_REDIRECT_URI') ||
+				'https://chat.beyondbetter.app/oauth/google/callback';
+			//'https://localhost:8080/oauth/google/callback';
 
 			if (!clientId) {
-				return new Response(JSON.stringify({
-					error: {
-						code: 'MISSING_CONFIG',
-						message: 'Google OAuth client ID not configured',
-						reason: 'missing_client_id',
+				return new Response(
+					JSON.stringify({
+						error: {
+							code: 'MISSING_CONFIG',
+							message: 'Google OAuth client ID not configured',
+							reason: 'missing_client_id',
+						},
+					}),
+					{
+						status: 500,
+						headers: { 'Content-Type': 'application/json' },
 					},
-				}), {
-					status: 500,
-					headers: { 'Content-Type': 'application/json' },
-				});
+				);
 			}
 
 			// Define required scopes for Google Docs integration
@@ -36,25 +39,32 @@ export const handler: Handlers = {
 			// Return config for PKCE OAuth flow (no client secret needed)
 			// clientId is application-level config, not stored with user credentials
 
-			return new Response(JSON.stringify({
-				clientId,
-				scopes,
-				redirectUri,
-			}), {
-				status: 200,
-				headers: { 'Content-Type': 'application/json' },
-			});
+			return new Response(
+				JSON.stringify({
+					clientId,
+					//clientSecret,
+					redirectUri,
+					scopes,
+				}),
+				{
+					status: 200,
+					headers: { 'Content-Type': 'application/json' },
+				},
+			);
 		} catch (error) {
 			console.error('OAuth: Google config error:', error);
-			return new Response(JSON.stringify({
-				error: {
-					code: 'SERVER_ERROR',
-					message: 'Internal server error',
+			return new Response(
+				JSON.stringify({
+					error: {
+						code: 'SERVER_ERROR',
+						message: 'Internal server error',
+					},
+				}),
+				{
+					status: 500,
+					headers: { 'Content-Type': 'application/json' },
 				},
-			}), {
-				status: 500,
-				headers: { 'Content-Type': 'application/json' },
-			});
+			);
 		}
 	},
 };

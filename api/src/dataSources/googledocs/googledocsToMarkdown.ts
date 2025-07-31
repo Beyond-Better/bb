@@ -6,7 +6,7 @@ import type {
 	GoogleDocument,
 	GoogleStructuralElement,
 	GoogleParagraph,
-	GoogleParagraphElement,
+	//GoogleParagraphElement,
 	GoogleTextRun,
 	GoogleTable,
 	GoogleTableRow,
@@ -139,8 +139,8 @@ function getElementType(element: GoogleStructuralElement): string {
  */
 function structuralElementToMarkdown(
 	element: GoogleStructuralElement,
-	allElements: GoogleStructuralElement[],
-	index: number,
+	_allElements: GoogleStructuralElement[],
+	_index: number,
 	options: GoogleDocsToMarkdownOptions,
 ): string {
 	if (element.paragraph) {
@@ -381,7 +381,7 @@ function tableRowToMarkdown(tableRow: GoogleTableRow, options: GoogleDocsToMarkd
  * @param options Conversion options
  * @returns Markdown cell content
  */
-function tableCellToMarkdown(tableCell: GoogleTableCell, options: GoogleDocsToMarkdownOptions): string {
+function tableCellToMarkdown(tableCell: GoogleTableCell, _options: GoogleDocsToMarkdownOptions): string {
 	if (!tableCell.content || tableCell.content.length === 0) {
 		return '';
 	}

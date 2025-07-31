@@ -345,6 +345,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 			api: {
 				...ApiConfigDefaults,
 				llmProviders: {},
+				dataSourceProviders: {},
 			},
 			bui: BuiConfigDefaults,
 			cli: CliConfigDefaults,
@@ -810,6 +811,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 					api: {
 						...ApiConfigDefaults,
 						llmProviders: {},
+						dataSourceProviders: {},
 					},
 					bui: BuiConfigDefaults,
 					cli: CliConfigDefaults,
@@ -1349,6 +1351,18 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 					}
 				}
 			}
+			if (config.api.dataSourceProviders) {
+				const validProviders = ['filesystem', 'notion', 'googledocs'];
+				for (const [provider, providerConfig] of Object.entries(config.api.dataSourceProviders)) {
+					if (!validProviders.includes(provider)) {
+						result.errors.push({
+							path: ['api', 'dataSourceProviders', provider],
+							message: `Invalid datasource provider: ${provider}`,
+							value: provider,
+						});
+					}
+				}
+			}
 
 			// Warn about deprecated API keys
 			//if (config.api.anthropicApiKey || config.api.openaiApiKey || config.api.voyageaiApiKey) {
@@ -1529,6 +1543,18 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 							path: ['api', 'llmProviders', provider, 'apiKey'],
 							message: 'API key must be a non-empty string',
 							value: providerConfig?.apiKey,
+						});
+					}
+				}
+			}
+			if (config.api.dataSourceProviders) {
+				const validProviders = ['filesystem', 'notion', 'googledocs'];
+				for (const [provider, providerConfig] of Object.entries(config.api.dataSourceProviders)) {
+					if (!validProviders.includes(provider)) {
+						result.errors.push({
+							path: ['api', 'dataSourceProviders', provider],
+							message: `Invalid datasource provider: ${provider}`,
+							value: provider,
 						});
 					}
 				}

@@ -10,9 +10,9 @@
  */
 
 import { logger } from 'shared/logger.ts';
-import { NotionClient } from './notionClient.ts';
-import { NotionAccessor } from './notionAccessor.ts';
-import type { DataSourceConnection } from '../interfaces/dataSourceConnection.ts';
+import { NotionClient } from 'api/dataSources/notionClient.ts';
+import { NotionAccessor } from 'api/dataSources/notionAccessor.ts';
+import type { DataSourceConnection } from 'api/dataSources/interfaces/dataSourceConnection.ts';
 import type { ResourceLoadOptions } from 'shared/types/dataSourceResource.ts';
 
 // Configuration
@@ -33,15 +33,15 @@ async function testNotionIntegration() {
 		console.log('NotionClient created successfully');
 
 		// Set up a mock connection for the NotionAccessor
-		const mockConnection: DataSourceConnection = {
+		const mockConnection: Partial<DataSourceConnection> = {
 			id: 'notion-test',
 			name: 'Notion Test',
-			type: 'notion',
+			providerType: 'notion',
 			config: {
 				workspaceId: WORKSPACE_ID,
 			},
-			connection: {
-				authMode: 'apiKey',
+			auth: {
+				method: 'apiKey',
 				apiKey: NOTION_API_KEY,
 			},
 			capabilities: ['read', 'list', 'search', 'write'],

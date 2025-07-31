@@ -16,6 +16,7 @@ export const CUSTOM_PATHS = [
 	'/doctor',
 	'/auth/',
 	'/api/',
+	'/oauth/',
 ];
 
 export function isCustomPath(path: string): boolean {

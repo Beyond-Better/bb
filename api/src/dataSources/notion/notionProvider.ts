@@ -3,11 +3,11 @@
  */
 import { logger } from 'shared/logger.ts';
 import { BBDataSourceProvider } from '../base/bbDataSourceProvider.ts';
-import { NotionAccessor } from './notionAccessor.ts';
-import { NotionClient } from './notionClient.ts';
+import { NotionAccessor } from 'api/dataSources/notionAccessor.ts';
+import { NotionClient } from 'api/DataSources/notionClient.ts';
 import type { DataSourceConnection } from 'api/dataSources/interfaces/dataSourceConnection.ts';
 import type { ResourceAccessor } from 'api/dataSources/interfaces/resourceAccessor.ts';
-import type { AuthConfig } from 'api/dataSources/interfaces/authentication.ts';
+//import type { AuthConfig } from 'api/dataSources/interfaces/authentication.ts';
 //import type { DataSourceCapability } from 'shared/types/dataSource.ts';
 import type { DataSourceRegistry } from 'api/dataSources/dataSourceRegistry.ts';
 
@@ -25,7 +25,7 @@ export class NotionProvider extends BBDataSourceProvider {
 			'Notion', // Human-readable name
 			'Notion workspace integration', // Description
 			//['read', 'list', 'search'], // Capabilities
-			['read', 'write', 'list', 'search', 'delete'], // Capabilities
+			['blockRead', 'blockEdit', 'list', 'search', 'delete'], // Capabilities
 			[], // Required config fields
 			'apiKey', // auth type
 		);

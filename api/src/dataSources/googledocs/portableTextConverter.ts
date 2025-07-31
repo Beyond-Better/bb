@@ -4,35 +4,40 @@
  */
 import { logger } from 'shared/logger.ts';
 import type {
+	GoogleDocsBatchUpdateRequest,
 	GoogleDocument,
-	GoogleStructuralElement,
 	GoogleParagraph,
-	GoogleParagraphElement,
+	GoogleSectionBreak,
+	GoogleStructuralElement,
+	GoogleTable,
+	GoogleTableOfContents,
+	//GoogleParagraphElement,
 	GoogleTextRun,
 	GoogleTextStyle,
-	GoogleDocsBatchUpdateRequest,
 } from './googledocsClient.ts';
 import type { PortableTextBlock, PortableTextSpan } from 'api/types/portableText.types.ts';
 
 // Custom block types for Google Docs-specific content
 export interface GoogleDocsCustomBlock extends PortableTextBlock {
+	_key: string;
 	_type: string; // 'googledocs_table', 'googledocs_pagebreak', etc.
 	googledocsType: string; // Original Google Docs element type
-	googledocsData?: Record<string, unknown>; // Original Google Docs element data
+	googledocsData?: GoogleStructuralElement | GoogleTableOfContents; //Record<string, unknown>; // Original Google Docs element data
 }
 
 export interface GoogleDocsTableBlock extends PortableTextBlock {
+	_key: string;
 	_type: 'googledocs_table';
 	rows: number;
 	columns: number;
 	cells: PortableTextSpan[][];
-	googledocsData?: Record<string, unknown>;
+	googledocsData?: GoogleTable; //Record<string, unknown>;
 }
 
 export interface GoogleDocsBreakBlock extends PortableTextBlock {
 	_type: 'googledocs_break';
 	breakType: 'page' | 'section' | 'column';
-	googledocsData?: Record<string, unknown>;
+	googledocsData?: GoogleSectionBreak; //Record<string, unknown>;
 }
 
 /**
@@ -296,7 +301,7 @@ function convertTableToPortableText(table: any, startIndex: number): GoogleDocsT
  */
 export function convertPortableTextToGoogleDocs(
 	blocks: PortableTextBlock[],
-	documentId: string,
+	_documentId: string,
 ): GoogleDocsBatchUpdateRequest[] {
 	const requests: GoogleDocsBatchUpdateRequest[] = [];
 
@@ -374,9 +379,9 @@ function convertPortableTextBlockToGoogleDocsRequests(
 			// Handle unknown block types by converting to plain text
 			if (block.children) {
 				const text = block.children
-					.map((child) => child._type === 'span' ? child.text : '')
+					.map((child: { _type: string; text: string }) => child._type === 'span' ? child.text : '')
 					.join('');
-				
+
 				if (text) {
 					requests.push({
 						insertText: {
@@ -408,7 +413,7 @@ function convertPortableTextBlockByStyle(
 
 	// Extract text content from children
 	const textContent = block.children
-		?.map((child) => child._type === 'span' ? child.text : '')
+		?.map((child: {_type: string; text: string}) => child._type === 'span' ? child.text : '')
 		.join('') || '';
 
 	if (!textContent.trim()) {
@@ -431,7 +436,7 @@ function convertPortableTextBlockByStyle(
 	// Apply paragraph style for headings
 	if (block.style && block.style !== 'normal') {
 		let namedStyleType = 'NORMAL_TEXT';
-		
+
 		switch (block.style) {
 			case 'h1':
 				namedStyleType = 'HEADING_1';
@@ -472,12 +477,12 @@ function convertPortableTextBlockByStyle(
 	// Apply text formatting from spans
 	if (block.children) {
 		let spanStartIndex = textStartIndex;
-		
+
 		for (const child of block.children) {
 			if (child._type === 'span' && child.marks && child.marks.length > 0) {
 				const spanEndIndex = spanStartIndex + child.text.length;
 				const textStyle: GoogleTextStyle = {};
-				
+
 				// Apply marks
 				if (child.marks.includes('strong')) {
 					textStyle.bold = true;
@@ -520,7 +525,7 @@ function convertPortableTextBlockByStyle(
 					});
 				}
 			}
-			
+
 			spanStartIndex += child.text.length;
 		}
 	}
@@ -590,7 +595,7 @@ export function extractTextFromPortableText(blocks: PortableTextBlock[]): string
 	for (const block of blocks) {
 		if (block.children) {
 			const blockText = block.children
-				.map((child) => child._type === 'span' ? child.text : '')
+				.map((child: { _type: string; text: string }) => child._type === 'span' ? child.text : '')
 				.join('');
 
 			if (blockText.trim()) {

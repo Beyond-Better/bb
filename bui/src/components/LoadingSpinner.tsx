@@ -2,12 +2,14 @@ interface LoadingSpinnerProps {
 	size?: 'small' | 'medium' | 'large';
 	color?: string;
 	message?: string;
+	className?: string;
 }
 
 export function LoadingSpinner({
 	size = 'medium',
 	color = 'text-blue-500',
 	message,
+	className,
 }: LoadingSpinnerProps) {
 	const sizeClasses = {
 		small: 'h-4 w-4',
@@ -16,7 +18,7 @@ export function LoadingSpinner({
 	};
 
 	return (
-		<div className='flex items-center justify-center'>
+		<div className={`flex items-center justify-center ${className}`}>
 			<svg
 				className={`animate-spin ${sizeClasses[size]} ${color}`}
 				xmlns='http://www.w3.org/2000/svg'

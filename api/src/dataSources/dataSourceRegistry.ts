@@ -14,6 +14,7 @@ import type {
 import type { MCPManager } from 'api/mcp/mcpManager.ts';
 import { getMCPManager } from 'api/mcp/mcpManager.ts';
 import { FilesystemProvider } from 'api/dataSources/filesystemProvider.ts';
+import { GoogleDocsProvider } from 'api/dataSources/googledocsProvider.ts';
 import { NotionProvider } from 'api/dataSources/notionProvider.ts';
 import { GenericMCPProvider } from 'api/dataSources/genericMCPProvider.ts';
 
@@ -256,16 +257,16 @@ export class DataSourceRegistry {
 		config: Record<string, unknown>,
 		options: {
 			id?: string;
-			auth?: DataSourceAuth;
 			enabled?: boolean;
 			isPrimary?: boolean;
 			priority?: number;
+			auth?: DataSourceAuth;
 		} = {},
 	): DataSourceConnection {
 		// Validate the configuration and auth
 		if (
 			!provider.validateConfig(config) ||
-			(options.auth && !provider.validateAuth(options.auth))
+			(options.auth && options.auth.method && !provider.validateAuth(options.auth))
 		) {
 			throw new Error(`Invalid configuration or auth for provider ${provider.providerType}`);
 		}
@@ -289,6 +290,7 @@ export class DataSourceRegistry {
 
 			this.registerProvider(new FilesystemProvider());
 			this.registerProvider(new NotionProvider());
+			this.registerProvider(new GoogleDocsProvider());
 		} catch (error) {
 			logger.error('DataSourceRegistry: Error registering MCP servers:', error);
 		}
