@@ -2,7 +2,6 @@
  * GoogleDocsClient for interacting with the Google Docs and Drive APIs.
  */
 import { logger } from 'shared/logger.ts';
-import { getConfigManager } from 'shared/config/configManager.ts';
 import type { AuthConfig } from 'api/dataSources/interfaces/authentication.ts';
 import type {
 	GoogleDocsBatchUpdateRequest,
@@ -11,14 +10,22 @@ import type {
 	GoogleDriveFile,
 	GoogleDriveFilesList,
 } from 'api/dataSources/googledocs.types.ts';
+import type { ProjectConfig } from 'shared/config/types.ts';
 
 // Google APIs library types
 export interface GoogleAuth {
 	setCredentials(credentials: { access_token: string; refresh_token?: string }): void;
 	getAccessToken(): Promise<{ token?: string }>;
-	refreshAccessToken(): Promise<{ credentials: { access_token: string; refresh_token?: string; expiry_date?: number } }>;
+	refreshAccessToken(): Promise<
+		{ credentials: { access_token: string; refresh_token?: string; expiry_date?: number } }
+	>;
 }
 
+type TokenUpdateCallback = (newTokens: {
+	accessToken: string;
+	refreshToken?: string;
+	expiresAt?: number;
+}) => Promise<void>;
 
 /**
  * Client for interacting with the Google Docs and Drive APIs
@@ -26,34 +33,36 @@ export interface GoogleAuth {
 export class GoogleDocsClient {
 	private accessToken: string;
 	private refreshToken?: string;
-	private clientId: string;
-	private clientSecret: string;
 	private expiresAt?: number;
-	private projectId: string;
-	private readonly apiBaseUrl = 'https://www.googleapis.com';
-	private readonly authUrl = 'https://oauth2.googleapis.com/token';
+	private projectConfig: ProjectConfig;
+	// Note: Google APIs use different base URLs for different services
+	// Base URLs exclude version numbers for consistency with endpoint definitions
+	// Docs API: https://docs.googleapis.com + /v1/...
+	// Drive API: https://www.googleapis.com/drive + /v3/...
+	private readonly docsApiBaseUrl = 'https://docs.googleapis.com';
+	private readonly driveApiBaseUrl = 'https://www.googleapis.com/drive';
+	private tokenUpdateCallback?: TokenUpdateCallback;
 
 	/**
 	 * Create a new GoogleDocsClient
-	 * @param clientId OAuth2 client ID
+	 * @param projectConfig Project config
+	 * @param tokenUpdateCallback Callback to update oauth tokens in dsConnection
 	 * @param accessToken OAuth2 access token
 	 * @param refreshToken OAuth2 refresh token (optional)
 	 * @param expiresAt Token expiration timestamp
-	 * @param projectId Project ID for configuration access
 	 */
 	constructor(
-		clientId: string,
+		projectConfig: ProjectConfig,
+		tokenUpdateCallback: TokenUpdateCallback | undefined,
 		accessToken: string,
 		refreshToken: string | undefined,
 		expiresAt: number | undefined,
-		projectId: string,
 	) {
+		this.projectConfig = projectConfig;
+		this.tokenUpdateCallback = tokenUpdateCallback;
 		this.accessToken = accessToken;
 		this.refreshToken = refreshToken;
 		this.expiresAt = expiresAt;
-		this.clientId = clientId;
-		this.clientSecret = ''; //clientSecret;
-		this.projectId = projectId;
 	}
 
 	/**
@@ -62,29 +71,31 @@ export class GoogleDocsClient {
 	 * @param projectId Project ID for configuration access
 	 * @returns A new GoogleDocsClient instance or null if auth is invalid
 	 */
-	static fromAuthConfig(auth?: AuthConfig, projectId?: string): GoogleDocsClient | null {
+	static fromAuthConfig(
+		auth?: AuthConfig,
+		projectConfig?: ProjectConfig,
+		tokenUpdateCallback?: TokenUpdateCallback,
+	): GoogleDocsClient | null {
 		if (!auth || auth.method !== 'oauth2') {
 			logger.warn('GoogleDocsClient: Invalid auth config, must use oauth2 method');
 			return null;
 		}
 
-		const clientId = ''; //auth.oauth2?.clientId as string;
-		//const clientSecret = ''; //auth.oauth2?.clientSecret as string;
 		const accessToken = auth.oauth2?.accessToken as string;
 		const refreshToken = auth.oauth2?.refreshToken;
 		const expiresAt = auth.oauth2?.expiresAt;
 
-		if (!accessToken || !clientId || !projectId) {
-			logger.warn('GoogleDocsClient: Missing required OAuth2 credentials or projectId');
+		if (!accessToken || !projectConfig) {
+			logger.warn('GoogleDocsClient: Missing required OAuth2 credentials or projectConfig');
 			return null;
 		}
 
 		return new GoogleDocsClient(
-			clientId,
+			projectConfig,
+			tokenUpdateCallback,
 			accessToken,
 			refreshToken,
 			expiresAt,
-			projectId,
 		);
 	}
 
@@ -113,16 +124,15 @@ export class GoogleDocsClient {
 
 		try {
 			// Get token endpoint from configuration
-			const configManager = await getConfigManager();
-			const globalConfig = await configManager.getGlobalConfig();
-			const projectConfig = await configManager.getProjectConfig(this.projectId);
-			const tokenEndpoint = projectConfig.api.tokenEndpoint || globalConfig.api.tokenEndpoint;
-			
+			const tokenEndpoint = this.projectConfig.api?.dataSourceProviders?.googledocs?.tokenEndpoint as string ||
+				'https://chat.beyondbetter.app/api/v1/oauth/google/token';
+			logger.info('GoogleDocsClient: refreshAccessToken - Using: tokenEndpoint', tokenEndpoint );
+
 			if (!tokenEndpoint) {
 				logger.error('GoogleDocsClient: No token endpoint configured');
 				return false;
 			}
-			
+
 			const response = await fetch(tokenEndpoint, {
 				method: 'POST',
 				headers: {
@@ -142,7 +152,7 @@ export class GoogleDocsClient {
 
 			const data = await response.json();
 			this.accessToken = data.accessToken;
-			
+
 			// Update expiry time if provided
 			if (data.expiresIn) {
 				this.expiresAt = Date.now() + (data.expiresIn * 1000);
@@ -151,6 +161,15 @@ export class GoogleDocsClient {
 			// Update refresh token if provided
 			if (data.refreshToken) {
 				this.refreshToken = data.refreshToken;
+			}
+
+			if (this.tokenUpdateCallback) {
+			logger.info('GoogleDocsClient: Calling token update');
+				await this.tokenUpdateCallback({
+					accessToken: this.accessToken,
+					refreshToken: this.refreshToken,
+					expiresAt: this.expiresAt,
+				});
 			}
 
 			logger.info('GoogleDocsClient: Successfully refreshed access token');
@@ -175,19 +194,22 @@ export class GoogleDocsClient {
 
 	/**
 	 * Make a request to the Google API
-	 * @param endpoint API endpoint path
+	 * @param endpoint API endpoint path (should start with / and include version, e.g., '/v1/documents/123')
 	 * @param method HTTP method
 	 * @param body Request body
+	 * @param apiType API type to determine base URL ('docs' or 'drive')
 	 * @returns Response data
 	 */
-	private async request<T>(endpoint: string, method: string = 'GET', body?: unknown): Promise<T> {
+	private async request<T>(endpoint: string, method: string = 'GET', body?: unknown, apiType: 'docs' | 'drive' = 'docs'): Promise<T> {
 		// Ensure we have a valid token
 		const hasValidToken = await this.ensureValidToken();
 		if (!hasValidToken) {
 			throw new Error('GoogleDocsClient: Unable to obtain valid access token');
 		}
 
-		const url = `${this.apiBaseUrl}${endpoint}`;
+		// Choose the correct base URL based on API type
+		const baseUrl = apiType === 'drive' ? this.driveApiBaseUrl : this.docsApiBaseUrl;
+		const url = `${baseUrl}${endpoint}`;
 		const headers: Record<string, string> = {
 			'Authorization': `Bearer ${this.accessToken}`,
 			'Accept': 'application/json',
@@ -206,7 +228,7 @@ export class GoogleDocsClient {
 
 			if (!response.ok) {
 				const errorText = await response.text();
-				
+
 				// Handle token expiry errors
 				if (response.status === 401) {
 					logger.warn('GoogleDocsClient: Received 401 error, attempting token refresh');
@@ -219,16 +241,18 @@ export class GoogleDocsClient {
 							headers,
 							body: body ? JSON.stringify(body) : undefined,
 						});
-						
+
 						if (!retryResponse.ok) {
 							const retryErrorText = await retryResponse.text();
-							throw new Error(`Google API error after token refresh (${retryResponse.status}): ${retryErrorText}`);
+							throw new Error(
+								`Google API error after token refresh (${retryResponse.status}): ${retryErrorText}`,
+							);
 						}
-						
+
 						return await retryResponse.json() as T;
 					}
 				}
-				
+
 				throw new Error(`Google API error (${response.status}): ${errorText}`);
 			}
 
@@ -285,9 +309,9 @@ export class GoogleDocsClient {
 			throw new Error(`Invalid document ID or URL: ${documentId}`);
 		}
 
-		const endpoint = `/docs/v1/documents/${resolvedId}`;
-		const response = await this.request<{ data?: GoogleDocument } & GoogleDocument>(endpoint);
-		
+		const endpoint = `/v1/documents/${resolvedId}`;
+		const response = await this.request<{ data?: GoogleDocument } & GoogleDocument>(endpoint, 'GET', undefined, 'docs');
+
 		// Handle both direct response and wrapped response formats
 		return response.data || response;
 	}
@@ -304,21 +328,21 @@ export class GoogleDocsClient {
 		query?: string,
 		folderId?: string,
 		pageSize: number = 50,
-		pageToken?: string
+		pageToken?: string,
 	): Promise<GoogleDriveFilesList> {
 		let q = "mimeType='application/vnd.google-apps.document'";
-		
+
 		if (query) {
 			const escapedQuery = query.replace(/'/g, "\\'");
 			q += ` and name contains '${escapedQuery}'`;
 		}
-		
+
 		if (folderId) {
 			q += ` and '${folderId}' in parents`;
 		}
-		
+
 		// Exclude trashed files
-		q += " and trashed=false";
+		q += ' and trashed=false';
 
 		const params = new URLSearchParams({
 			q,
@@ -330,9 +354,9 @@ export class GoogleDocsClient {
 			params.set('pageToken', pageToken);
 		}
 
-		const endpoint = `/drive/v3/files?${params.toString()}`;
-		const response = await this.request<{ data?: GoogleDriveFilesList } & GoogleDriveFilesList>(endpoint);
-		
+		const endpoint = `/v3/files?${params.toString()}`;
+		const response = await this.request<{ data?: GoogleDriveFilesList } & GoogleDriveFilesList>(endpoint, 'GET', undefined, 'drive');
+
 		// Handle both direct response and wrapped response formats
 		return response.data || response;
 	}
@@ -345,22 +369,23 @@ export class GoogleDocsClient {
 	 */
 	async updateDocument(
 		documentId: string,
-		requests: GoogleDocsBatchUpdateRequest[]
+		requests: GoogleDocsBatchUpdateRequest[],
 	): Promise<GoogleDocsBatchUpdateResponse> {
 		const resolvedId = this.resolveDocumentUrl(documentId);
 		if (!resolvedId) {
 			throw new Error(`Invalid document ID or URL: ${documentId}`);
 		}
 
-		const endpoint = `/docs/v1/documents/${resolvedId}:batchUpdate`;
+		const endpoint = `/v1/documents/${resolvedId}:batchUpdate`;
 		const body = { requests };
-		
+
 		const response = await this.request<{ data?: GoogleDocsBatchUpdateResponse } & GoogleDocsBatchUpdateResponse>(
 			endpoint,
 			'POST',
-			body
+			body,
+			'docs'
 		);
-		
+
 		// Handle both direct response and wrapped response formats
 		return response.data || response;
 	}
@@ -372,15 +397,16 @@ export class GoogleDocsClient {
 	 * @returns Created document
 	 */
 	async createDocument(title: string, content?: string): Promise<GoogleDocument> {
-		const endpoint = '/docs/v1/documents';
+		const endpoint = '/v1/documents';
 		const body = { title };
-		
+
 		const response = await this.request<{ data?: GoogleDocument } & GoogleDocument>(
 			endpoint,
 			'POST',
-			body
+			body,
+			'docs'
 		);
-		
+
 		const document = response.data || response;
 
 		// If initial content is provided, add it to the document
@@ -395,7 +421,7 @@ export class GoogleDocsClient {
 			];
 
 			await this.updateDocument(document.documentId, insertRequests);
-			
+
 			// Return the updated document
 			return await this.getDocument(document.documentId);
 		}
@@ -409,15 +435,18 @@ export class GoogleDocsClient {
 	 * @returns File metadata
 	 */
 	async getDriveFileMetadata(fileId: string): Promise<GoogleDriveFile> {
-		const endpoint = `/drive/v3/files/${fileId}`;
+		const endpoint = `/v3/files/${fileId}`;
 		const params = new URLSearchParams({
 			fields: 'id,name,mimeType,webViewLink,createdTime,modifiedTime,owners,parents,shared,size,description',
 		});
 
 		const response = await this.request<{ data?: GoogleDriveFile } & GoogleDriveFile>(
-			`${endpoint}?${params.toString()}`
+			`${endpoint}?${params.toString()}`,
+			'GET',
+			undefined,
+			'drive'
 		);
-		
+
 		// Handle both direct response and wrapped response formats
 		return response.data || response;
 	}
@@ -432,7 +461,7 @@ export class GoogleDocsClient {
 	async insertText(
 		documentId: string,
 		text: string,
-		index?: number
+		index?: number,
 	): Promise<GoogleDocsBatchUpdateResponse> {
 		// If no index provided, we need to get the document to find the end index
 		let insertIndex = index;
@@ -472,7 +501,7 @@ export class GoogleDocsClient {
 		documentId: string,
 		searchText: string,
 		replaceText: string,
-		matchCase: boolean = false
+		matchCase: boolean = false,
 	): Promise<GoogleDocsBatchUpdateResponse> {
 		const requests: GoogleDocsBatchUpdateRequest[] = [
 			{
@@ -487,5 +516,29 @@ export class GoogleDocsClient {
 		];
 
 		return await this.updateDocument(documentId, requests);
+	}
+
+	/**
+	 * Test API connectivity and token validity
+	 * @returns Basic user info if successful
+	 */
+	async testConnection(): Promise<{ email?: string; name?: string }> {
+		try {
+			// Test with a simple Drive API call that should always work
+			const aboutEndpoint = '/v3/about?fields=user';
+			logger.info(`GoogleDocsClient: Testing connection with ${aboutEndpoint}`);
+			
+			const response = await this.request<{
+				user: { emailAddress: string; displayName: string }
+			}>(aboutEndpoint, 'GET', undefined, 'drive');
+			
+			return {
+				email: response.user?.emailAddress,
+				name: response.user?.displayName
+			};
+		} catch (error) {
+			logger.error('GoogleDocsClient: Connection test failed:', error);
+			throw error;
+		}
 	}
 }

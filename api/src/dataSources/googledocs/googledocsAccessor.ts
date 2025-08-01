@@ -8,6 +8,7 @@ import type {
 	GoogleDocsBatchUpdateRequest,
 	//GoogleDocument,
 	GoogleDriveFile,
+	//GoogleDriveFilesList,
 	//GoogleParagraph,
 	//GoogleStructuralElement,
 	//GoogleTextRun,
@@ -205,6 +206,7 @@ export class GoogleDocsAccessor extends BBResourceAccessor {
 		try {
 			// Parse the resource URI
 			const parsed = this.parseGoogleDocsUri(resourceUri);
+			logger.error(`GoogleDocsAccessor: loading resource ${resourceUri}: ${parsed}`);
 			if (!parsed) {
 				throw new Error(`Invalid Google Docs resource URI: ${resourceUri}`);
 			}
@@ -618,9 +620,9 @@ export class GoogleDocsAccessor extends BBResourceAccessor {
 			const results = await this.client.listDocuments(searchQuery, this.folderId, options.pageSize || 50);
 
 			// Filter results based on date constraints if provided
-			let filteredFiles = results.files;
+			let filteredFiles: GoogleDriveFile[] = results.files;
 			if (options.dateAfter || options.dateBefore) {
-				filteredFiles = filteredFiles.filter((file) => {
+				filteredFiles = filteredFiles.filter((file: GoogleDriveFile) => {
 					if (!file.modifiedTime) return false;
 
 					const modifiedDate = new Date(file.modifiedTime);
@@ -902,7 +904,7 @@ export class GoogleDocsAccessor extends BBResourceAccessor {
 						textParts.push(`### ${blockText}`);
 						break;
 					default:
-						textParts.push(blockText);
+						textParts.push(blockText.trim());
 				}
 			}
 		}

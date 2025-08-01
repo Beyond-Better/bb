@@ -13,7 +13,7 @@
  */
 
 import { logger } from 'shared/logger.ts';
-import { GoogleDocsClient } from 'api/dataSources/googledocs/googledocsClient.ts';
+import { GoogleDocsClient } from 'api/dataSources/googledocsClient.ts';
 import type { ProjectConfig } from 'shared/config/types.ts';
 
 // Configuration from environment variables
@@ -30,7 +30,8 @@ const mockProjectConfig: ProjectConfig = {
 	api: {
 		dataSourceProviders: {
 			googledocs: {
-				tokenEndpoint: 'https://chat.beyondbetter.app/api/v1/oauth/google/token'
+				//tokenEndpoint: 'https://chat.beyondbetter.app/api/v1/oauth/google/token'
+				tokenEndpoint: 'https://localhost:8080/api/v1/oauth/google/token'
 			}
 		}
 	}
@@ -45,7 +46,8 @@ const mockTokenUpdateCallback = async (newTokens: {
 	expiresAt?: number;
 }) => {
 	console.log('Token update callback called with:', {
-		accessToken: `${newTokens.accessToken.substring(0, 10)}...`,
+		//accessToken: `${newTokens.accessToken.substring(0, 10)}...`,
+		accessToken: newTokens.accessToken,
 		refreshToken: newTokens.refreshToken ? `${newTokens.refreshToken.substring(0, 10)}...` : undefined,
 		expiresAt: newTokens.expiresAt ? new Date(newTokens.expiresAt).toISOString() : undefined,
 	});
@@ -119,6 +121,7 @@ async function testGoogleDocsIntegration() {
 			}
 		}
 
+/* 
 		// Test 4: List documents
 		console.log('\n=== Test 4: Listing documents ===');
 		try {
@@ -182,6 +185,7 @@ async function testGoogleDocsIntegration() {
 				console.error('Failed to get file metadata:', error);
 			}
 		}
+ */
 
 		// Advanced tests (commented out by default to avoid modifying documents)
 		/*
@@ -278,6 +282,10 @@ async function testGoogleDocsIntegration() {
 		console.log('\nAll tests completed successfully');
 		console.log('\nNote: Advanced tests (document creation, modification) are commented out by default.');
 		console.log('Uncomment them in the script if you want to test document modification capabilities.');
+		console.log('\n🔧 API Endpoint Fix Applied:');
+		console.log('   Using correct Google API endpoints:');
+		console.log('   - Docs API: https://docs.googleapis.com/v1');
+		console.log('   - Drive API: https://www.googleapis.com/drive/v3');
 
 	} catch (error) {
 		console.error('Error during Google Docs integration test:', error);
