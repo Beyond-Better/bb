@@ -4,7 +4,7 @@
 import { logger } from 'shared/logger.ts';
 import { BBDataSourceProvider } from '../base/bbDataSourceProvider.ts';
 import { NotionAccessor } from 'api/dataSources/notionAccessor.ts';
-import { NotionClient } from 'api/DataSources/notionClient.ts';
+import { NotionClient } from 'api/dataSources/notionClient.ts';
 import type { DataSourceConnection } from 'api/dataSources/interfaces/dataSourceConnection.ts';
 import type { ResourceAccessor } from 'api/dataSources/interfaces/resourceAccessor.ts';
 //import type { AuthConfig } from 'api/dataSources/interfaces/authentication.ts';
@@ -122,6 +122,7 @@ export class NotionProvider extends BBDataSourceProvider {
 	 * @param options Additional options
 	 * @returns A new DataSourceConnection for a Notion data source
 	 */
+	// Doesn't have access to projectConfig
 	static createNotionDataSource(
 		name: string,
 		workspaceId: string,
@@ -149,7 +150,7 @@ export class NotionProvider extends BBDataSourceProvider {
 				},
 			},
 		);
-
+	
 		return connection;
 	}
 }

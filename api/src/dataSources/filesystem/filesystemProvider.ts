@@ -7,6 +7,7 @@ import { FilesystemAccessor } from './filesystemAccessor.ts';
 import type { DataSourceConnection } from 'api/dataSources/interfaces/dataSourceConnection.ts';
 import type { ResourceAccessor } from 'api/dataSources/interfaces/resourceAccessor.ts';
 import type { DataSourceRegistry } from 'api/dataSources/dataSourceRegistry.ts';
+import type { ProjectConfig } from 'shared/config/types.ts';
 
 /**
  * FilesystemProvider for BB-managed filesystem data sources
@@ -101,6 +102,7 @@ export class FilesystemProvider extends BBDataSourceProvider {
 			priority?: number;
 			strictRoot?: number;
 			followSymlinks?: number;
+			projectConfig?: ProjectConfig
 		} = {},
 	): DataSourceConnection {
 		const provider = registry.getProvider('filesystem', 'bb');

@@ -43,6 +43,7 @@ export async function setupTestProject(): Promise<
 		{
 			id: 'ds-fs-primary',
 			isPrimary: true,
+			//projectConfig: projectConfig,
 		},
 	);
 

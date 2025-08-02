@@ -18,7 +18,7 @@ import type {
 } from './googledocsClient.ts';
 import {
 	convertGoogleDocsToPortableText,
-	//convertPortableTextToGoogleDocs,
+	convertPortableTextToGoogleDocs,
 	//validatePortableTextForGoogleDocs,
 } from './portableTextConverter.ts';
 import {

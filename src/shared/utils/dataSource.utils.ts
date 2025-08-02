@@ -66,6 +66,7 @@ export function parseDataSourceUri(uri: string): {
 		schemeEndIndex = colonIndex;
 		delimiter = ':';
 	}
+	//logger.info(`DataSourceUtils: parseDataSourceUri: schemeEndIndex: ${schemeEndIndex}`);
 
 	if (schemeEndIndex === -1) {
 		throw new Error('Invalid URI format');
@@ -73,9 +74,11 @@ export function parseDataSourceUri(uri: string): {
 
 	const fullScheme = uri.substring(0, schemeEndIndex);
 	const restOfUri = uri.substring(schemeEndIndex);
+	//logger.info(`DataSourceUtils: parseDataSourceUri: `, { fullScheme, restOfUri});
 
 	// Split the fullScheme by "+" delimiters
 	const prefixParts = fullScheme.split('+'); //{accessMethod}+{providerType}+{dataSourceName}+{originalScheme}
+	//logger.info(`DataSourceUtils: parseDataSourceUri: `, { prefixParts});
 
 	// Check for valid format
 	if (prefixParts.length < 4) {

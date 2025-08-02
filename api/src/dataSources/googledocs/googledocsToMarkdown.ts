@@ -11,7 +11,7 @@ import type {
 	GoogleTable,
 	GoogleTableRow,
 	GoogleTableCell,
-} from './googledocsClient.ts';
+} from './googledocs.types.ts';
 
 /**
  * Options for Google Docs to Markdown conversion

@@ -170,28 +170,29 @@ export class GenericMCPProvider extends MCPDataSourceProvider {
 	 * @param options Additional options
 	 * @returns A new DataSourceConnection for an MCP data source
 	 */
-	static createMCPDataSource(
-		serverId: string,
-		name: string,
-		config: Record<string, unknown>,
-		registry: DataSourceRegistry,
-		options: {
-			id?: string;
-			enabled?: boolean;
-			isPrimary?: boolean;
-			priority?: number;
-		} = {},
-	): DataSourceConnection {
-		const provider = registry.getProvider(
-			serverId, // Provider Type is the server ID for MCP providers
-			'mcp',
-		);
-		if (!provider) throw new Error('Could not load provider');
-		return registry.createConnection(
-			provider,
-			name,
-			config,
-			options,
-		);
-	}
+	// // Doesn't have access to projectConfig
+	// static createMCPDataSource(
+	// 	serverId: string,
+	// 	name: string,
+	// 	config: Record<string, unknown>,
+	// 	registry: DataSourceRegistry,
+	// 	options: {
+	// 		id?: string;
+	// 		enabled?: boolean;
+	// 		isPrimary?: boolean;
+	// 		priority?: number;
+	// 	} = {},
+	// ): DataSourceConnection {
+	// 	const provider = registry.getProvider(
+	// 		serverId, // Provider Type is the server ID for MCP providers
+	// 		'mcp',
+	// 	);
+	// 	if (!provider) throw new Error('Could not load provider');
+	// 	return registry.createConnection(
+	// 		provider,
+	// 		name,
+	// 		config,
+	// 		options,
+	// 	);
+	// }
 }

@@ -111,6 +111,7 @@ describe('ConfigManagerV2', () => {
 				{
 					id: 'ds-fs-primary',
 					isPrimary: true,
+					//projectConfig: projectConfig,
 				},
 			);
 
@@ -144,6 +145,7 @@ describe('ConfigManagerV2', () => {
 				{
 					id: 'ds-fs-primary',
 					isPrimary: true,
+					//projectConfig: projectConfig,
 				},
 			);
 			const projectPersistenceManager = await getProjectPersistenceManager();
@@ -214,6 +216,7 @@ describe('ConfigManagerV2', () => {
 						{
 							id: 'ds-fs-primary',
 							isPrimary: true,
+							//projectConfig: projectConfig,
 						},
 					);
 					const projectPersistenceManager = await getProjectPersistenceManager();

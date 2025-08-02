@@ -136,7 +136,6 @@ export interface DataSourceAuthOauth2 {
 	scopes?: string;
 }
 
-// Important - there is also AuthConfig interface in api/dataSources/interfaces/authentication.ts - which is the canonical definition??
 export interface DataSourceAuth {
 	method: DataSourceAuthMethod; // Authentication method
 	apiKey?: string; // For apiKey auth (simple implementation)

@@ -91,6 +91,14 @@ export default class LLMToolLoadDatasource extends LLMTool {
 			pageToken,
 		} = toolInput as LLMToolLoadDatasourceInput;
 
+		//logger.error(`LLMToolLoadDatasource: Tool Input: ${dataSourceId}`, {
+		//	returnType,
+		//	path,
+		//	depth,
+		//	pageSize,
+		//	pageToken,
+		//});
+
 		const { primaryDsConnection, dsConnections, notFound } = this.getDsConnectionsById(
 			projectEditor,
 			dataSourceId ? [dataSourceId] : undefined,
@@ -110,7 +118,6 @@ export default class LLMToolLoadDatasource extends LLMTool {
 				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
 			} as DataSourceHandlingErrorOptions);
 		}
-
 		try {
 			// Handle metadata return type
 			if (returnType === 'metadata' || returnType === 'both') {

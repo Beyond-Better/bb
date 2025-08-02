@@ -141,7 +141,7 @@ export default class LLMToolLoadResources extends LLMTool {
 				} as ToolHandlingErrorOptions);
 			}
 
-			// logger.error(`LLMToolLoadResources: Tool Input: ${dataSourceId}`, {
+			// logger.info(`LLMToolLoadResources: Tool Input: ${dataSourceId}`, {
 			// 	mode,
 			// 	uriTemplate,
 			// 	templateResources,
@@ -154,7 +154,7 @@ export default class LLMToolLoadResources extends LLMTool {
 				: []).map((uri) =>
 					dsConnectionToUse.getUriForResource(uri)
 				);
-			//logger.error(`LLMToolLoadResources: resourceUris for: ${dataSourceId}`, { resourceUris });
+			//logger.info(`LLMToolLoadResources: resourceUris for: ${dataSourceId}`, { resourceUris });
 			const resourcesAdded = await projectEditor.prepareResourcesForInteraction(
 				resourceUris,
 			);

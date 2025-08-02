@@ -27,6 +27,7 @@ const DEFAULT_DATA_SOURCE = (isPrimary: boolean): ClientDataSourceConnection => 
 	capabilities: ['read'],
 	description: '',
 	config: {},
+	auth: { method: 'none' },
 });
 
 /**
@@ -99,6 +100,7 @@ export function DataSourceList({ editingProject, onUpdate: _onUpdate, appState }
 	};
 
 	const handleUpdateDsConnection = async (dsConnection: ClientDataSourceConnection) => {
+		//console.log('DataSourceList: saving datasource', dsConnection);
 		try {
 			if (!projectId.value) {
 				setLoading(false);

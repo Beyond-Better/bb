@@ -1,4 +1,5 @@
-import { Handlers } from '$fresh/server.ts';
+import { Handlers, type FreshContext } from '$fresh/server.ts';
+import type { FreshAppState } from 'bui/types/state.types.ts';
 
 /**
  * Handle Google OAuth token operations:
@@ -12,118 +13,13 @@ import { Handlers } from '$fresh/server.ts';
  * For token refresh, the client secret is securely handled server-side.
  */
 export const handler: Handlers = {
-	async GET(req, _ctx) {
-		// Handle OAuth callback from Google (authorization code in query params)
-		try {
-			const url = new URL(req.url);
-			const code = url.searchParams.get('code');
-			const state = url.searchParams.get('state');
-			const error = url.searchParams.get('error');
+	async POST(req, ctx: FreshContext<FreshAppState>) {
+		const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 
-			// Handle OAuth errors
-			if (error) {
-				console.error('OAuth: Authorization error:', error);
-				const errorDescription = url.searchParams.get('error_description') || 'Unknown error';
-				
-				// Return HTML page that posts error message to parent window
-				return new Response(`
-					<!DOCTYPE html>
-					<html>
-					<head><title>OAuth Error</title></head>
-					<body>
-						<script>
-							window.opener?.postMessage({
-								type: 'GOOGLE_OAUTH_ERROR',
-								error: '${error}: ${errorDescription}'
-							}, window.location.origin);
-							window.close();
-						</script>
-					</body>
-					</html>
-				`, {
-					status: 200,
-					headers: { 'Content-Type': 'text/html' },
-				});
-			}
-
-			// Validate required parameters
-			if (!code || !state) {
-				console.error('OAuth: Missing required parameters in callback');
-				
-				// Return HTML page that posts error message to parent window
-				return new Response(`
-					<!DOCTYPE html>
-					<html>
-					<head><title>OAuth Error</title></head>
-					<body>
-						<script>
-							window.opener?.postMessage({
-								type: 'GOOGLE_OAUTH_ERROR',
-								error: 'Missing authorization code or state parameter'
-							}, window.location.origin);
-							window.close();
-						</script>
-					</body>
-					</html>
-				`, {
-					status: 200,
-					headers: { 'Content-Type': 'text/html' },
-				});
-			}
-
-			console.log('OAuth: Received authorization callback with code and state');
-
-			// Return HTML page that posts success message to parent window
-			return new Response(`
-				<!DOCTYPE html>
-				<html>
-				<head><title>OAuth Success</title></head>
-				<body>
-					<script>
-						window.opener?.postMessage({
-							type: 'GOOGLE_OAUTH_SUCCESS',
-							code: '${code}',
-							state: '${state}'
-						}, window.location.origin);
-						window.close();
-					</script>
-				</body>
-				</html>
-			`, {
-				status: 200,
-				headers: { 'Content-Type': 'text/html' },
-			});
-
-		} catch (error) {
-			console.error('OAuth: Callback handling error:', error);
-			
-			// Return HTML page that posts error message to parent window
-			return new Response(`
-				<!DOCTYPE html>
-				<html>
-				<head><title>OAuth Error</title></head>
-				<body>
-					<script>
-						window.opener?.postMessage({
-							type: 'GOOGLE_OAUTH_ERROR',
-							error: 'Internal error handling OAuth callback'
-						}, window.location.origin);
-						window.close();
-					</script>
-				</body>
-				</html>
-			`, {
-				status: 200,
-				headers: { 'Content-Type': 'text/html' },
-			});
-		}
-	},
-
-	async POST(req, _ctx) {
 		try {
 			const body = await req.json();
 			const { code, codeVerifier, state: _state, refreshToken, operation } = body;
-			console.log(`OAuth: handling token ${operation}`);
+			//console.log(`OAuth: handling token for ${operation || 'exchange'}`);
 
 			// Determine operation type - refresh or token exchange
 			const isRefreshOperation = operation === 'refresh';
@@ -180,16 +76,13 @@ export const handler: Handlers = {
 				}
 			}
 
-			// Get OAuth configuration from environment variables
-			// Note: clientId is application-level config, same for all users
-			const clientId = Deno.env.get('GOOGLE_OAUTH_CLIENT_ID');
-			const clientSecret = Deno.env.get('GOOGLE_OAUTH_CLIENT_SECRET');
-			const redirectUri = Deno.env.get('GOOGLE_OAUTH_REDIRECT_URI') ||
-				'https://chat.beyondbetter.app/oauth/google/callback';
-			// 'https://localhost:8080/oauth/google/callback';
-			console.log(`OAuth: handling token: `, { clientId, clientSecret, redirectUri });
+			// Get OAuth configuration from state (set by stateConfig plugin)
+			const clientId = ctx.state.buiConfig.googleOauth.clientId;
+			const clientSecret = ctx.state.buiConfig.googleOauth.clientSecret;
+			const redirectUri = ctx.state.buiConfig.googleOauth.redirectUri;
+			//console.log(`OAuth: handling token: `, { clientId, clientSecret, redirectUri });
 
-			if (!clientId || !clientSecret) {
+			if (!clientId || !clientSecret || !redirectUri) {
 				console.error('OAuth: Missing Google OAuth configuration');
 				return new Response(
 					JSON.stringify({
@@ -214,8 +107,12 @@ export const handler: Handlers = {
 				operationLog = 'refreshing access token';
 				console.log('OAuth: Refreshing access token');
 				console.log('OAuth: Using Client ID:', clientId);
+				console.log('OAuth: Request body:', {
+					refresh_token: refreshToken ? 'present' : 'missing',
+					redirectUri,
+				});
 
-				tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+				tokenResponse = await fetch(GOOGLE_TOKEN_URL, {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/x-www-form-urlencoded',
@@ -238,18 +135,18 @@ export const handler: Handlers = {
 					redirectUri,
 				});
 
-				// Log the exact parameters being sent to Google
-				const tokenParams = {
-					code,
-					client_id: clientId,
-					client_secret: clientSecret, // Use the actual secret Google provided
-					code_verifier: codeVerifier,
-					redirect_uri: redirectUri,
-					grant_type: 'authorization_code',
-				};
-				console.log('OAuth: Exact token request params:', tokenParams);
+				// // Log the exact parameters being sent to Google
+				// const tokenParams = {
+				// 	code,
+				// 	client_id: clientId,
+				// 	client_secret: clientSecret, // Use the actual secret Google provided
+				// 	code_verifier: codeVerifier,
+				// 	redirect_uri: redirectUri,
+				// 	grant_type: 'authorization_code',
+				// };
+				// console.log('OAuth: Exact token request params:', tokenParams);
 
-				tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+				tokenResponse = await fetch(GOOGLE_TOKEN_URL, {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/x-www-form-urlencoded',
@@ -327,4 +224,113 @@ export const handler: Handlers = {
 			);
 		}
 	},
+	// // GET request is handled by /oauth/google/callback
+	/*
+	async GET(req, _ctx) {
+		// Handle OAuth callback from Google (authorization code in query params)
+		try {
+			const url = new URL(req.url);
+			const code = url.searchParams.get('code');
+			const state = url.searchParams.get('state');
+			const error = url.searchParams.get('error');
+
+			// Handle OAuth errors
+			if (error) {
+				console.error('OAuth: Authorization error:', error);
+				const errorDescription = url.searchParams.get('error_description') || 'Unknown error';
+
+				// Return HTML page that posts error message to parent window
+				return new Response(`
+					<!DOCTYPE html>
+					<html>
+					<head><title>OAuth Error</title></head>
+					<body>
+						<script>
+							window.opener?.postMessage({
+								type: 'GOOGLE_OAUTH_ERROR',
+								error: '${error}: ${errorDescription}'
+							}, window.location.origin);
+							window.close();
+						</script>
+					</body>
+					</html>
+				`, {
+					status: 200,
+					headers: { 'Content-Type': 'text/html' },
+				});
+			}
+
+			// Validate required parameters
+			if (!code || !state) {
+				console.error('OAuth: Missing required parameters in callback');
+
+				// Return HTML page that posts error message to parent window
+				return new Response(`
+					<!DOCTYPE html>
+					<html>
+					<head><title>OAuth Error</title></head>
+					<body>
+						<script>
+							window.opener?.postMessage({
+								type: 'GOOGLE_OAUTH_ERROR',
+								error: 'Missing authorization code or state parameter'
+							}, window.location.origin);
+							window.close();
+						</script>
+					</body>
+					</html>
+				`, {
+					status: 200,
+					headers: { 'Content-Type': 'text/html' },
+				});
+			}
+
+			console.log('OAuth: Received authorization callback with code and state');
+
+			// Return HTML page that posts success message to parent window
+			return new Response(`
+				<!DOCTYPE html>
+				<html>
+				<head><title>OAuth Success</title></head>
+				<body>
+					<script>
+						window.opener?.postMessage({
+							type: 'GOOGLE_OAUTH_SUCCESS',
+							code: '${code}',
+							state: '${state}'
+						}, window.location.origin);
+						window.close();
+					</script>
+				</body>
+				</html>
+			`, {
+				status: 200,
+				headers: { 'Content-Type': 'text/html' },
+			});
+
+		} catch (error) {
+			console.error('OAuth: Callback handling error:', error);
+
+			// Return HTML page that posts error message to parent window
+			return new Response(`
+				<!DOCTYPE html>
+				<html>
+				<head><title>OAuth Error</title></head>
+				<body>
+					<script>
+						window.opener?.postMessage({
+							type: 'GOOGLE_OAUTH_ERROR',
+							error: 'Internal error handling OAuth callback'
+						}, window.location.origin);
+						window.close();
+					</script>
+				</body>
+				</html>
+			`, {
+				status: 200,
+				headers: { 'Content-Type': 'text/html' },
+			});
+		}
+	},
+ */
 };

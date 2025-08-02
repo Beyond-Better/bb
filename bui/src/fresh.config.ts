@@ -15,7 +15,8 @@ import { getVersionInfo } from 'shared/version.ts';
 import { buiFileLogger } from 'bui/utils/fileLogger.ts';
 //import { supabaseAuthPlugin } from './plugins/supabaseAuth.ts';
 //import { authPlugin } from './plugins/auth.plugin.ts';
-import { buiConfigPlugin } from './plugins/buiConfig.plugin.ts';
+import { stateConfigPlugin } from './plugins/stateConfig.plugin.ts';
+import type { FreshAppState } from 'bui/types/state.types.ts';
 
 // CWD is set by `bb` in Deno.Command, or implicitly set by user if calling bb-bui directly
 
@@ -42,9 +43,9 @@ let buiConfig: BuiConfig;
 if (projectId) {
 	await configManager.ensureLatestProjectConfig(projectId);
 	projectConfig = await configManager.getProjectConfig(projectId);
-	buiConfig = projectConfig.bui as BuiConfig || globalConfig.bui;
+	buiConfig = (projectConfig.bui || globalConfig.bui) as BuiConfig;
 } else {
-	buiConfig = globalConfig.bui;
+	buiConfig = globalConfig.bui as BuiConfig;
 }
 
 const environment = buiConfig.environment || 'local';
@@ -245,7 +246,7 @@ export default defineConfig({
 			name: 'highlight.js-theme',
 			...highlightStyles,
 		},
-		buiConfigPlugin(globalConfig.bui),
+		stateConfigPlugin({ buiConfig, user: null, session: null } satisfies FreshAppState),
 	],
 	// build: {
 	// 	esbuild: {

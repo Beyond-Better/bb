@@ -1,6 +1,7 @@
-import { FreshContext } from '$fresh/server.ts';
+import { FreshContext, MiddlewareHandlerContext } from '$fresh/server.ts';
+import { FreshAppState } from 'bui/types/state.ts'; // Augment Fresh context state types
 
-export async function handler(req: Request, ctx: FreshContext) {
+export async function handler(req: Request, ctx: MiddlewareHandlerContext<FreshAppState>) {
 	const origin = req.headers.get('Origin') || '*';
 	const resp = await ctx.next();
 	const headers = resp.headers;

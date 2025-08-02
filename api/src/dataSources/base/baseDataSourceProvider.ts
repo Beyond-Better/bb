@@ -3,6 +3,7 @@
  * Implements common functionality for both BB-managed and MCP-managed providers.
  */
 import { logger } from 'shared/logger.ts';
+import type { ProjectConfig } from 'shared/config/types.ts';
 import type { DataSourceConnection } from 'api/dataSources/interfaces/dataSourceConnection.ts';
 import type { ResourceAccessor } from 'api/dataSources/interfaces/resourceAccessor.ts';
 import type { DataSourceProvider } from 'api/dataSources/interfaces/dataSourceProvider.ts';
@@ -122,7 +123,7 @@ export abstract class BaseDataSourceProvider implements DataSourceProvider {
 	 */
 	validateAuth(auth: DataSourceAuth): boolean {
 		//const authType: DataSourceAuthMethod = this.authType;
-		if (this.authType !== auth.method) return false;
+		if (!auth || this.authType !== auth.method) return false;
 		// Check that required auth fields are present
 		logger.info(
 			`BaseDataSourceProvider: auth for ${this.providerType}`,

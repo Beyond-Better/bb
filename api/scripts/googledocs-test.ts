@@ -30,8 +30,8 @@ const mockProjectConfig: ProjectConfig = {
 	api: {
 		dataSourceProviders: {
 			googledocs: {
-				//tokenEndpoint: 'https://chat.beyondbetter.app/api/v1/oauth/google/token'
-				tokenEndpoint: 'https://localhost:8080/api/v1/oauth/google/token'
+				//refreshExchangeUri: 'https://chat.beyondbetter.app/api/v1/oauth/google/token'
+				refreshExchangeUri: 'https://localhost:8080/api/v1/oauth/google/token'
 			}
 		}
 	}
@@ -121,7 +121,6 @@ async function testGoogleDocsIntegration() {
 			}
 		}
 
-/* 
 		// Test 4: List documents
 		console.log('\n=== Test 4: Listing documents ===');
 		try {
@@ -185,10 +184,8 @@ async function testGoogleDocsIntegration() {
 				console.error('Failed to get file metadata:', error);
 			}
 		}
- */
 
 		// Advanced tests (commented out by default to avoid modifying documents)
-		/*
 		// Test 8: Create a new document
 		console.log('\n=== Test 8: Creating a new document ===');
 		try {
@@ -277,6 +274,7 @@ async function testGoogleDocsIntegration() {
 		} catch (error) {
 			console.error('Failed to create document:', error);
 		}
+		/*
 		*/
 
 		console.log('\nAll tests completed successfully');

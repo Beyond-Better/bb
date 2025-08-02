@@ -105,6 +105,13 @@ export interface LLMProviderConfig {
 	config?: Record<string, string | number | boolean>;
 }
 
+export interface GoogleOauth {
+      redirectUri: string;
+      clientId: string|null;
+      clientSecret: string|null;
+}
+
+
 /**
  * API server configuration.
  * Extends base server config with API-specific settings.
@@ -167,6 +174,7 @@ export interface BuiConfig extends ServerConfig {
 	logFile?: string;
 	localMode?: boolean;
 	kvSessionPath?: string;
+	googleOauth: GoogleOauth;
 }
 
 /**
@@ -348,7 +356,7 @@ export interface IConfigManagerV2 {
 // IMPORTANT: When updating these defaults, also update the corresponding Rust defaults in:
 // dui/src-tauri/src/config.rs (impl Default for each config struct)
 // When updating these defaults, update impl Default for ApiConfig in dui/src-tauri/src/config.rs
-export const ApiConfigDefaults: Readonly<Omit<ApiConfig, 'llmProviders', 'dataSourceProviders'>> = {
+export const ApiConfigDefaults: Readonly<Omit<ApiConfig, 'llmProviders' | 'dataSourceProviders'>> = {
 	hostname: 'localhost',
 	port: 3162,
 	tls: {
@@ -381,6 +389,11 @@ export const BuiConfigDefaults: Readonly<BuiConfig> = {
 	logLevel: 'info',
 	localMode: false,
 	kvSessionPath: 'auth.kv',
+	googleOauth: {
+      redirectUri: 'https://chat.beyondbetter.app/oauth/google/callback',
+      clientId: null,
+      clientSecret: null,
+	},
 };
 
 // When updating these defaults, update impl Default for CliConfig in dui/src-tauri/src/config.rs

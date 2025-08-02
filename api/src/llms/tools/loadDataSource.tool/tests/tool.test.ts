@@ -117,6 +117,7 @@ Deno.test({
 					id: 'ds-xyz1234',
 					isPrimary: true,
 					//capabilities: ['read', 'write', 'list', 'search'],
+					projectConfig: projectEditor.projectConfig,
 				},
 			);
 			const accessor = await dsConnection.getResourceAccessor();
@@ -234,6 +235,7 @@ Deno.test({
 				{
 					id: 'ds-metadata-test',
 					isPrimary: true,
+					projectConfig: projectEditor.projectConfig,
 				},
 			);
 
@@ -353,6 +355,7 @@ Deno.test({
 				{
 					id: 'ds-both-test',
 					isPrimary: true,
+					projectConfig: projectEditor.projectConfig,
 				},
 			);
 

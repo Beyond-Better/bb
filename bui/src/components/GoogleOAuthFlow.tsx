@@ -38,12 +38,11 @@ export function GoogleOAuthFlow({ onAuth, onError, authConfig, className = '' }:
 	const [isLoading, setIsLoading] = useState(false);
 	const [isAuthenticated, setIsAuthenticated] = useState(!!authConfig?.oauth2?.refreshToken);
 
-	// PKCE state - stored during the auth flow
-	const [pkceVerifier, setPkceVerifier] = useState<string | null>(null);
+	// // PKCE state - stored during the auth flow
+	// const [pkceVerifier, setPkceVerifier] = useState<string | null>(null);
 
 	// OAuth endpoints
 	const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
-	const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 
 	/**
 	 * Get OAuth configuration from BUI endpoint
@@ -73,17 +72,23 @@ export function GoogleOAuthFlow({ onAuth, onError, authConfig, className = '' }:
 	const generatePkceParams = async () => {
 		// Generate cryptographically random code verifier (43-128 chars)
 		const codeVerifier = generateRandomString(128);
-		
+
 		// Create SHA256 hash of verifier and base64url encode it
 		const codeChallenge = await generateCodeChallenge(codeVerifier);
-		
+
 		return { codeVerifier, codeChallenge };
 	};
 
 	/**
 	 * Generate OAuth authorization URL with PKCE parameters
 	 */
-	const generateAuthUrl = (clientId: string, redirectUri: string, scopes: string, state: string, codeChallenge: string) => {
+	const generateAuthUrl = (
+		clientId: string,
+		redirectUri: string,
+		scopes: string,
+		state: string,
+		codeChallenge: string,
+	) => {
 		const params = new URLSearchParams({
 			client_id: clientId,
 			redirect_uri: redirectUri,
@@ -112,13 +117,19 @@ export function GoogleOAuthFlow({ onAuth, onError, authConfig, className = '' }:
 
 			// Generate PKCE parameters for secure flow
 			const { codeVerifier, codeChallenge } = await generatePkceParams();
-			setPkceVerifier(codeVerifier); // Store for token exchange
+			//setPkceVerifier(codeVerifier); // Store for token exchange
 
 			// Generate state parameter for CSRF protection
 			const state = crypto.randomUUID();
 
 			// Generate authorization URL with PKCE challenge
-			const authUrl = generateAuthUrl(oauthConfig.clientId, oauthConfig.redirectUri, oauthConfig.scopes, state, codeChallenge);
+			const authUrl = generateAuthUrl(
+				oauthConfig.clientId,
+				oauthConfig.redirectUri,
+				oauthConfig.scopes,
+				state,
+				codeChallenge,
+			);
 
 			// Open popup window
 			const popup = globalThis.open(
@@ -150,11 +161,11 @@ export function GoogleOAuthFlow({ onAuth, onError, authConfig, className = '' }:
 			};
 
 			setIsAuthenticated(true);
-			setPkceVerifier(null); // Clear PKCE verifier after use
+			//setPkceVerifier(null); // Clear PKCE verifier after use
 			onAuth(authConfig);
 		} catch (error) {
 			console.error('OAuth flow error:', error);
-			setPkceVerifier(null); // Clear PKCE verifier on error
+			//setPkceVerifier(null); // Clear PKCE verifier on error
 			onError(error instanceof Error ? error.message : 'Authentication failed');
 		} finally {
 			setIsLoading(false);
@@ -210,17 +221,21 @@ export function GoogleOAuthFlow({ onAuth, onError, authConfig, className = '' }:
 	/**
 	 * Exchange authorization code for access tokens using PKCE
 	 */
-	const exchangeCodeForTokens = async (code: string, codeVerifier: string, state: string): Promise<OAuthTokenResponse> => {
+	const exchangeCodeForTokens = async (
+		code: string,
+		codeVerifier: string,
+		state: string,
+	): Promise<OAuthTokenResponse> => {
 		try {
 			const response = await fetch('/api/v1/oauth/google/token', {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
 				},
-				body: JSON.stringify({ 
-					code, 
+				body: JSON.stringify({
+					code,
 					codeVerifier, // PKCE verification parameter
-					state 
+					state,
 				}),
 			});
 
@@ -230,6 +245,7 @@ export function GoogleOAuthFlow({ onAuth, onError, authConfig, className = '' }:
 			}
 
 			const result = await response.json();
+			console.log('GoogleOAuthFlow: exchangeCodeForTokens response:', result);
 			return {
 				access_token: result.accessToken,
 				refresh_token: result.refreshToken,
@@ -245,6 +261,7 @@ export function GoogleOAuthFlow({ onAuth, onError, authConfig, className = '' }:
 	/**
 	 * Refresh access token using refresh token
 	 */
+	/*
 	const refreshAccessToken = async (refreshToken: string): Promise<OAuthTokenResponse> => {
 		try {
 			const response = await fetch('/api/v1/oauth/google/token', {
@@ -252,7 +269,7 @@ export function GoogleOAuthFlow({ onAuth, onError, authConfig, className = '' }:
 				headers: {
 					'Content-Type': 'application/json',
 				},
-				body: JSON.stringify({ 
+				body: JSON.stringify({
 					refreshToken,
 					operation: 'refresh'
 				}),
@@ -275,13 +292,14 @@ export function GoogleOAuthFlow({ onAuth, onError, authConfig, className = '' }:
 			throw new Error(`Token refresh failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
 		}
 	};
+	 */
 
 	/**
 	 * Handle disconnection/re-authentication
 	 */
 	const handleDisconnect = () => {
 		setIsAuthenticated(false);
-		setPkceVerifier(null); // Clear any pending PKCE state
+		//setPkceVerifier(null); // Clear any pending PKCE state
 		onAuth({
 			method: 'oauth2',
 			oauth2: {
@@ -437,7 +455,7 @@ function generateRandomString(length: number): string {
 	const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
 	const array = new Uint8Array(length);
 	crypto.getRandomValues(array);
-	return Array.from(array, byte => charset[byte % charset.length]).join('');
+	return Array.from(array, (byte) => charset[byte % charset.length]).join('');
 }
 
 /**
@@ -450,11 +468,11 @@ async function generateCodeChallenge(codeVerifier: string): Promise<string> {
 	const encoder = new TextEncoder();
 	const data = encoder.encode(codeVerifier);
 	const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-	
+
 	// Convert to base64url encoding (RFC 4648 Section 5)
 	const base64 = btoa(String.fromCharCode(...new Uint8Array(hashBuffer)));
 	return base64
-		.replace(/\+/g, '-')  // Replace + with -
-		.replace(/\//g, '_')  // Replace / with _
-		.replace(/=/g, '');   // Remove padding =
+		.replace(/\+/g, '-') // Replace + with -
+		.replace(/\//g, '_') // Replace / with _
+		.replace(/=/g, ''); // Remove padding =
 }

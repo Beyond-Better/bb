@@ -1,25 +1,25 @@
-import { Handlers } from '$fresh/server.ts';
+import { Handlers, type FreshContext } from '$fresh/server.ts';
+import type { FreshAppState } from 'bui/types/state.types.ts';
 
 /**
  * Get Google OAuth configuration for the BUI
  */
 export const handler: Handlers = {
-	GET(_req, _ctx) {
+	GET(_req, ctx: FreshContext<FreshAppState>) {
 		try {
-			// Get OAuth configuration from environment variables
-			// Note: clientId is application config, not stored in user credentials
-			const clientId = Deno.env.get('GOOGLE_OAUTH_CLIENT_ID');
-			const redirectUri = Deno.env.get('GOOGLE_OAUTH_REDIRECT_URI') ||
-				'https://chat.beyondbetter.app/oauth/google/callback';
-			//'https://localhost:8080/oauth/google/callback';
+			// Get OAuth configuration from state (set by stateConfig plugin)
+			const clientId = ctx.state.buiConfig.googleOauth.clientId;
+			const redirectUri = ctx.state.buiConfig.googleOauth.redirectUri;
+			//console.log(`OAuth: handling token: `, { clientId, clientSecret, redirectUri });
 
-			if (!clientId) {
+			if (!clientId || !redirectUri) {
+				console.error('OAuth: Missing Google OAuth configuration');
 				return new Response(
 					JSON.stringify({
 						error: {
 							code: 'MISSING_CONFIG',
-							message: 'Google OAuth client ID not configured',
-							reason: 'missing_client_id',
+							message: 'Google OAuth configuration incomplete',
+							reason: 'missing_oauth_config',
 						},
 					}),
 					{
@@ -31,9 +31,11 @@ export const handler: Handlers = {
 
 			// Define required scopes for Google Docs integration
 			const scopes = [
-				'https://www.googleapis.com/auth/documents',
-				'https://www.googleapis.com/auth/drive.readonly',
-				'https://www.googleapis.com/auth/drive.file',
+				'https://www.googleapis.com/auth/documents', // read and write access to docs
+				//'https://www.googleapis.com/auth/documents.readonly', // read access to docs
+				'https://www.googleapis.com/auth/drive', // read and write access to files
+				//'https://www.googleapis.com/auth/drive.readonly', // read access to files
+				//'https://www.googleapis.com/auth/drive.file', // read and write access to files created by BB
 			];
 
 			// Return config for PKCE OAuth flow (no client secret needed)

@@ -39,8 +39,8 @@ export class GoogleDocsClient {
 	// Base URLs exclude version numbers for consistency with endpoint definitions
 	// Docs API: https://docs.googleapis.com + /v1/...
 	// Drive API: https://www.googleapis.com/drive + /v3/...
-	private readonly docsApiBaseUrl = 'https://docs.googleapis.com';
-	private readonly driveApiBaseUrl = 'https://www.googleapis.com/drive';
+	private readonly docsApiBaseUrl = 'https://docs.googleapis.com/v1';
+	private readonly driveApiBaseUrl = 'https://www.googleapis.com/drive/v3';
 	private tokenUpdateCallback?: TokenUpdateCallback;
 
 	/**
@@ -124,16 +124,16 @@ export class GoogleDocsClient {
 
 		try {
 			// Get token endpoint from configuration
-			const tokenEndpoint = this.projectConfig.api?.dataSourceProviders?.googledocs?.tokenEndpoint as string ||
+			const refreshExchangeUri = this.projectConfig.api?.dataSourceProviders?.googledocs?.refreshExchangeUri as string ||
 				'https://chat.beyondbetter.app/api/v1/oauth/google/token';
-			logger.info('GoogleDocsClient: refreshAccessToken - Using: tokenEndpoint', tokenEndpoint );
+			logger.info('GoogleDocsClient: refreshAccessToken - Using: refreshExchangeUri', refreshExchangeUri );
 
-			if (!tokenEndpoint) {
+			if (!refreshExchangeUri) {
 				logger.error('GoogleDocsClient: No token endpoint configured');
 				return false;
 			}
 
-			const response = await fetch(tokenEndpoint, {
+			const response = await fetch(refreshExchangeUri, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
@@ -194,7 +194,7 @@ export class GoogleDocsClient {
 
 	/**
 	 * Make a request to the Google API
-	 * @param endpoint API endpoint path (should start with / and include version, e.g., '/v1/documents/123')
+	 * @param endpoint API endpoint path (should start with / e.g., '/documents/123')
 	 * @param method HTTP method
 	 * @param body Request body
 	 * @param apiType API type to determine base URL ('docs' or 'drive')
@@ -309,7 +309,7 @@ export class GoogleDocsClient {
 			throw new Error(`Invalid document ID or URL: ${documentId}`);
 		}
 
-		const endpoint = `/v1/documents/${resolvedId}`;
+		const endpoint = `/documents/${resolvedId}`;
 		const response = await this.request<{ data?: GoogleDocument } & GoogleDocument>(endpoint, 'GET', undefined, 'docs');
 
 		// Handle both direct response and wrapped response formats
@@ -354,7 +354,7 @@ export class GoogleDocsClient {
 			params.set('pageToken', pageToken);
 		}
 
-		const endpoint = `/v3/files?${params.toString()}`;
+		const endpoint = `/files?${params.toString()}`;
 		const response = await this.request<{ data?: GoogleDriveFilesList } & GoogleDriveFilesList>(endpoint, 'GET', undefined, 'drive');
 
 		// Handle both direct response and wrapped response formats
@@ -376,7 +376,7 @@ export class GoogleDocsClient {
 			throw new Error(`Invalid document ID or URL: ${documentId}`);
 		}
 
-		const endpoint = `/v1/documents/${resolvedId}:batchUpdate`;
+		const endpoint = `/documents/${resolvedId}:batchUpdate`;
 		const body = { requests };
 
 		const response = await this.request<{ data?: GoogleDocsBatchUpdateResponse } & GoogleDocsBatchUpdateResponse>(
@@ -397,7 +397,7 @@ export class GoogleDocsClient {
 	 * @returns Created document
 	 */
 	async createDocument(title: string, content?: string): Promise<GoogleDocument> {
-		const endpoint = '/v1/documents';
+		const endpoint = '/documents';
 		const body = { title };
 
 		const response = await this.request<{ data?: GoogleDocument } & GoogleDocument>(
@@ -435,7 +435,7 @@ export class GoogleDocsClient {
 	 * @returns File metadata
 	 */
 	async getDriveFileMetadata(fileId: string): Promise<GoogleDriveFile> {
-		const endpoint = `/v3/files/${fileId}`;
+		const endpoint = `/files/${fileId}`;
 		const params = new URLSearchParams({
 			fields: 'id,name,mimeType,webViewLink,createdTime,modifiedTime,owners,parents,shared,size,description',
 		});
@@ -525,7 +525,7 @@ export class GoogleDocsClient {
 	async testConnection(): Promise<{ email?: string; name?: string }> {
 		try {
 			// Test with a simple Drive API call that should always work
-			const aboutEndpoint = '/v3/about?fields=user';
+			const aboutEndpoint = '/about?fields=user';
 			logger.info(`GoogleDocsClient: Testing connection with ${aboutEndpoint}`);
 			
 			const response = await this.request<{

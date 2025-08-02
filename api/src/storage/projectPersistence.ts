@@ -14,6 +14,7 @@ import type { ClientProjectData, ProjectData, ProjectStatus, SerializedProjectDa
 import { getProjectRegistry, type ProjectRegistry } from 'shared/projectRegistry.ts';
 import { getProjectAdminDataDir, getProjectAdminDir } from 'shared/projectPath.ts';
 import { getConfigManager } from 'shared/config/configManager.ts';
+import type { ProjectConfig } from 'shared/config/types.ts';
 import { getDataSourceRegistry } from 'api/dataSources/dataSourceRegistry.ts';
 import type { DataSourceRegistry } from 'api/dataSources/dataSourceRegistry.ts';
 //import { getDataSourceFactory } from 'api/dataSources/dataSourceFactory.ts';
@@ -23,6 +24,7 @@ import type {
 	DataSourceConnectionValues,
 } from 'api/dataSources/interfaces/dataSourceConnection.ts';
 import { DataSourceConnection } from 'api/dataSources/dataSourceConnection.ts';
+import type { ClientDataSourceConnection } from 'shared/types/project.ts';
 import type { ResourceMetadata } from 'shared/types/dataSourceResource.ts';
 import type { FileMetadata, ProjectId } from 'shared/types.ts';
 //import type { DataSourceProvider } from 'api/dataSources/interfaces/dataSourceProvider.ts';
@@ -36,6 +38,7 @@ class ProjectPersistence implements ProjectData {
 	private initialized = false;
 	private _projectId: ProjectId;
 	private _projectRegistry!: ProjectRegistry;
+	private _projectConfig!: ProjectConfig;
 
 	// Core project properties
 	private _name: string = 'New Project';
@@ -85,6 +88,9 @@ class ProjectPersistence implements ProjectData {
 
 		//logger.info(`ProjectPersistence: Getting project registry for: ${this._projectId}`);
 		this._projectRegistry = await getProjectRegistry();
+
+		const configManager = await getConfigManager();
+		this._projectConfig = await configManager.getProjectConfig(this._projectId);
 
 		this.initialized = true; // loadData checks whether we are initialized
 
@@ -268,7 +274,7 @@ class ProjectPersistence implements ProjectData {
 				provider,
 				'__uploads',
 				{ dataSourceRoot: this.projectUploadsDir },
-				{ id: 'ds-uploads' },
+				{ id: 'ds-uploads', projectConfig: this._projectConfig },
 			);
 		}
 		// this.uploadsDsConnection = DataSourceConnection.createFileSystem(
@@ -534,6 +540,7 @@ class ProjectPersistence implements ProjectData {
 								isPrimary: dsConnectionObj.isPrimary,
 								priority: dsConnectionObj.priority,
 								auth: dsConnectionObj.auth,
+								projectConfig: this._projectConfig,
 							},
 						);
 						this._dsConnectionsMap.set(dsConnection.id, dsConnection);
@@ -788,7 +795,7 @@ class ProjectPersistence implements ProjectData {
 				description: dsProvider?.description || '',
 				config: { ...ds.config }, // Create a copy to avoid modifying the original
 				auth: { ...ds.auth }, // Create a copy to avoid modifying the original
-			};
+			} as ClientDataSourceConnection;
 
 			// Strip rootPath (HOME) from dataSourceRoot for filesystem data sources
 			if (
@@ -853,6 +860,7 @@ class ProjectPersistence implements ProjectData {
 						//id: i === 0 ? 'ds-local' : `ds-local-${i}`,
 						isPrimary: i === 0,
 						//capabilities: ['read', 'write', 'list', 'search'],
+						projectConfig: this._projectConfig,
 					},
 				),
 			);
@@ -1008,6 +1016,7 @@ class ProjectPersistence implements ProjectData {
 						isPrimary: dsConnection.isPrimary,
 						priority: dsConnection.priority,
 						auth: dsConnection.auth,
+						projectConfig: this._projectConfig,
 					},
 				);
 				this._dsConnectionsMap.set(connection.id, connection);
@@ -1046,6 +1055,7 @@ class ProjectPersistence implements ProjectData {
 			{
 				isPrimary: isPrimary || false,
 				priority: isPrimary ? 100 : 0,
+				projectConfig: this._projectConfig
 			},
 		);
 

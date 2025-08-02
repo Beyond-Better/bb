@@ -2,6 +2,7 @@
  * DataSourceRegistry singleton for managing available data source providers.
  */
 import { logger } from 'shared/logger.ts';
+import type { ProjectConfig } from 'shared/config/types.ts';
 import type { DataSourceProvider } from 'api/dataSources/interfaces/dataSourceProvider.ts';
 //import type { DataSourceConnection } from 'api/dataSources/interfaces/dataSourceConnection.ts';
 import { DataSourceConnection } from 'api/dataSources/dataSourceConnection.ts';
@@ -261,6 +262,7 @@ export class DataSourceRegistry {
 			isPrimary?: boolean;
 			priority?: number;
 			auth?: DataSourceAuth;
+			projectConfig? : ProjectConfig,
 		} = {},
 	): DataSourceConnection {
 		// Validate the configuration and auth

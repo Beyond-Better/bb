@@ -95,6 +95,7 @@ export class NotionAccessor extends BBResourceAccessor {
 	 * @returns Parsed components or null if invalid
 	 */
 	private parseNotionUri(resourceUri: string): { type: NotionResourceType; id: string } | null {
+		//logger.info(`NotionAccessor: parseNotionUri - resourceUri ${resourceUri}`);
 		const resourcePath = extractResourcePath(resourceUri);
 		//logger.info(`NotionAccessor: parseNotionUri - resourcePath ${resourcePath}`);
 		if (!resourcePath) {
@@ -257,6 +258,7 @@ export class NotionAccessor extends BBResourceAccessor {
 			includeTitle: true,
 			includeMetadata: true,
 		});
+		//logger.error(`NotionAccessor: loadPageResource ${pageId}:`, {content});
 
 		// Create metadata
 		const metadata: ResourceMetadata = {

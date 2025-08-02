@@ -75,12 +75,14 @@ export function DataSourceModal({ dsConnection, onClose, onSave, appState, dsPro
 				newErrors.workspaceId = 'Workspace is required';
 			}
 		} else if (formData.providerType === 'googledocs') {
-			if (!formData.auth?.oauth2?.accessToken) {
-				newErrors.accessToken = 'Access Token is required';
+			//console.log('DataSourceModal: validate googledocs', formData.auth);
+			if (!formData.auth?.oauth2?.accessToken || !formData.auth?.oauth2?.refreshToken || !formData.auth?.oauth2?.expiresAt) {
+				newErrors.accessToken = 'Access Token is not valid';
 			}
-			if (formData.auth?.oauth2?.expiresAt && formData.auth.oauth2.expiresAt <= Date.now()) {
-				newErrors.accessToken = 'Access Token has expired';
-			}
+			// // We're not responsible ensuring tokens are current, that is handled by code that uses the tokens. 
+			// if (formData.auth?.oauth2?.expiresAt && formData.auth.oauth2.expiresAt <= Date.now()) {
+			// 	newErrors.accessToken = 'Access Token has expired';
+			// }
 		}
 
 		setErrors(newErrors);
@@ -254,7 +256,7 @@ export function DataSourceModal({ dsConnection, onClose, onSave, appState, dsPro
 							<input
 								type='password'
 								value={formData.auth.apiKey as string || ''}
-								onChange={(e) => handleConfigChange('apiKey', (e.target as HTMLInputElement).value)}
+								onChange={(e) => handleAuthChange('apiKey', (e.target as HTMLInputElement).value)}
 								className='w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-gray-100'
 							/>
 							{errors.apiKey &&
@@ -269,6 +271,7 @@ export function DataSourceModal({ dsConnection, onClose, onSave, appState, dsPro
 						{/* Google OAuth Authentication */}
 						<GoogleOAuthFlow
 							onAuth={(authConfig: AuthConfig) => {
+								//console.log('DataSourceModal: Saving googledocs config', authConfig); 
 								setFormData((prev) => ({
 									...prev,
 									auth: {

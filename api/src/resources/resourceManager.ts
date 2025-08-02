@@ -164,6 +164,7 @@ export class ResourceManager {
 				isPrimary: dsConnection.isPrimary,
 				priority: dsConnection.priority,
 				auth: dsConnection.auth,
+				projectConfig: this.projectEditor.projectConfig,
 			},
 		);
 
@@ -207,6 +208,7 @@ export class ResourceManager {
 		truncated?: boolean;
 	}> {
 		try {
+			//logger.info(`ResourceManager: Getting accessor for: ${resourceUri}`);
 			const accessor = await this.getAccessorForUri(resourceUri);
 			const result = await accessor.loadResource(resourceUri, options);
 
