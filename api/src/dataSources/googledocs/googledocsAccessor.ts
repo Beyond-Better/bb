@@ -505,18 +505,18 @@ export class GoogleDocsAccessor extends BBResourceAccessor {
 		const requests: GoogleDocsBatchUpdateRequest[] = [];
 
 		// Find the range of all text content (excluding the final newline)
-		if (document.body.content.length > 1) {
+		if (document.body.content && document.body.content.length > 1) {
 			const endIndex = document.body.content[document.body.content.length - 1].endIndex - 1;
-
-			// Delete existing content
-			requests.push({
-				deleteContentRange: {
-					range: {
-						startIndex: 1,
-						endIndex: endIndex,
+			if (endIndex > 1) {
+				requests.push({
+					deleteContentRange: {
+						range: {
+							startIndex: 1,
+							endIndex: endIndex,
+						},
 					},
-				},
-			});
+				});
+			}
 		}
 
 		// Insert new content
