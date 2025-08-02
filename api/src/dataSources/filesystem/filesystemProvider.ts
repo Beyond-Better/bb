@@ -102,7 +102,7 @@ export class FilesystemProvider extends BBDataSourceProvider {
 			priority?: number;
 			strictRoot?: number;
 			followSymlinks?: number;
-			projectConfig?: ProjectConfig
+			projectConfig?: ProjectConfig;
 		} = {},
 	): DataSourceConnection {
 		const provider = registry.getProvider('filesystem', 'bb');

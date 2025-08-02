@@ -11,9 +11,10 @@ export default function GoogleOAuthCallback({ url }: PageProps) {
 		<html>
 			<head>
 				<title>Google OAuth Callback</title>
-				<meta charset="UTF-8" />
-				<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-				<style>{`
+				<meta charset='UTF-8' />
+				<meta name='viewport' content='width=device-width, initial-scale=1.0' />
+				<style>
+					{`
 					body {
 						font-family: system-ui, -apple-system, sans-serif;
 						display: flex;
@@ -58,17 +59,19 @@ export default function GoogleOAuthCallback({ url }: PageProps) {
 						margin-right: 8px;
 						vertical-align: middle;
 					}
-				`}</style>
+				`}
+				</style>
 			</head>
 			<body>
-				<div className="container">
-					<div className="spinner" id="spinner"></div>
-					<p id="message">Processing authentication...</p>
-					<p id="result" style={{ display: 'none' }}></p>
+				<div className='container'>
+					<div className='spinner' id='spinner'></div>
+					<p id='message'>Processing authentication...</p>
+					<p id='result' style={{ display: 'none' }}></p>
 				</div>
 
-				<script dangerouslySetInnerHTML={{
-					__html: `
+				<script
+					dangerouslySetInnerHTML={{
+						__html: `
 						(function() {
 							const messageEl = document.getElementById('message');
 							const resultEl = document.getElementById('result');
@@ -159,8 +162,9 @@ export default function GoogleOAuthCallback({ url }: PageProps) {
 								setTimeout(() => window.close(), 3000);
 							}
 						})();
-					`
-				}} />
+					`,
+					}}
+				/>
 			</body>
 		</html>
 	);

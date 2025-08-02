@@ -1055,7 +1055,7 @@ class ProjectPersistence implements ProjectData {
 			{
 				isPrimary: isPrimary || false,
 				priority: isPrimary ? 100 : 0,
-				projectConfig: this._projectConfig
+				projectConfig: this._projectConfig,
 			},
 		);
 

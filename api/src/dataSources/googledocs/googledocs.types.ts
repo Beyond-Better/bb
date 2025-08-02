@@ -2,9 +2,9 @@ export interface GoogleDocs {
 	documents: {
 		get(params: { documentId: string }): Promise<{ data: GoogleDocument }>;
 		create(params: { requestBody: { title: string } }): Promise<{ data: GoogleDocument }>;
-		batchUpdate(params: { 
-			documentId: string; 
-			requestBody: { requests: GoogleDocsBatchUpdateRequest[] }
+		batchUpdate(params: {
+			documentId: string;
+			requestBody: { requests: GoogleDocsBatchUpdateRequest[] };
 		}): Promise<{ data: GoogleDocsBatchUpdateResponse }>;
 	};
 }
@@ -430,7 +430,6 @@ export interface GoogleDocsBatchUpdateResponse {
 	documentId: string;
 	replies: GoogleDocsBatchUpdateReply[];
 }
-
 
 export interface GoogleDocsBatchUpdateReply {
 	insertText?: Record<PropertyKey, never>;

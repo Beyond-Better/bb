@@ -4,13 +4,13 @@
 import { logger } from 'shared/logger.ts';
 import type {
 	GoogleDocument,
-	GoogleStructuralElement,
 	GoogleParagraph,
+	GoogleStructuralElement,
+	GoogleTable,
+	GoogleTableCell,
+	GoogleTableRow,
 	//GoogleParagraphElement,
 	GoogleTextRun,
-	GoogleTable,
-	GoogleTableRow,
-	GoogleTableCell,
 } from './googledocs.types.ts';
 
 /**
@@ -100,7 +100,7 @@ export function googledocsToMarkdown(
 	if (document.body && document.body.content) {
 		for (let i = 0; i < document.body.content.length; i++) {
 			const element = document.body.content[i];
-			
+
 			try {
 				const elementMd = structuralElementToMarkdown(element, document.body.content, i, opts);
 				if (elementMd) {
@@ -217,7 +217,7 @@ function paragraphToMarkdown(paragraph: GoogleParagraph, options: GoogleDocsToMa
 	// Handle bullet points and numbered lists
 	// Note: Google Docs doesn't always provide explicit list information in paragraph style
 	// This would require more sophisticated processing of document structure
-	
+
 	return result;
 }
 
@@ -512,7 +512,7 @@ function extractTextFromTable(table: GoogleTable): string {
 				})
 				.filter((text) => text.length > 0)
 				.join('\t'); // Tab-separated values
-			
+
 			if (rowText) {
 				textParts.push(rowText);
 			}
@@ -544,14 +544,14 @@ export function getDocumentStatistics(document: GoogleDocument): {
 
 	if (document.title) {
 		stats.characterCount += document.title.length;
-		stats.wordCount += document.title.split(/\s+/).filter(word => word.length > 0).length;
+		stats.wordCount += document.title.split(/\s+/).filter((word) => word.length > 0).length;
 	}
 
 	if (document.body && document.body.content) {
 		for (const element of document.body.content) {
 			if (element.paragraph) {
 				stats.paragraphCount++;
-				
+
 				// Check if it's a heading
 				if (element.paragraph.paragraphStyle?.namedStyleType?.startsWith('HEADING_')) {
 					stats.headingCount++;
@@ -562,12 +562,12 @@ export function getDocumentStatistics(document: GoogleDocument): {
 					if (paragraphElement.textRun) {
 						const text = paragraphElement.textRun.content;
 						stats.characterCount += text.length;
-						stats.wordCount += text.split(/\s+/).filter(word => word.length > 0).length;
+						stats.wordCount += text.split(/\s+/).filter((word) => word.length > 0).length;
 					}
 				}
 			} else if (element.table) {
 				stats.tableCount++;
-				
+
 				// Count table text
 				if (element.table.tableRows) {
 					for (const tableRow of element.table.tableRows) {
@@ -577,7 +577,9 @@ export function getDocumentStatistics(document: GoogleDocument): {
 									for (const cellElement of tableCell.content) {
 										const cellText = extractTextFromStructuralElement(cellElement);
 										stats.characterCount += cellText.length;
-										stats.wordCount += cellText.split(/\s+/).filter(word => word.length > 0).length;
+										stats.wordCount += cellText.split(/\s+/).filter((word) =>
+											word.length > 0
+										).length;
 									}
 								}
 							}

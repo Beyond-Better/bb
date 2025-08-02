@@ -1,4 +1,4 @@
-import { Handlers, type FreshContext } from '$fresh/server.ts';
+import { type FreshContext, Handlers } from '$fresh/server.ts';
 import type { FreshAppState } from 'bui/types/state.types.ts';
 
 /**

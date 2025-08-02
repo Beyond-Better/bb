@@ -13,9 +13,7 @@ import type {
 	//GoogleStructuralElement,
 	//GoogleTextRun,
 } from './googledocs.types.ts';
-import type {
-	GoogleDocsClient,
-} from './googledocsClient.ts';
+import type { GoogleDocsClient } from './googledocsClient.ts';
 import {
 	convertGoogleDocsToPortableText,
 	convertPortableTextToGoogleDocs,

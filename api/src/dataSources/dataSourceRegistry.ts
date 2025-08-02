@@ -262,7 +262,7 @@ export class DataSourceRegistry {
 			isPrimary?: boolean;
 			priority?: number;
 			auth?: DataSourceAuth;
-			projectConfig? : ProjectConfig,
+			projectConfig?: ProjectConfig;
 		} = {},
 	): DataSourceConnection {
 		// Validate the configuration and auth

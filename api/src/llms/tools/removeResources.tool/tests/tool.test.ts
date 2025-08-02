@@ -96,9 +96,9 @@ Deno.test({
 				};
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
-				console.log('Move single resource to trash - bbResponse:', result.bbResponse);
-				console.log('Move single resource to trash - toolResponse:', result.toolResponse);
-				console.log('Move single resource to trash - toolResults:', result.toolResults);
+				// console.log('Move single resource to trash - bbResponse:', result.bbResponse);
+				// console.log('Move single resource to trash - toolResponse:', result.toolResponse);
+				// console.log('Move single resource to trash - toolResults:', result.toolResults);
 
 				assert(
 					isRemoveResourcesResponse(result.bbResponse),
@@ -168,6 +168,9 @@ Deno.test({
 				};
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
+				console.log('Move directory to trash - bbResponse:', result.bbResponse);
+				console.log('Move directory to trash - toolResponse:', result.toolResponse);
+				console.log('Move directory to trash - toolResults:', result.toolResults);
 
 				assert(
 					isRemoveResourcesResponse(result.bbResponse),
@@ -552,7 +555,7 @@ Deno.test({
 					);
 					const resourcesRemovedResult = result1.bbResponse.data.resourcesRemoved[0];
 					assert(
-						resourcesRemovedResult.destination?.endsWith('collision_1.txt'),
+						resourcesRemovedResult.destination?.endsWith('collision.txt.1'),
 						'Should use increment naming',
 					);
 				}
@@ -591,15 +594,15 @@ Deno.test({
 					);
 					const resourcesRemovedResult = result2.bbResponse.data.resourcesRemoved[0];
 					assert(
-						resourcesRemovedResult.destination?.endsWith('collision_2.txt'),
+						resourcesRemovedResult.destination?.endsWith('collision.txt.2'),
 						'Should use next increment',
 					);
 				}
 
 				// Verify resources in trash
 				assert(await exists(join(trashDir, 'collision.txt')), 'Original collision.txt should exist in trash');
-				assert(await exists(join(trashDir, 'collision_1.txt')), 'collision_1.txt should exist in trash');
-				assert(await exists(join(trashDir, 'collision_2.txt')), 'collision_2.txt should exist in trash');
+				assert(await exists(join(trashDir, 'collision.txt.1')), 'collision.1 should exist in trash');
+				assert(await exists(join(trashDir, 'collision.txt.2')), 'collision.2 should exist in trash');
 			} finally {
 				logChangeAndCommitStub.restore();
 			}
@@ -1147,7 +1150,7 @@ Deno.test({
 					for (const resourcesError of result.bbResponse.data.resourcesError) {
 						assertStringIncludes(
 							resourcesError.error,
-							'No such file or directory',
+							'Source file not found',
 							'Should mention resource not found',
 						);
 					}

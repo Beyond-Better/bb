@@ -99,6 +99,19 @@ export interface ResourceAccessor {
 	): Promise<ResourceMoveResult>;
 
 	/**
+	 * Rename a resource - potentially moving to a new location (optional capability)
+	 * @param sourceUri Source resource URI
+	 * @param destinationUri Destination resource URI
+	 * @param options Options for moving
+	 * @returns Result of the move operation
+	 */
+	renameResource?(
+		sourceUri: string,
+		destinationUri: string,
+		options?: ResourceMoveOptions,
+	): Promise<ResourceMoveResult>;
+
+	/**
 	 * Delete a resource (optional capability)
 	 * @param resourceUri URI of the resource to delete
 	 * @param options Options for deletion

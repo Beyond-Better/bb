@@ -85,6 +85,11 @@ describe('Configuration Types', () => {
 				port: 8080,
 				tls: { useTls: true },
 				logLevel: 'info',
+				googleOauth: {
+					redirectUri: 'https://localhost:8080/oauth/google/callback',
+					clientId: '983662643295-xxxx.apps.googleusercontent.com',
+					clientSecret: 'GO-xxxx',
+				},
 			};
 			assertExists(config);
 		});
@@ -167,6 +172,11 @@ describe('Configuration Types', () => {
 					port: 8080,
 					tls: { useTls: true },
 					logLevel: 'info',
+					googleOauth: {
+						redirectUri: 'https://localhost:8080/oauth/google/callback',
+						clientId: '983662643295-xxxx.apps.googleusercontent.com',
+						clientSecret: 'GO-xxxx',
+					},
 				},
 				cli: {
 					historySize: 1000,

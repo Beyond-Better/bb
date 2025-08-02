@@ -124,9 +124,10 @@ export class GoogleDocsClient {
 
 		try {
 			// Get token endpoint from configuration
-			const refreshExchangeUri = this.projectConfig.api?.dataSourceProviders?.googledocs?.refreshExchangeUri as string ||
+			const refreshExchangeUri =
+				this.projectConfig.api?.dataSourceProviders?.googledocs?.refreshExchangeUri as string ||
 				'https://chat.beyondbetter.app/api/v1/oauth/google/token';
-			logger.info('GoogleDocsClient: refreshAccessToken - Using: refreshExchangeUri', refreshExchangeUri );
+			logger.info('GoogleDocsClient: refreshAccessToken - Using: refreshExchangeUri', refreshExchangeUri);
 
 			if (!refreshExchangeUri) {
 				logger.error('GoogleDocsClient: No token endpoint configured');
@@ -164,7 +165,7 @@ export class GoogleDocsClient {
 			}
 
 			if (this.tokenUpdateCallback) {
-			logger.info('GoogleDocsClient: Calling token update');
+				logger.info('GoogleDocsClient: Calling token update');
 				await this.tokenUpdateCallback({
 					accessToken: this.accessToken,
 					refreshToken: this.refreshToken,
@@ -200,7 +201,12 @@ export class GoogleDocsClient {
 	 * @param apiType API type to determine base URL ('docs' or 'drive')
 	 * @returns Response data
 	 */
-	private async request<T>(endpoint: string, method: string = 'GET', body?: unknown, apiType: 'docs' | 'drive' = 'docs'): Promise<T> {
+	private async request<T>(
+		endpoint: string,
+		method: string = 'GET',
+		body?: unknown,
+		apiType: 'docs' | 'drive' = 'docs',
+	): Promise<T> {
 		// Ensure we have a valid token
 		const hasValidToken = await this.ensureValidToken();
 		if (!hasValidToken) {
@@ -310,7 +316,12 @@ export class GoogleDocsClient {
 		}
 
 		const endpoint = `/documents/${resolvedId}`;
-		const response = await this.request<{ data?: GoogleDocument } & GoogleDocument>(endpoint, 'GET', undefined, 'docs');
+		const response = await this.request<{ data?: GoogleDocument } & GoogleDocument>(
+			endpoint,
+			'GET',
+			undefined,
+			'docs',
+		);
 
 		// Handle both direct response and wrapped response formats
 		return response.data || response;
@@ -355,7 +366,12 @@ export class GoogleDocsClient {
 		}
 
 		const endpoint = `/files?${params.toString()}`;
-		const response = await this.request<{ data?: GoogleDriveFilesList } & GoogleDriveFilesList>(endpoint, 'GET', undefined, 'drive');
+		const response = await this.request<{ data?: GoogleDriveFilesList } & GoogleDriveFilesList>(
+			endpoint,
+			'GET',
+			undefined,
+			'drive',
+		);
 
 		// Handle both direct response and wrapped response formats
 		return response.data || response;
@@ -383,7 +399,7 @@ export class GoogleDocsClient {
 			endpoint,
 			'POST',
 			body,
-			'docs'
+			'docs',
 		);
 
 		// Handle both direct response and wrapped response formats
@@ -404,7 +420,7 @@ export class GoogleDocsClient {
 			endpoint,
 			'POST',
 			body,
-			'docs'
+			'docs',
 		);
 
 		const document = response.data || response;
@@ -444,7 +460,7 @@ export class GoogleDocsClient {
 			`${endpoint}?${params.toString()}`,
 			'GET',
 			undefined,
-			'drive'
+			'drive',
 		);
 
 		// Handle both direct response and wrapped response formats
@@ -527,14 +543,14 @@ export class GoogleDocsClient {
 			// Test with a simple Drive API call that should always work
 			const aboutEndpoint = '/about?fields=user';
 			logger.info(`GoogleDocsClient: Testing connection with ${aboutEndpoint}`);
-			
+
 			const response = await this.request<{
-				user: { emailAddress: string; displayName: string }
+				user: { emailAddress: string; displayName: string };
 			}>(aboutEndpoint, 'GET', undefined, 'drive');
-			
+
 			return {
 				email: response.user?.emailAddress,
-				name: response.user?.displayName
+				name: response.user?.displayName,
 			};
 		} catch (error) {
 			logger.error('GoogleDocsClient: Connection test failed:', error);

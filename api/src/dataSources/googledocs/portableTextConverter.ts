@@ -144,14 +144,28 @@ function convertParagraphToPortableText(paragraph: GoogleParagraph): PortableTex
 	let style = 'normal';
 	if (paragraph.paragraphStyle?.namedStyleType) {
 		switch (paragraph.paragraphStyle.namedStyleType) {
-			case 'HEADING_1': style = 'h1'; break;
-			case 'HEADING_2': style = 'h2'; break;
-			case 'HEADING_3': style = 'h3'; break;
-			case 'HEADING_4': style = 'h4'; break;
-			case 'HEADING_5': style = 'h5'; break;
-			case 'HEADING_6': style = 'h6'; break;
+			case 'HEADING_1':
+				style = 'h1';
+				break;
+			case 'HEADING_2':
+				style = 'h2';
+				break;
+			case 'HEADING_3':
+				style = 'h3';
+				break;
+			case 'HEADING_4':
+				style = 'h4';
+				break;
+			case 'HEADING_5':
+				style = 'h5';
+				break;
+			case 'HEADING_6':
+				style = 'h6';
+				break;
 			case 'NORMAL_TEXT':
-			default: style = 'normal'; break;
+			default:
+				style = 'normal';
+				break;
 		}
 	}
 
@@ -265,7 +279,7 @@ export function convertPortableTextToGoogleDocs(
 
 		const blockText = block.children.map((child) => (child._type === 'span' ? child.text : '')).join('');
 		const blockStartIndex = fullText.length;
-		
+
 		if (!blockText.trim() && block.style === 'normal') {
 			fullText += '\n';
 			continue;
@@ -277,12 +291,24 @@ export function convertPortableTextToGoogleDocs(
 		if (block.style && block.style.startsWith('h')) {
 			let namedStyleType = 'NORMAL_TEXT';
 			switch (block.style) {
-				case 'h1': namedStyleType = 'HEADING_1'; break;
-				case 'h2': namedStyleType = 'HEADING_2'; break;
-				case 'h3': namedStyleType = 'HEADING_3'; break;
-				case 'h4': namedStyleType = 'HEADING_4'; break;
-				case 'h5': namedStyleType = 'HEADING_5'; break;
-				case 'h6': namedStyleType = 'HEADING_6'; break;
+				case 'h1':
+					namedStyleType = 'HEADING_1';
+					break;
+				case 'h2':
+					namedStyleType = 'HEADING_2';
+					break;
+				case 'h3':
+					namedStyleType = 'HEADING_3';
+					break;
+				case 'h4':
+					namedStyleType = 'HEADING_4';
+					break;
+				case 'h5':
+					namedStyleType = 'HEADING_5';
+					break;
+				case 'h6':
+					namedStyleType = 'HEADING_6';
+					break;
 			}
 			if (namedStyleType !== 'NORMAL_TEXT') {
 				paragraphStyleRequests.push({

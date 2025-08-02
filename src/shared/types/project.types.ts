@@ -8,10 +8,10 @@ import {
 } from 'shared/config/types.ts';
 import type {
 	DataSourceAccessMethod,
+	DataSourceAuth,
 	DataSourceCapability,
 	DataSourceProviderInfo,
 	DataSourceProviderType,
-	DataSourceAuth,
 } from 'shared/types/dataSource.ts';
 import type { ProjectId } from 'shared/types.ts';
 import type {

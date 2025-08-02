@@ -1,6 +1,6 @@
 //import type { JSX } from 'preact';
 import { basename, dirname, join } from '@std/path';
-import { ensureDir, exists } from '@std/fs';
+import { exists } from '@std/fs';
 
 import LLMTool from 'api/llms/llmTool.ts';
 import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult, LLMToolRunResult } from 'api/llms/llmTool.ts';
@@ -14,6 +14,7 @@ import type {
 	ToolHandlingErrorOptions,
 } from 'api/errors/error.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
+import { isResourceNotFoundError } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
 
 import type {
@@ -129,10 +130,10 @@ export default class LLMToolRemoveResources extends LLMTool {
 			: formatLogEntryToolResultBrowser(resultContent);
 	}
 
-	private async checkIsDirectory(dataSourceRoot: string, path: string): Promise<boolean> {
+	private async checkIsDirectory(resourceAccessor: any, resourceUri: string): Promise<boolean> {
 		try {
-			const stat = await Deno.stat(join(dataSourceRoot, path));
-			return stat.isDirectory;
+			const resource = await resourceAccessor.loadResource(resourceUri);
+			return resource.metadata.isDirectory || false;
 		} catch {
 			return false;
 		}
@@ -141,7 +142,8 @@ export default class LLMToolRemoveResources extends LLMTool {
 	private async validateAcknowledgement(
 		acknowledgement: RemoveResourcesAcknowledgement,
 		sources: string[],
-		dataSourceRoot: string,
+		resourceAccessor: any,
+		dsConnection: any,
 	): Promise<void> {
 		// Validate resource count
 		if (acknowledgement.resourceCount !== sources.length) {
@@ -188,7 +190,10 @@ export default class LLMToolRemoveResources extends LLMTool {
 
 		// Check if any sources are directories
 		const hasDirectories = await Promise.all(
-			sources.map((source) => this.checkIsDirectory(dataSourceRoot, source)),
+			sources.map((source) => {
+				const resourceUri = dsConnection.getUriForResource(`file:./${source}`);
+				return this.checkIsDirectory(resourceAccessor, resourceUri);
+			}),
 		).then((results) => results.some(Boolean));
 
 		// Validate hasDirectories flag
@@ -271,8 +276,7 @@ export default class LLMToolRemoveResources extends LLMTool {
 		let index = 1;
 		let trashPath = baseTrashPath;
 		while (await exists(join(dataSourceRoot, trashPath))) {
-			const [name, ...extensions] = resourceName.split('.');
-			const newName = extensions.length > 0 ? `${name}_${index}.${extensions.join('.')}` : `${name}_${index}`;
+			const newName = `${resourceName}.${index}`;
 			trashPath = join(trashDir, newName);
 			index++;
 		}
@@ -307,14 +311,23 @@ export default class LLMToolRemoveResources extends LLMTool {
 			} as DataSourceHandlingErrorOptions);
 		}
 
-		const dataSourceRoot = dsConnectionToUse.getDataSourceRoot();
-		if (!dataSourceRoot) {
-			throw createError(ErrorType.DataSourceHandling, `No data source root`, {
-				name: 'data-source',
-				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
-			} as DataSourceHandlingErrorOptions);
-		}
 		// [TODO] check that dsConnectionToUse is type filesystem
+
+		const resourceAccessor = await dsConnectionToUse.getResourceAccessor();
+		if (!resourceAccessor.deleteResource) {
+			throw createError(ErrorType.ToolHandling, `No deleteResource method on resourceAccessor`, {
+				toolName: 'remove_resources',
+				operation: 'tool-run',
+			} as ToolHandlingErrorOptions);
+		}
+		if (!resourceAccessor.renameResource) {
+			throw createError(ErrorType.ToolHandling, `No renameResource method on resourceAccessor`, {
+				toolName: 'remove_resources',
+				operation: 'tool-run',
+			} as ToolHandlingErrorOptions);
+		}
+
+		const dataSourceRoot = dsConnectionToUse.getDataSourceRoot();
 
 		try {
 			// Validate number of resources
@@ -343,7 +356,7 @@ export default class LLMToolRemoveResources extends LLMTool {
 						} as ToolHandlingErrorOptions,
 					);
 				}
-				await this.validateAcknowledgement(acknowledgement, sources, dataSourceRoot);
+				await this.validateAcknowledgement(acknowledgement, sources, resourceAccessor, dsConnectionToUse);
 			} else if (acknowledgement) {
 				// If permanent deletion is disabled, acknowledgement should not be provided
 				throw createError(
@@ -358,10 +371,11 @@ export default class LLMToolRemoveResources extends LLMTool {
 			}
 
 			// Ensure trash directory exists if needed
-			if (!this.config.dangerouslyDeletePermanently) {
+			if (!this.config.dangerouslyDeletePermanently && dataSourceRoot) {
 				const trashDir = join(dataSourceRoot, this.config.trashDir || '.trash');
+				const trashUri = dsConnectionToUse.getUriForResource(`file:./${this.config.trashDir || '.trash'}`);
 				try {
-					await ensureDir(trashDir);
+					await resourceAccessor.ensureResourcePathExists(trashUri);
 				} catch (error) {
 					throw createError(
 						ErrorType.ResourceHandling,
@@ -383,7 +397,7 @@ export default class LLMToolRemoveResources extends LLMTool {
 			for (const source of sources) {
 				try {
 					// Validate path
-					const resourceUri = dsConnectionToUse.getUriForResource(`file:./${source}`);
+					let resourceUri = dsConnectionToUse.getUriForResource(`file:./${source}`);
 					if (!await dsConnectionToUse.isResourceWithinDataSource(resourceUri)) {
 						throw new Error('Path is outside the data source');
 					}
@@ -393,12 +407,15 @@ export default class LLMToolRemoveResources extends LLMTool {
 						throw new Error('Path is protected from deletion');
 					}
 
-					const fullSourcePath = join(dataSourceRoot, source);
-					const isDirectory = await this.checkIsDirectory(dataSourceRoot, source);
+					resourceUri = dsConnectionToUse.getUriForResource(`file:./${source}`);
+					const isDirectory = await this.checkIsDirectory(resourceAccessor, resourceUri);
 
 					if (this.config.dangerouslyDeletePermanently) {
 						// Permanent deletion
-						await Deno.remove(fullSourcePath, { recursive: true });
+						const results = await resourceAccessor.deleteResource(resourceUri, { recursive: true });
+						if (!results.success) {
+							throw new Error(`Delete operation failed for ${source}`);
+						}
 						removedSuccess.push({ name: source, isDirectory });
 						toolResultContentParts.push({
 							'type': 'text',
@@ -407,13 +424,18 @@ export default class LLMToolRemoveResources extends LLMTool {
 					} else {
 						// Move to trash
 						const trashPath = await this.generateTrashPath(dataSourceRoot, source);
-						const fullTrashPath = join(dataSourceRoot, trashPath);
 
 						// Create parent directory in trash if needed
-						await ensureDir(dirname(fullTrashPath));
 
 						// Move resource to trash
-						await Deno.rename(fullSourcePath, fullTrashPath);
+						const trashUri = dsConnectionToUse.getUriForResource(`file:./${trashPath}`);
+						const results = await resourceAccessor.renameResource(resourceUri, trashUri, {
+							overwrite: false,
+							createMissingDirectories: true,
+						});
+						if (!results.success) {
+							throw new Error(`Move to trash failed for ${source}`);
+						}
 						removedSuccess.push({ name: source, isDirectory, destination: trashPath });
 						toolResultContentParts.push({
 							'type': 'text',

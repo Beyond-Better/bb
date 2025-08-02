@@ -71,7 +71,7 @@ export class FilesystemAccessor extends BBResourceAccessor {
 	constructor(connection: DataSourceConnection) {
 		super(connection);
 
-		logger.info(`FilesystemAccessor: constructor `, { config: connection.config });
+		//logger.info(`FilesystemAccessor: constructor `, { config: connection.config });
 		// Extract and validate the root path from the connection config
 		const rootPath = connection.config.dataSourceRoot as string;
 		if (!rootPath || typeof rootPath !== 'string') {
@@ -240,7 +240,7 @@ export class FilesystemAccessor extends BBResourceAccessor {
 				isPartial,
 			};
 		} catch (error) {
-			logger.error(`FilesystemAccessor: Error loading resource ${resourceUri}`, error);
+			logger.error(`FilesystemAccessor: Error loading resource ${resourceUri}`, errorMessage(error));
 			if (isResourceHandlingError(error)) {
 				throw error; // Re-throw our custom errors
 			}
@@ -390,7 +390,10 @@ export class FilesystemAccessor extends BBResourceAccessor {
 				pagination,
 			};
 		} catch (error) {
-			logger.error(`FilesystemAccessor: Error listing resources at ${this.rootPath}/${path}`, error);
+			logger.error(
+				`FilesystemAccessor: Error listing resources at ${this.rootPath}/${path}`,
+				errorMessage(error),
+			);
 			if (isResourceHandlingError(error)) {
 				throw error; // Re-throw our custom errors
 			}
@@ -505,7 +508,7 @@ export class FilesystemAccessor extends BBResourceAccessor {
 				};
 			}
 		} catch (error) {
-			logger.error(`FilesystemAccessor: Error searching resources`, error);
+			logger.error(`FilesystemAccessor: Error searching resources`, errorMessage(error));
 			if (isResourceHandlingError(error)) {
 				throw error; // Re-throw our custom errors
 			}
@@ -590,7 +593,7 @@ export class FilesystemAccessor extends BBResourceAccessor {
 				bytesWritten: typeof content === 'string' ? new TextEncoder().encode(content).length : content.length,
 			};
 		} catch (error) {
-			logger.error(`FilesystemAccessor: Error writing resource ${resourceUri}`, error);
+			logger.error(`FilesystemAccessor: Error writing resource ${resourceUri}`, errorMessage(error));
 			if (isResourceHandlingError(error)) {
 				throw error; // Re-throw our custom errors
 			}
@@ -680,7 +683,10 @@ export class FilesystemAccessor extends BBResourceAccessor {
 				metadata: resourceMetadata,
 			};
 		} catch (error) {
-			logger.error(`FilesystemAccessor: Error moving resource ${sourceUri} to ${destinationUri}`, error);
+			logger.error(
+				`FilesystemAccessor: Error moving resource ${sourceUri} to ${destinationUri}`,
+				errorMessage(error),
+			);
 			if (isResourceHandlingError(error)) {
 				throw error; // Re-throw our custom errors
 			}
@@ -690,6 +696,96 @@ export class FilesystemAccessor extends BBResourceAccessor {
 				{
 					filePath: sourceUri,
 					operation: 'move',
+				} as ResourceHandlingErrorOptions,
+			);
+		}
+	}
+
+	/**
+	 * Rename a resource - potentially moving to a new location
+	 * @param sourceUri Source resource URI
+	 * @param destinationUri Destination resource URI
+	 * @param options Options for moving
+	 * @returns Result of the move operation
+	 */
+	override async renameResource(
+		sourceUri: string,
+		destinationUri: string,
+		options: ResourceMoveOptions = {},
+	): Promise<ResourceMoveResult> {
+		try {
+			// Extract resource paths from URIs
+			const sourcePath = extractResourcePath(sourceUri);
+			const destPath = extractResourcePath(destinationUri);
+
+			if (!sourcePath || !destPath) {
+				throw new Error(`Invalid resource URI: ${!sourcePath ? sourceUri : destinationUri}`);
+			}
+
+			// Convert to absolute paths
+			const sourceAbsPath = resourcePathToAbsolute(this.rootPath, sourcePath);
+			const destAbsPath = resourcePathToAbsolute(this.rootPath, destPath);
+
+			// Check if source exists
+			if (!await safeExists(sourceAbsPath)) {
+				throw createError(
+					ErrorType.ResourceHandling,
+					`Source file not found: ${sourcePath}`,
+					{
+						filePath: sourcePath,
+						operation: 'rename',
+					} as ResourceHandlingErrorOptions,
+				);
+			}
+
+			// Check if destination file exists
+			const destExists = await safeExists(destAbsPath);
+
+			// Check overwrite option
+			if (destExists && options.overwrite === false) {
+				throw createError(
+					ErrorType.ResourceHandling,
+					`Destination file already exists and overwrite is false: ${destPath}`,
+					{
+						filePath: destPath,
+						operation: 'rename',
+					} as ResourceHandlingErrorOptions,
+				);
+			}
+
+			// Create parent directories if needed
+			if (options.createMissingDirectories) {
+				await ensureParentDirectories(destAbsPath);
+			}
+
+			// Move the file
+			await Deno.rename(sourceAbsPath, destAbsPath);
+
+			const resourceMetadata = await getFileMetadata(
+				this.rootPath,
+				destPath,
+			);
+
+			return {
+				success: true,
+				sourceUri,
+				destinationUri,
+				metadata: resourceMetadata,
+			};
+		} catch (error) {
+			logger.error(
+				`FilesystemAccessor: Error renaming resource ${sourceUri} to ${destinationUri}`,
+				errorMessage(error),
+			);
+			if (isResourceHandlingError(error)) {
+				throw error; // Re-throw our custom errors
+			}
+			throw createError(
+				ErrorType.ResourceHandling,
+				`Failed to rename resource: ${errorMessage(error)}`,
+				{
+					filePath: sourceUri,
+					operation: 'rename',
 				} as ResourceHandlingErrorOptions,
 			);
 		}
@@ -753,7 +849,7 @@ export class FilesystemAccessor extends BBResourceAccessor {
 				type: isDirectory ? 'directory' : 'file',
 			};
 		} catch (error) {
-			logger.error(`FilesystemAccessor: Error deleting resource ${resourceUri}`, error);
+			logger.error(`FilesystemAccessor: Error deleting resource ${resourceUri}`, errorMessage(error));
 			if (isResourceHandlingError(error)) {
 				throw error; // Re-throw our custom errors
 			}
@@ -953,9 +1049,7 @@ export class FilesystemAccessor extends BBResourceAccessor {
 				fileExtensionCount: Object.keys(metadata.filesystem?.fileExtensions || {}).length,
 			});
 		} catch (error) {
-			logger.error(
-				`FilesystemAccessor: Error collecting metadata: ${(error as Error).message}`,
-			);
+			logger.error(`FilesystemAccessor: Error collecting metadata:`, errorMessage(error));
 			// Return basic metadata even if scan failed
 			metadata.totalResources = 0;
 			metadata.resourceTypes = { file: 0, directory: 0 };

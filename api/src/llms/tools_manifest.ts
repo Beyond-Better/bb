@@ -328,7 +328,7 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		},
 	},
 	{
-		'toolNamePath': 'rewriteFile.tool',
+		'toolNamePath': 'rewriteResource.tool',
 		'metadata': {
 			'name': 'rewrite_resource',
 			'description':

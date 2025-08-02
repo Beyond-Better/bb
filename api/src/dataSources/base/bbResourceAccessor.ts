@@ -93,6 +93,20 @@ export abstract class BBResourceAccessor extends BaseResourceAccessor {
 	): Promise<ResourceMoveResult>;
 
 	/**
+	 * Rename a resource - potentially to a new location
+	 * Optional capability - implement in subclasses if supported
+	 * @param sourceUri Source resource URI
+	 * @param destinationUri Destination resource URI
+	 * @param options Options for moving
+	 * @returns Result of the move operation
+	 */
+	renameResource?(
+		sourceUri: string,
+		destinationUri: string,
+		options?: ResourceMoveOptions,
+	): Promise<ResourceMoveResult>;
+
+	/**
 	 * Delete a resource
 	 * Optional capability - implement in subclasses if supported
 	 * @param resourceUri URI of the resource to delete

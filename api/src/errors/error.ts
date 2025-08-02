@@ -314,6 +314,7 @@ export interface ResourceHandlingErrorOptions extends ErrorOptions {
 		| 'write'
 		| 'delete'
 		| 'move'
+		| 'rename'
 		| 'change'
 		| 'search-resources'
 		| 'apply-patch'

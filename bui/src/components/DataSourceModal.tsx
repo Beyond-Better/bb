@@ -76,10 +76,13 @@ export function DataSourceModal({ dsConnection, onClose, onSave, appState, dsPro
 			}
 		} else if (formData.providerType === 'googledocs') {
 			//console.log('DataSourceModal: validate googledocs', formData.auth);
-			if (!formData.auth?.oauth2?.accessToken || !formData.auth?.oauth2?.refreshToken || !formData.auth?.oauth2?.expiresAt) {
+			if (
+				!formData.auth?.oauth2?.accessToken || !formData.auth?.oauth2?.refreshToken ||
+				!formData.auth?.oauth2?.expiresAt
+			) {
 				newErrors.accessToken = 'Access Token is not valid';
 			}
-			// // We're not responsible ensuring tokens are current, that is handled by code that uses the tokens. 
+			// // We're not responsible ensuring tokens are current, that is handled by code that uses the tokens.
 			// if (formData.auth?.oauth2?.expiresAt && formData.auth.oauth2.expiresAt <= Date.now()) {
 			// 	newErrors.accessToken = 'Access Token has expired';
 			// }
@@ -271,7 +274,7 @@ export function DataSourceModal({ dsConnection, onClose, onSave, appState, dsPro
 						{/* Google OAuth Authentication */}
 						<GoogleOAuthFlow
 							onAuth={(authConfig: AuthConfig) => {
-								//console.log('DataSourceModal: Saving googledocs config', authConfig); 
+								//console.log('DataSourceModal: Saving googledocs config', authConfig);
 								setFormData((prev) => ({
 									...prev,
 									auth: {

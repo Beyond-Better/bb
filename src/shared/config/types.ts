@@ -106,11 +106,10 @@ export interface LLMProviderConfig {
 }
 
 export interface GoogleOauth {
-      redirectUri: string;
-      clientId: string|null;
-      clientSecret: string|null;
+	redirectUri: string;
+	clientId: string | null;
+	clientSecret: string | null;
 }
-
 
 /**
  * API server configuration.
@@ -390,9 +389,9 @@ export const BuiConfigDefaults: Readonly<BuiConfig> = {
 	localMode: false,
 	kvSessionPath: 'auth.kv',
 	googleOauth: {
-      redirectUri: 'https://chat.beyondbetter.app/oauth/google/callback',
-      clientId: null,
-      clientSecret: null,
+		redirectUri: 'https://chat.beyondbetter.app/oauth/google/callback',
+		clientId: null,
+		clientSecret: null,
 	},
 };
 

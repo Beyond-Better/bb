@@ -150,7 +150,7 @@ export class NotionProvider extends BBDataSourceProvider {
 				},
 			},
 		);
-	
+
 		return connection;
 	}
 }

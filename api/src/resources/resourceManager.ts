@@ -3,6 +3,7 @@
  * Direct replacement for the existing ResourceManager.
  */
 import { logger } from 'shared/logger.ts';
+import { errorMessage } from 'shared/error.ts';
 import type { MCPManager } from 'api/mcp/mcpManager.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 import type { ProjectInfo } from 'api/editor/projectEditor.ts';
@@ -116,7 +117,7 @@ export class ResourceManager {
 				}
 			}
 		} catch (error) {
-			logger.error(`ResourceManager: Error loading MCP resources: ${(error as Error).message}`);
+			logger.error(`ResourceManager: Error loading MCP resources: ${errorMessage(error)}`);
 		}
 	}
 
@@ -232,8 +233,8 @@ export class ResourceManager {
 				truncated: result.isPartial,
 			};
 		} catch (error) {
-			logger.error(`ResourceManager: Error loading resource ${resourceUri}: ${(error as Error).message}`);
-			throw createError(ErrorType.ResourceHandling, `Failed to load resource: ${(error as Error).message}`, {
+			logger.error(`ResourceManager: Error loading resource ${resourceUri}: ${errorMessage(error)}`);
+			throw createError(ErrorType.ResourceHandling, `Failed to load resource: ${errorMessage(error)}`, {
 				filePath: resourceUri,
 				operation: 'read',
 			} as ResourceHandlingErrorOptions);
@@ -285,8 +286,8 @@ export class ResourceManager {
 				pagination: result.nextPageToken ? { nextPageToken: result.nextPageToken } : undefined,
 			};
 		} catch (error) {
-			logger.error(`ResourceManager: Error listing resources for ${dsConnectionId}: ${(error as Error).message}`);
-			throw createError(ErrorType.DataSourceHandling, `Failed to list resources: ${(error as Error).message}`, {
+			logger.error(`ResourceManager: Error listing resources for ${dsConnectionId}: ${errorMessage(error)}`);
+			throw createError(ErrorType.DataSourceHandling, `Failed to list resources: ${errorMessage(error)}`, {
 				name: 'list-resources',
 				dsConnectionIds: [dsConnectionId],
 			} as DataSourceHandlingErrorOptions);
@@ -325,9 +326,9 @@ export class ResourceManager {
 			return await accessor.searchResources!(query, options);
 		} catch (error) {
 			logger.error(
-				`ResourceManager: Error searching resources for ${dsConnectionId}: ${(error as Error).message}`,
+				`ResourceManager: Error searching resources for ${dsConnectionId}: ${errorMessage(error)}`,
 			);
-			throw createError(ErrorType.DataSourceHandling, `Failed to search resources: ${(error as Error).message}`, {
+			throw createError(ErrorType.DataSourceHandling, `Failed to search resources: ${errorMessage(error)}`, {
 				name: 'search-resources',
 				dsConnectionIds: [dsConnectionId],
 			} as DataSourceHandlingErrorOptions);
@@ -361,8 +362,8 @@ export class ResourceManager {
 			// Use the accessor to write the resource
 			return await accessor.writeResource!(resourceUri, content, options);
 		} catch (error) {
-			logger.error(`ResourceManager: Error writing resource ${resourceUri}: ${(error as Error).message}`);
-			throw createError(ErrorType.ResourceHandling, `Failed to write resource: ${(error as Error).message}`, {
+			logger.error(`ResourceManager: Error writing resource ${resourceUri}: ${errorMessage(error)}`);
+			throw createError(ErrorType.ResourceHandling, `Failed to write resource: ${errorMessage(error)}`, {
 				filePath: resourceUri,
 				operation: 'write',
 			} as ResourceHandlingErrorOptions);
@@ -396,8 +397,8 @@ export class ResourceManager {
 			// Use the accessor to move the resource
 			return await accessor.moveResource!(sourceUri, destinationUri, options);
 		} catch (error) {
-			logger.error(`ResourceManager: Error moving resource ${sourceUri}: ${(error as Error).message}`);
-			throw createError(ErrorType.ResourceHandling, `Failed to move resource: ${(error as Error).message}`, {
+			logger.error(`ResourceManager: Error moving resource ${sourceUri}: ${errorMessage(error)}`);
+			throw createError(ErrorType.ResourceHandling, `Failed to move resource: ${errorMessage(error)}`, {
 				filePath: sourceUri,
 				operation: 'move',
 			} as ResourceHandlingErrorOptions);
@@ -426,8 +427,8 @@ export class ResourceManager {
 			// Use the accessor to delete the resource
 			return await accessor.deleteResource!(resourceUri, options);
 		} catch (error) {
-			logger.error(`ResourceManager: Error deleting resource ${resourceUri}: ${(error as Error).message}`);
-			throw createError(ErrorType.ResourceHandling, `Failed to delete resource: ${(error as Error).message}`, {
+			logger.error(`ResourceManager: Error deleting resource ${resourceUri}: ${errorMessage(error)}`);
+			throw createError(ErrorType.ResourceHandling, `Failed to delete resource: ${errorMessage(error)}`, {
 				filePath: resourceUri,
 				operation: 'delete',
 			} as ResourceHandlingErrorOptions);
