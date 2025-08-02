@@ -883,36 +883,12 @@ export class GoogleDocsAccessor extends BBResourceAccessor {
 	 * @param blocks Portable Text blocks
 	 */
 	private async updateDocumentFromPortableText(documentId: string, blocks: PortableTextBlock[]): Promise<void> {
-		// Simple implementation: convert blocks to plain text and replace document content
-		const textParts: string[] = [];
+		const document = await this.client.getDocument(documentId);
+		const requests = convertPortableTextToGoogleDocs(blocks, document);
 
-		for (const block of blocks) {
-			if (block._type === 'block' && block.children) {
-				const blockText = block.children
-					.map((child) => child._type === 'span' ? child.text : '')
-					.join('');
-
-				// Add appropriate prefixes for headings
-				switch (block.style) {
-					case 'h1':
-						textParts.push(`# ${blockText}`);
-						break;
-					case 'h2':
-						textParts.push(`## ${blockText}`);
-						break;
-					case 'h3':
-						textParts.push(`### ${blockText}`);
-						break;
-					default:
-						textParts.push(blockText.trim());
-				}
-			}
+		if (requests.length > 0) {
+			await this.client.updateDocument(documentId, requests);
 		}
-
-		const content = textParts.join('\n\n');
-
-		// Use the existing writeDocumentResource method
-		await this.writeDocumentResource(documentId, content);
 	}
 
 	/**
