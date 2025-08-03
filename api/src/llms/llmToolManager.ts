@@ -50,13 +50,15 @@ export interface ToolMetadata {
 	capabilities?: string | string[];
 	enabled?: boolean; //defaults to true
 	mutates?: boolean; //defaults to true
+	deprecated?: boolean; //defaults to false
+	replacedBy?: string; //when deprecated is true
 	error?: string;
 	config?: unknown;
 	mcpData?: LLMToolMCPConfig;
 	examples?: Array<{ description: string; input: unknown }>;
 }
 
-export type LLMToolManagerToolSetType = 'core' | 'coding' | 'research' | 'creative';
+export type LLMToolManagerToolSetType = 'core' | 'coding' | 'research' | 'creative' | 'legacy';
 
 class LLMToolManager {
 	private toolMetadata: Map<string, ToolMetadata> = new Map();
@@ -86,7 +88,7 @@ class LLMToolManager {
 			logger.error(`LLMToolManager: Could not set bbDir: ${(error as Error).message}`);
 		}
 		this.globalConfigDir = await getGlobalConfigDir();
-		await this.loadInternalToolsMetadata(this.projectConfig.api?.userToolDirectories || []);
+		await this.loadInternalToolsMetadata(this.projectConfig.api?.userPluginDirectories || []);
 		this.mcpManager = await getMCPManager();
 		await this.loadMCPToolsMetadata(await this.mcpManager.getServers());
 
@@ -97,6 +99,17 @@ class LLMToolManager {
 		for (const coreTool of CORE_TOOLS) {
 			// Don't load mcp tool as an bb tool
 			if (coreTool.metadata.name === 'mcp') continue;
+			
+			// Check if tool is in the requested tool set
+			if (!this.isToolInSet(coreTool.metadata)) {
+				logger.warn(
+					`LLMToolManager: Core tool ${coreTool.metadata.name} is not in tool set ${
+						Array.isArray(this.toolSet) ? this.toolSet.join(', ') : this.toolSet
+					}`,
+				);
+				continue;
+			}
+			
 			//if (!this.isToolEnabled(coreTool.metadata)) continue;
 			const toolNamePath = join('tools', coreTool.toolNamePath);
 			coreTool.metadata.path = toolNamePath;
@@ -260,7 +273,7 @@ class LLMToolManager {
 	private shouldReplaceExistingTool(existing: ToolMetadata, newMetadata: ToolMetadata): boolean {
 		// Prefer user-supplied tools
 		if (
-			(this.projectConfig.api?.userToolDirectories || []).some((dir) => newMetadata.path!.startsWith(dir))
+			(this.projectConfig.api?.userPluginDirectories || []).some((dir: string) => newMetadata.path!.startsWith(dir))
 		) {
 			if (compareVersions(parseVersion(existing.version), parseVersion(newMetadata.version)) > 0) {
 				logger.warn(
@@ -343,6 +356,14 @@ class LLMToolManager {
 	getToolFileName(name: string): string | undefined {
 		const metadata = this.toolMetadata.get(name);
 		return metadata ? `${metadata.path}/tool.ts` : undefined;
+	}
+
+	/**
+	 * Gets all loaded tool names - accessor for instance inspection
+	 * @returns Array of loaded tool names
+	 */
+	public getLoadedToolNames(): string[] {
+		return Array.from(this.loadedTools.keys());
 	}
 
 	async getAllTools(enabledOnly = true): Promise<LLMTool[]> {
@@ -443,14 +464,6 @@ class LLMToolManager {
 				isError: true,
 			};
 		}
-	}
-
-	/**
-	 * Gets all loaded tool names - accessor for instance inspection
-	 * @returns Array of loaded tool names
-	 */
-	public getLoadedToolNames(): string[] {
-		return Array.from(this.loadedTools.keys());
 	}
 }
 

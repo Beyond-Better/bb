@@ -58,13 +58,18 @@ export const formatLogEntryToolResult = (
 	const { toolResult, bbResponse } = resultContent;
 	const content = getContentFromToolResult(toolResult);
 
-	// Try to parse enhanced content format first
+	// Check if bbResponse is structured (new format)
+	if (typeof bbResponse === 'object' && bbResponse && 'data' in bbResponse) {
+		return formatStructuredSearchResults(bbResponse as any, content);
+	}
+
+	// Try to parse enhanced content format first (legacy)
 	const enhancedData = tryParseEnhancedContent(content);
 	if (enhancedData) {
 		return formatEnhancedSearchResults(enhancedData, bbResponse);
 	}
 
-	// Fall back to simple resource list format
+	// Fall back to simple resource list format (legacy)
 	return formatSimpleSearchResults(content, bbResponse);
 };
 
@@ -141,6 +146,19 @@ function formatEnhancedSearchResults(enhancedData: any, bbResponse: any) {
 
 // Format simple search results (backward compatibility)
 function formatSimpleSearchResults(content: string, bbResponse: any) {
+	// Check for error messages in the content
+	const errorMatch = content.match(/Invalid regular expression: ([^\n]+)/);
+	if (errorMatch) {
+		return {
+			title: LLMTool.TOOL_STYLES_CONSOLE.content.title('Tool Result', 'Find Resources'),
+			subtitle: LLMTool.TOOL_STYLES_CONSOLE.content.subtitle(String(bbResponse)),
+			content: LLMTool.TOOL_STYLES_CONSOLE.base.value(
+				`${LLMTool.TOOL_STYLES_CONSOLE.content.icon('⚠️')} ${LLMTool.TOOL_STYLES_CONSOLE.base.label('Error:')} ${LLMTool.TOOL_STYLES_CONSOLE.status.error(errorMatch[1])}`
+			),
+			preview: 'Search failed due to invalid pattern',
+		};
+	}
+
 	const lines = content.split('\n');
 	const resourceList = (() => {
 		const startIndex = lines.findIndex((line) => line.includes('<resources>'));
@@ -164,6 +182,113 @@ function formatSimpleSearchResults(content: string, bbResponse: any) {
 		}`,
 		preview: `Found ${resourceList.length} resources`,
 	};
+}
+
+// Format structured search results (new format)
+function formatStructuredSearchResults(bbResponse: any, toolContent: string) {
+	const { data } = bbResponse;
+	const { resources, matches, errorMessage, searchCriteria, dataSources, pagination } = data;
+
+	if (errorMessage) {
+		return {
+			title: LLMTool.TOOL_STYLES_CONSOLE.content.title('Tool Result', 'Find Resources'),
+			subtitle: LLMTool.TOOL_STYLES_CONSOLE.content.subtitle('Search failed'),
+			content: LLMTool.TOOL_STYLES_CONSOLE.base.value(
+				`${LLMTool.TOOL_STYLES_CONSOLE.content.icon('⚠️')} ${LLMTool.TOOL_STYLES_CONSOLE.base.label('Error:')} ${LLMTool.TOOL_STYLES_CONSOLE.status.error(errorMessage)}`
+			),
+			preview: 'Search failed due to error',
+		};
+	}
+
+	const totalMatches = matches.reduce((sum: number, match: any) => sum + (match.contentMatches?.length || 0), 0);
+	const hasContentMatches = matches.length > 0 && matches.some((m: any) => m.contentMatches);
+
+	if (hasContentMatches) {
+		const enhancedContent = matches.map((match: any) => {
+			const fileHeader = `${LLMTool.TOOL_STYLES_CONSOLE.content.icon('📁')} ${
+				LLMTool.TOOL_STYLES_CONSOLE.content.filename(match.resourcePath)
+			}`;
+
+			if (!match.contentMatches || match.contentMatches.length === 0) {
+				return fileHeader;
+			}
+
+			const contentLines = match.contentMatches.map((contentMatch: any) => {
+				const lines = [];
+
+				// Add context before
+				contentMatch.contextBefore.forEach((line: string, idx: number) => {
+					const lineNum = contentMatch.lineNumber - contentMatch.contextBefore.length + idx;
+					lines.push(
+						`   ${String(lineNum).padStart(3, ' ')}│ ${LLMTool.TOOL_STYLES_CONSOLE.content.subtitle(line)}`,
+					);
+				});
+
+				// Add matching line with highlight
+				const highlightedLine = highlightMatch(
+					contentMatch.content,
+					contentMatch.matchStart,
+					contentMatch.matchEnd,
+				);
+				lines.push(` → ${String(contentMatch.lineNumber).padStart(3, ' ')}│ ${highlightedLine}`);
+
+				// Add context after
+				contentMatch.contextAfter.forEach((line: string, idx: number) => {
+					const lineNum = contentMatch.lineNumber + 1 + idx;
+					lines.push(
+						`   ${String(lineNum).padStart(3, ' ')}│ ${LLMTool.TOOL_STYLES_CONSOLE.content.subtitle(line)}`,
+					);
+				});
+
+				return lines.join('\n');
+			}).join('\n\n');
+
+			return `${fileHeader}\n${contentLines}`;
+		}).join('\n\n');
+
+		let content = enhancedContent;
+		if (pagination?.hasMore) {
+			content += `\n\n${LLMTool.TOOL_STYLES_CONSOLE.content.subtitle(
+				`More results available (page size: ${pagination.pageSize})`
+			)}`;
+		}
+
+		return {
+			title: LLMTool.TOOL_STYLES_CONSOLE.content.title('Tool Result', 'Find Resources'),
+			subtitle: LLMTool.TOOL_STYLES_CONSOLE.content.subtitle(`Found ${resources.length} files with ${totalMatches} matches`),
+			content,
+			preview: `Found ${resources.length} files with ${totalMatches} matches`,
+		};
+	} else {
+		let content = stripIndents`
+			${
+				resources.map((resource: string) =>
+					LLMTool.TOOL_STYLES_CONSOLE.base.listItem(
+						LLMTool.TOOL_STYLES_CONSOLE.content.filename(resource),
+					)
+				).join('\n')
+			}
+		`;
+
+		if (dataSources.length > 0) {
+			content += `\n\n${LLMTool.TOOL_STYLES_CONSOLE.content.subtitle(
+				`Searched: ${dataSources.map((ds: any) => ds.dsConnectionName).join(', ')}`
+			)}`;
+		}
+
+		if (pagination?.hasMore) {
+			content += `\n\n${LLMTool.TOOL_STYLES_CONSOLE.content.subtitle(
+				`More results available (page size: ${pagination.pageSize})`
+			)}`;
+		}
+
+		return {
+			title: LLMTool.TOOL_STYLES_CONSOLE.content.title('Tool Result', 'Find Resources'),
+			subtitle: LLMTool.TOOL_STYLES_CONSOLE.content.subtitle(`Found ${resources.length} resources`),
+			content,
+			preview: `Found ${resources.length} resources`,
+		};
+	}
 }
 
 // Helper function to highlight matches within content for console

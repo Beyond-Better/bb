@@ -15,7 +15,7 @@ import type { DefaultModels, DefaultModelsPartial } from 'shared/types/models.ts
 export type { DefaultModels, DefaultModelsPartial };
 
 // Version Management
-const CONFIG_VERSIONS = ['1.0.0', '2.0.0', '2.1.0', '2.2.0'] as const;
+const CONFIG_VERSIONS = ['1.0.0', '2.0.0', '2.1.0', '2.2.0', '2.2.1'] as const;
 /** Supported configuration versions */
 export type ConfigVersion = typeof CONFIG_VERSIONS[number];
 
@@ -122,7 +122,7 @@ export interface ApiConfig extends ServerConfig {
 	logFileHydration: boolean;
 	ignoreLLMRequestCache: boolean;
 	usePromptCaching: boolean;
-	userToolDirectories: string[];
+	userPluginDirectories: string[];
 	toolConfigs: Record<string, unknown>;
 	localMode?: boolean;
 	supabaseConfigUrl?: string;
@@ -368,7 +368,7 @@ export const ApiConfigDefaults: Readonly<Omit<ApiConfig, 'llmProviders' | 'dataS
 	supabaseConfigUrl: 'https://www.beyondbetter.app/api/v1/config/supabase',
 	ignoreLLMRequestCache: false,
 	usePromptCaching: true,
-	userToolDirectories: ['./tools'],
+	userPluginDirectories: ['./plugins'],
 	toolConfigs: {},
 	extendedThinking: {
 		enabled: true,
@@ -409,7 +409,7 @@ export const DuiConfigDefaults: Readonly<DuiConfig> = {
 
 //export const ProjectConfigDefaults: Readonly<Omit<ProjectConfig, 'version' | 'projectId' | 'name'>> = {
 export const ProjectConfigDefaults: Readonly<ProjectConfig> = {
-	version: '2.2.0',
+	version: '2.2.1',
 	projectId: '',
 	//name: '',
 	//type: 'local',
@@ -424,7 +424,7 @@ export const ProjectConfigDefaults: Readonly<ProjectConfig> = {
 // When updating these defaults, update impl Default for GlobalConfig in dui/src-tauri/src/config.rs
 //export const GlobalConfigDefaults: Readonly<Omit<GlobalConfig, 'version' | 'bbExeName' | 'bbApiExeName'>> = {
 export const GlobalConfigDefaults: Readonly<GlobalConfig> = {
-	version: '2.2.0',
+	version: '2.2.1',
 	bbExeName: 'bb',
 	bbApiExeName: 'bb-api',
 	bbBuiExeName: 'bb-bui',

@@ -290,10 +290,11 @@ Deno.test({
 			},
 		}];
 
-		const results = await accessor.applyPortableTextOperations(
+		const { operationResults: results } = await accessor.applyPortableTextOperations(
 			`bb+notion+test-connection+notion://page/${pageId}`,
 			operations,
 		);
+		//console.log('NotionAccessor.applyPortableTextOperations - update operation success - results', results);
 
 		assertEquals(results.length, 1);
 		assertEquals(results[0].success, true);
@@ -340,7 +341,7 @@ Deno.test({
 			},
 		}];
 
-		const results = await accessor.applyPortableTextOperations(
+		const { operationResults: results } = await accessor.applyPortableTextOperations(
 			`bb+notion+test-connection+notion://page/${pageId}`,
 			operations,
 		);
@@ -382,7 +383,7 @@ Deno.test({
 			index: 0,
 		}];
 
-		const results = await accessor.applyPortableTextOperations(
+		const { operationResults: results } = await accessor.applyPortableTextOperations(
 			`bb+notion+test-connection+notion://page/${pageId}`,
 			operations,
 		);
@@ -427,7 +428,7 @@ Deno.test({
 			to: 2,
 		}];
 
-		const results = await accessor.applyPortableTextOperations(
+		const { operationResults: results } = await accessor.applyPortableTextOperations(
 			`bb+notion+test-connection+notion://page/${pageId}`,
 			operations,
 		);
@@ -470,7 +471,7 @@ Deno.test({
 			_key: 'block2',
 		}];
 
-		const results = await accessor.applyPortableTextOperations(
+		const { operationResults: results } = await accessor.applyPortableTextOperations(
 			`bb+notion+test-connection+notion://page/${pageId}`,
 			operations,
 		);
@@ -535,7 +536,7 @@ Deno.test({
 			},
 		];
 
-		const results = await accessor.applyPortableTextOperations(
+		const { operationResults: results } = await accessor.applyPortableTextOperations(
 			`bb+notion+test-connection+notion://page/${pageId}`,
 			operations,
 		);
@@ -575,7 +576,7 @@ Deno.test({
 			type: 'invalid' as any,
 		}];
 
-		const results = await accessor.applyPortableTextOperations(
+		const { operationResults: results } = await accessor.applyPortableTextOperations(
 			`bb+notion+test-connection+notion://page/${pageId}`,
 			operations,
 		);
@@ -613,7 +614,7 @@ Deno.test({
 			index: 0,
 		}];
 
-		const results = await accessor.applyPortableTextOperations(
+		const { operationResults: results } = await accessor.applyPortableTextOperations(
 			`bb+notion+test-connection+notion://page/${pageId}`,
 			operations,
 		);
@@ -651,7 +652,7 @@ Deno.test({
 			position: 1,
 		}];
 
-		const results = await accessor.applyPortableTextOperations(
+		const { operationResults: results } = await accessor.applyPortableTextOperations(
 			`bb+notion+test-connection+notion://page/${pageId}`,
 			operations,
 		);
@@ -695,7 +696,7 @@ Deno.test({
 			},
 		}];
 
-		const results = await accessor.applyPortableTextOperations(
+		const { operationResults: results } = await accessor.applyPortableTextOperations(
 			`bb+notion+test-connection+notion://page/${pageId}`,
 			operations,
 		);
@@ -743,7 +744,7 @@ Deno.test({
 			},
 		}];
 
-		const results = await accessor.applyPortableTextOperations(
+		const { operationResults: results } = await accessor.applyPortableTextOperations(
 			`bb+notion+test-connection+notion://page/${pageId}`,
 			operations,
 		);
@@ -781,7 +782,7 @@ Deno.test({
 			{ type: 'delete', _key: 'nonexistent' }, // Nonexistent key
 		];
 
-		const results = await accessor.applyPortableTextOperations(
+		const { operationResults: results } = await accessor.applyPortableTextOperations(
 			`bb+notion+test-connection+notion://page/${pageId}`,
 			operations,
 		);

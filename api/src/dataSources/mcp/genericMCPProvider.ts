@@ -8,14 +8,92 @@ import type { MCPManager } from 'api/mcp/mcpManager.ts';
 import { getMCPManager } from 'api/mcp/mcpManager.ts';
 import type { DataSourceConnection } from 'api/dataSources/interfaces/dataSourceConnection.ts';
 import type { ResourceAccessor } from 'api/dataSources/interfaces/resourceAccessor.ts';
-import type { DataSourceAuthMethod, DataSourceCapability } from 'shared/types/dataSource.ts';
 import type { DataSourceRegistry } from 'api/dataSources/dataSourceRegistry.ts';
+import type {
+	DataSourceAuthMethod,
+	DataSourceCapability,
+	DataSourceEditCapability,
+	DataSourceLoadCapability,
+	DataSourceProviderStructuredQuerySchema,
+	DataSourceSearchCapability,
+} from 'shared/types/dataSource.ts';
+import type { AcceptedContentType, AcceptedEditType, ContentTypeGuidance } from 'shared/types/dataSource.ts';
 
 /**
  * GenericMCPProvider for MCP-managed data sources
  * Represents a data source type handled by an MCP server
  */
 export class GenericMCPProvider extends MCPDataSourceProvider {
+	/**
+	 * Content types this provider accepts - MCP providers handle this internally
+	 */
+	public readonly acceptedContentTypes: AcceptedContentType[] = ['plainTextContent'];
+
+	/**
+	 * Edit approaches this provider supports - MCP providers handle this internally
+	 */
+	public readonly acceptedEditTypes: AcceptedEditType[] = [];
+
+	/**
+	 * Preferred content type for MCP operations
+	 */
+	public readonly preferredContentType: AcceptedContentType = 'plainTextContent';
+
+	public loadCapabilities: DataSourceLoadCapability[] = [
+		//'plainText',
+		'structured',
+		//'both',
+	];
+	public editCapabilities: DataSourceEditCapability[] = [
+		//'searchReplaceOperations',
+		//'rangeOperations',
+		//'blockOperations',
+		//'textFormatting', // Plain text only
+		//'paragraphFormatting',
+		//'tables',
+		//'colors',
+		//'fonts',
+	];
+	public searchCapabilities: DataSourceSearchCapability[] = [
+		//'textSearch',
+		//'regexSearch',
+		//'structuredQuerySearch',
+	];
+
+	public structuredQuerySchema: DataSourceProviderStructuredQuerySchema | undefined = {
+		description: 'MCP search with filters',
+		examples: [
+			// {
+			// 	description: 'Find TypeScript files modified this week containing TODO',
+			// 	query: {
+			// 		text: 'TODO',
+			// 		filters: {
+			// 			extension: '.ts',
+			// 			modifiedAfter: '2024-08-01',
+			// 			path: 'src/',
+			// 		},
+			// 	},
+			// }
+		],
+		schema: {
+			type: 'object',
+			properties: {
+				// text: { type: 'string' },
+				// filters: {
+				// 	type: 'object',
+				// 	properties: {
+				// 		extension: { type: 'string' },
+				// 		path: { type: 'string' },
+				// 		modifiedAfter: { type: 'string', format: 'date' },
+				// 		modifiedBefore: { type: 'string', format: 'date' },
+				// 		sizeMin: { type: 'number' },
+				// 		sizeMax: { type: 'number' },
+				// 	},
+				// },
+			},
+		},
+	};
+
 	/**
 	 * Reference to the MCPManager that handles communication with MCP servers
 	 */
@@ -45,19 +123,19 @@ export class GenericMCPProvider extends MCPDataSourceProvider {
 		serverId: string,
 		name: string,
 		description: string,
-		capabilities: DataSourceCapability[],
 		requiredConfigFields: string[],
 		mcpManager: MCPManager,
 		authType: DataSourceAuthMethod = 'none',
+		capabilities: DataSourceCapability[],
 	) {
 		super(
 			serverId, // Provider ID is the server ID
 			serverId, // Server ID
 			name,
 			description,
-			capabilities,
 			requiredConfigFields,
 			authType,
+			capabilities,
 		);
 
 		this.mcpManager = mcpManager;
@@ -65,6 +143,42 @@ export class GenericMCPProvider extends MCPDataSourceProvider {
 		this.configRequirements = [...requiredConfigFields];
 
 		logger.debug(`GenericMCPProvider: Created provider for MCP server ${serverId}`);
+	}
+
+	/**
+	 * Get content type guidance for MCP data source
+	 * @returns ContentTypeGuidance with MCP-specific information
+	 */
+	getContentTypeGuidance(): ContentTypeGuidance {
+		return {
+			primaryContentType: 'plain-text',
+			acceptedContentTypes: this.acceptedContentTypes,
+			acceptedEditTypes: this.acceptedEditTypes,
+			preferredContentType: this.preferredContentType,
+			capabilities: this.capabilities,
+			editCapabilities: this.editCapabilities,
+			searchCapabilities: this.searchCapabilities,
+			structuredQuerySchema: this.structuredQuerySchema,
+			examples: [
+				{
+					description: 'MCP data sources are managed by external servers',
+					toolCall: {
+						tool: 'mcp',
+						input: {
+							serverName: this.serverId,
+							toolName: 'example-tool',
+							toolInput: 'server-specific-parameters',
+						},
+					},
+				},
+			],
+			notes: [
+				'MCP data sources are handled by external Model Context Protocol servers',
+				'Content type handling varies by specific MCP server implementation',
+				'Use the mcp tool for operations on MCP-managed resources',
+				'Capabilities and supported operations depend on the MCP server',
+			],
+		};
 	}
 
 	/**
@@ -151,9 +265,10 @@ export class GenericMCPProvider extends MCPDataSourceProvider {
 				serverId,
 				serverConfig.name || `MCP: ${serverId}`,
 				serverConfig.description || `MCP Server: ${serverId}`,
-				capabilities,
 				[], // No required config fields for now
 				mcpManager,
+				'none',
+				capabilities,
 			);
 		} catch (error) {
 			logger.error(`GenericMCPProvider: Error creating provider for MCP server ${serverId}:`, error);

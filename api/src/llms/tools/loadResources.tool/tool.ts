@@ -62,6 +62,13 @@ export default class LLMToolLoadResources extends LLMTool {
 					description:
 						"Array of complete URIs from load_datasource results. Used when mode is 'direct'. Each string should be a complete resource URI as provided by load_datasource.",
 				},
+				contentFormat: {
+					type: 'string',
+					enum: ['plainText', 'structured', 'both'],
+					default: 'plainText',
+					description:
+						'Content representation format. plainText=human-readable (markdown for structured sources), structured=raw blocks for editing, both=comprehensive access. Parameter ignored for filesystem sources which always return native content.',
+				},
 			},
 		};
 	}
@@ -88,9 +95,15 @@ export default class LLMToolLoadResources extends LLMTool {
 		projectEditor: ProjectEditor,
 	): Promise<LLMToolRunResult> {
 		const { toolInput } = toolUse;
-		const { mode, uriTemplate, templateResources, directUris, dataSourceId = undefined } =
-			toolInput as LLMToolLoadResourcesInput;
-		// 	dataSource?: string;
+		const {
+			mode,
+			uriTemplate,
+			templateResources,
+			directUris,
+			contentFormat = 'plainText',
+			dataSourceId = undefined,
+		} = toolInput as LLMToolLoadResourcesInput;
+		// 	dataSourceId?: string;
 		// 	mode: 'template' | 'direct';
 		// 	uriTemplate?: string;
 		// 	templateResources?: Array<Record<string, string>>;
@@ -155,14 +168,37 @@ export default class LLMToolLoadResources extends LLMTool {
 					dsConnectionToUse.getUriForResource(uri)
 				);
 			//logger.info(`LLMToolLoadResources: resourceUris for: ${dataSourceId}`, { resourceUris });
-			const resourcesAdded = await projectEditor.prepareResourcesForInteraction(
-				resourceUris,
-			);
 
 			const toolResultContentParts: LLMMessageContentPartTextBlock[] = [];
 			const resourcesSuccess: Array<{ name: string; uri: string }> = [];
 			const resourcesError: Array<{ name: string; uri: string; error: string }> = [];
 			let allResourcesFailed = true;
+			const validResourceUris: string[] = [];
+
+			for (const resourceUri of resourceUris) {
+				if (!await dsConnectionToUse.isResourceWithinDataSource(resourceUri)) {
+					const errorMsg = `Access denied: resource is outside the data source directory`;
+					toolResultContentParts.push({
+						'type': 'text',
+						'text': `Error with resource ${resourceUri}: ${errorMsg}`,
+					});
+					resourcesError.push({
+						name: resourceUri,
+						uri: resourceUri,
+						error: errorMsg,
+					});
+				} else {
+					validResourceUris.push(resourceUri);
+				}
+			}
+
+			// Prepare load options with contentFormat
+			const loadOptions = { contentFormat };
+
+			const resourcesAdded = await projectEditor.prepareResourcesForInteraction(
+				validResourceUris,
+				loadOptions,
+			);
 
 			for (const resourceToAdd of resourcesAdded) {
 				if (resourceToAdd.metadata.error) {

@@ -20,6 +20,12 @@ import type { FileHandlingErrorOptions } from 'api/errors/error.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
 import type { LLMMessageContentPartImageBlockSourceMediaType } from 'api/llms/llmMessage.ts';
 import type { ResourceMetadata } from 'shared/types/dataSourceResource.ts';
+import type { ContentMatch } from 'shared/types/dataSourceResource.ts';
+import type {
+	SearchReplaceContentResult,
+	SearchReplaceOperation,
+	SearchReplaceOperationResult,
+} from 'shared/types/dataSourceResource.ts';
 
 // Size limits in bytes
 export const TEXT_DISPLAY_LIMIT = 1024 * 1024; // 1MB
@@ -448,22 +454,14 @@ interface SearchFileOptions {
 	includeContent?: boolean;
 }
 
-export interface ContentMatch {
-	lineNumber: number;
-	content: string;
-	contextBefore: string[];
-	contextAfter: string[];
-	matchStart: number;
-	matchEnd: number;
-}
-
-export interface ResourceMatch {
+export interface ContentResourceMatch {
 	resourcePath: string;
 	contentMatches?: ContentMatch[];
 }
 
+
 export interface ContentSearchResult {
-	matches: ResourceMatch[];
+	matches: ContentResourceMatch[];
 	errorMessage: string | null;
 }
 
@@ -550,7 +548,7 @@ export async function searchFilesContent(
 				),
 			);
 
-			const validResults = contentResults.flat().filter((result): result is ResourceMatch => result !== null);
+			const validResults = contentResults.flat().filter((result): result is ContentResourceMatch => result !== null);
 			logger.info(
 				`FileHandlingUtil: File content search with context completed. Found ${validResults.length} matching files.`,
 			);
@@ -589,7 +587,7 @@ async function processFileWithContent(
 	relativePath: string,
 	contextLines: number,
 	maxMatchesPerFile: number,
-): Promise<ResourceMatch | null> {
+): Promise<ContentResourceMatch | null> {
 	logger.debug(`FileHandlingUtil: Starting to process file with content: ${relativePath}`);
 	try {
 		const fileInfo = await Deno.stat(filePath);
@@ -866,6 +864,124 @@ export async function listDirectory(
 		logger.error(`FileHandlingUtil: Error listing directory ${dirPath}: ${(error as Error).message}`);
 		return { items: [], errorMessage: (error as Error).message };
 	}
+}
+
+const MIN_SEARCH_LENGTH = 1;
+
+/**
+ * Apply search and replace operations to text content
+ * @param content The original content to process
+ * @param operations Array of search and replace operations
+ * @param defaults Default values for operation properties
+ * @param isNewResource Whether this is a new resource (affects validation)
+ * @returns Result with processed content and operation details
+ */
+export function applySearchAndReplaceToContent(
+	content: string,
+	operations: SearchReplaceOperation[],
+	defaults: {
+		caseSensitive?: boolean;
+		regexPattern?: boolean;
+		replaceAll?: boolean;
+	} = {},
+	isNewResource = false,
+): SearchReplaceContentResult {
+	const {
+		caseSensitive = true,
+		regexPattern = false,
+		replaceAll = false,
+	} = defaults;
+
+	let processedContent = content;
+	const operationResults: SearchReplaceOperationResult[] = [];
+	const successfulOperations: SearchReplaceOperation[] = [];
+	let allOperationsFailed = true;
+	let allOperationsSucceeded = true;
+
+	for (const [index, operation] of operations.entries()) {
+		const {
+			search,
+			replace,
+			regexPattern: opRegex = regexPattern,
+			replaceAll: opReplaceAll = replaceAll,
+			caseSensitive: opCaseSensitive = caseSensitive,
+		} = operation;
+		const operationWarnings: string[] = [];
+		let operationSuccess = false;
+
+		// Validate search string
+		if (!isNewResource && search.length < MIN_SEARCH_LENGTH) {
+			operationWarnings.push(
+				`Search string is too short (minimum ${MIN_SEARCH_LENGTH} character(s)) for existing resource.`,
+			);
+			continue;
+		}
+
+		// Validate that search and replace strings are different
+		if (search === replace) {
+			operationWarnings.push('Search and replace strings are identical.');
+			continue;
+		}
+
+		const originalContent = processedContent;
+
+		let searchPattern: string | RegExp;
+		const escapeRegExp = (str: string) => str.replace(/[/\-\\^$*+?.()|[\]{}]/g, '\\$&');
+		const flags = `${opReplaceAll ? 'g' : ''}${opCaseSensitive ? '' : 'i'}`;
+
+		if (opRegex) {
+			searchPattern = new RegExp(search, flags);
+		} else if (!opCaseSensitive) {
+			// literal search, but case insensitive so must use a regex - escape regex special characters
+			searchPattern = new RegExp(escapeRegExp(search), flags);
+		} else {
+			// literal search that is case sensitive
+			searchPattern = search;
+		}
+
+		processedContent = opReplaceAll && searchPattern instanceof RegExp
+			? processedContent.replaceAll(searchPattern, replace)
+			: processedContent.replace(searchPattern, replace);
+
+		// Check if the content actually changed
+		if (processedContent !== originalContent) {
+			operationSuccess = true;
+			allOperationsFailed = false;
+			successfulOperations.push(operation);
+		} else {
+			operationWarnings.push(
+				'No changes were made. The search string was not found in the resource content.',
+			);
+			allOperationsSucceeded = false;
+		}
+
+		const resultStatus = operationWarnings.length > 0 ? 'warning' : (operationSuccess ? 'success' : 'warning');
+		const resultMessage = operationWarnings.length > 0
+			? `Operation ${index + 1} warnings: ${operationWarnings.join(' ')}`
+			: (operationSuccess
+				? `Operation ${index + 1} completed successfully`
+				: `Operation ${index + 1} failed: No changes were made`);
+
+		operationResults.push({
+			operationIndex: index,
+			status: resultStatus,
+			message: resultMessage,
+			success: operationSuccess,
+			warnings: operationWarnings,
+		});
+
+		if (!operationSuccess) {
+			allOperationsSucceeded = false;
+		}
+	}
+
+	return {
+		processedContent,
+		operationResults,
+		successfulOperations,
+		allOperationsSucceeded,
+		allOperationsFailed,
+	};
 }
 
 export async function searchFilesMetadata(

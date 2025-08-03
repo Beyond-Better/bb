@@ -23,6 +23,95 @@ export interface DataSourceProviderInfo {
 	configFields?: string[]; // For future use
 }
 
+// not used directly; can be composed from capabilities: DataSourceCapability[]
+export interface DataSourceProviderCapabilities {
+	// Edit operation support
+	supportsSearchReplace: boolean;
+	supportsRangeOperations: boolean;
+	supportsBlockOperations: boolean;
+
+	// Rich content support
+	supportsTextFormatting: boolean;
+	supportsParagraphFormatting: boolean;
+	supportsTables: boolean;
+	supportsColors: boolean;
+	supportsFonts: boolean;
+
+	supportsTextSearch: boolean;
+	supportsRegexSearch: boolean;
+	supportsStructuredQuerySearch: boolean;
+}
+export interface DataSourceProviderStructuredQuerySchema {
+	description: string;
+	examples: Array<Record<string, any>>;
+	schema: Record<string, any>;
+}
+
+// =============================================================================
+// CONTENT TYPE GUIDANCE TYPES
+// =============================================================================
+
+/**
+ * Content type that a data source can accept
+ */
+export type AcceptedContentType = 'plainTextContent' | 'structuredContent' | 'binaryContent';
+
+/**
+ * Edit approach that a data source supports
+ */
+export type AcceptedEditType = 'searchReplace' | 'blocks' | 'raqnge' | 'structuredData';
+
+/**
+ * Primary content type classification for data sources
+ */
+export type PrimaryContentType = 'plain-text' | 'structured' | 'binary' | 'database';
+
+/**
+ * Example tool call for content type guidance
+ */
+export interface ContentTypeExample {
+	/** Description of what this example demonstrates */
+	description: string;
+	/** Example tool call object */
+	toolCall: {
+		/** Name of the tool */
+		tool: string;
+		/** Example input parameters */
+		input: Record<string, any>;
+	};
+}
+
+/**
+ * Content type guidance provided by data source providers
+ * Helps LLMs understand what content types and operations are supported
+ */
+export interface ContentTypeGuidance {
+	/** Primary content type classification */
+	primaryContentType: PrimaryContentType;
+	/** Array of content types this data source accepts */
+	acceptedContentTypes: AcceptedContentType[];
+	/** Array of edit approaches this data source supports */
+	acceptedEditTypes: AcceptedEditType[];
+	/** Preferred content type for this data source */
+	preferredContentType: AcceptedContentType;
+	/** Array of usage examples showing proper tool calls */
+	examples: ContentTypeExample[];
+	/** Additional notes or constraints specific to this data source */
+	notes?: string[];
+
+	capabilities?: DataSourceCapability[];
+	editCapabilities?: DataSourceEditCapability[];
+	searchCapabilities?: DataSourceSearchCapability[];
+	loadCapabilities?: DataSourceLoadCapability[];
+
+	structuredQuerySchema?: DataSourceProviderStructuredQuerySchema;
+}
+
+// =============================================================================
+// DATASOURCE METADATA
+// =============================================================================
+
+
 export interface DataSourceMetadata {
 	totalResources: number;
 	resourceTypes: Record<string, number>;
@@ -105,8 +194,24 @@ export type DataSourceAccessMethod =
 /**
  * Capabilities for data sources
  */
-export type DataSourceCapability = 'read' | 'write' | 'list' | 'search' | 'move' | 'delete' | 'blockRead' | 'blockEdit'; // Delegated to MCP server
-
+export type DataSourceCapability = 'read' | 'write' | 'list' | 'search' | 'move' | 'delete' | 'read' | 'edit'; // Delegated to MCP server
+export type DataSourceEditCapability =
+	| 'searchReplaceOperations'
+	| 'rangeOperations'
+	| 'blockOperations'
+	| 'textFormatting'
+	| 'paragraphFormatting'
+	| 'tables'
+	| 'colors'
+	| 'fonts';
+export type DataSourceSearchCapability =
+	| 'textSearch'
+	| 'regexSearch'
+	| 'structuredQuerySearch';
+export type DataSourceLoadCapability =
+	| 'plainText' //  'Returns markdown for reading',
+	| 'structured' //'Returns native Google Docs JSON for range operations'
+	| 'both';
 /**
  * Available authentication methods
  */

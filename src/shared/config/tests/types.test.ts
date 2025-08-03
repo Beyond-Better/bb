@@ -62,7 +62,7 @@ describe('Configuration Types', () => {
 				logFileHydration: false,
 				ignoreLLMRequestCache: false,
 				usePromptCaching: true,
-				userToolDirectories: ['./tools'],
+				userPluginDirectories: ['./plugins'],
 				toolConfigs: {},
 			};
 			assertExists(config);
@@ -143,7 +143,7 @@ describe('Configuration Types', () => {
 	describe('Global Configuration', () => {
 		it('should combine all component configs', () => {
 			const config: GlobalConfig = {
-				version: '2.2.0',
+				version: '2.2.1',
 				myPersonsName: 'Test User',
 				myAssistantsName: 'Assistant',
 				defaultModels: {
@@ -164,7 +164,7 @@ describe('Configuration Types', () => {
 					logFileHydration: false,
 					ignoreLLMRequestCache: false,
 					usePromptCaching: true,
-					userToolDirectories: ['./tools'],
+					userPluginDirectories: ['./plugins'],
 					toolConfigs: {},
 				},
 				bui: {

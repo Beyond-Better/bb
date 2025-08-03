@@ -358,10 +358,12 @@ Deno.test({
 	sanitizeResources: false,
 	sanitizeOps: false,
 	fn: () => {
-		const portableBlocks: PortableTextBlock[] = [
+		// Use a valid UUID for testing valid ID preservation
+	const validUuid = '12345678-1234-1234-1234-123456789abc';
+	const portableBlocks: PortableTextBlock[] = [
 			{
 				_type: 'block',
-				_key: 'test-id',
+				_key: validUuid,
 				style: 'normal',
 				children: [
 					{
@@ -384,7 +386,8 @@ Deno.test({
 
 		assertEquals(result.length, 1);
 		assertEquals(result[0].type, 'paragraph');
-		assertEquals(result[0].id, 'test-id');
+		// Valid UUID should be preserved as the id
+		assertEquals(result[0].id, validUuid);
 		assertExists(result[0].paragraph);
 		assertEquals(result[0].paragraph!.rich_text.length, 2);
 		assertEquals(result[0].paragraph!.rich_text[0].text!.content, 'Hello ');
@@ -711,6 +714,38 @@ Deno.test({
 		assertEquals(result.length, 2);
 		assertEquals(result[0].children!.length, 0);
 		assertEquals(result[1].children!.length, 0);
+	},
+});
+
+Deno.test({
+	name: 'convertPortableTextToNotion - invalid UUID key rejection',
+	sanitizeResources: false,
+	sanitizeOps: false,
+	fn: () => {
+		const portableBlocks: PortableTextBlock[] = [
+			{
+				_type: 'block',
+				_key: 'invalid-key', // Not a valid UUID
+				style: 'normal',
+				children: [
+					{
+						_key: 'span-key',
+						_type: 'span',
+						text: 'Test content',
+						marks: [],
+					},
+				],
+			},
+		];
+
+		const result = convertPortableTextToNotion(portableBlocks);
+
+		assertEquals(result.length, 1);
+		assertEquals(result[0].type, 'paragraph');
+		// Invalid UUID should not be set as id, letting Notion assign its own
+		assertEquals(result[0].id, undefined);
+		assertExists(result[0].paragraph);
+		assertEquals(result[0].paragraph!.rich_text[0].text!.content, 'Test content');
 	},
 });
 

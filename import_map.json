@@ -143,6 +143,7 @@
 		"api/dataSources/dataSourceFactory.ts": "./api/src/dataSources/dataSourceFactory.ts",
 		"api/dataSources/dataSourceConnection.ts": "./api/src/dataSources/dataSourceConnection.ts",
 		"api/dataSources/dataSourceRegistry.ts": "./api/src/dataSources/dataSourceRegistry.ts",
+		"api/dataSources/dataSource_manifest.ts": "./api/src/dataSources/dataSource_manifest.ts",
 		"api/dataSources/filesystemProvider.ts": "./api/src/dataSources/filesystem/filesystemProvider.ts",
 		"api/dataSources/notionProvider.ts": "./api/src/dataSources/notion/notionProvider.ts",
 		"api/dataSources/notionClient.ts": "./api/src/dataSources/notion/notionClient.ts",
@@ -166,6 +167,8 @@
 		"api/tests/deps.ts": "./api/tests/deps.ts",
 		"api/tests/stubs.ts": "./api/tests/lib/stubs.ts",
 		"api/tests/testSetup.ts": "./api/tests/lib/testSetup.ts",
+		"api/tests/testProviders.ts": "./api/tests/lib/testProviders.ts",
+		"api/tests/mockClients.ts": "./api/tests/lib/mockClients.ts",
 		"api/tests/mockData.ts": "./api/tests/lib/mockData.ts",
 		"api/tests/utils/portableTextHelpers.ts": "./api/tests/lib/utils/portableTextHelpers.ts",
 

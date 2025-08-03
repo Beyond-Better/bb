@@ -74,23 +74,24 @@ export function parseDataSourceUri(uri: string): {
 
 	const fullScheme = uri.substring(0, schemeEndIndex);
 	const restOfUri = uri.substring(schemeEndIndex);
-	//logger.info(`DataSourceUtils: parseDataSourceUri: `, { fullScheme, restOfUri});
+	//logger.info(`DataSourceUtils: parseDataSourceUri: `, { fullScheme, restOfUri });
 
 	// Split the fullScheme by "+" delimiters
 	const prefixParts = fullScheme.split('+'); //{accessMethod}+{providerType}+{dataSourceName}+{originalScheme}
-	//logger.info(`DataSourceUtils: parseDataSourceUri: `, { prefixParts});
+	//logger.info(`DataSourceUtils: parseDataSourceUri: `, { prefixParts });
 
 	// Check for valid format
-	if (prefixParts.length < 4) {
+	if (prefixParts.length != 1 && prefixParts.length != 4) {
 		throw new Error('Invalid data source URI format');
 	}
+	const simplePrefix = prefixParts.length == 1;
 
-	const accessMethod = prefixParts[0]; // "bb" or "mcp"
-	const providerType = prefixParts[1]; // "filesystem", "database", etc.
-	const dataSourceName = prefixParts[2]; // Normalized data source name
-	const originalScheme = prefixParts[3]; // Original URI scheme
+	const accessMethod = simplePrefix ? '' : prefixParts[0]; // "bb" or "mcp"
+	const providerType = simplePrefix ? '' : prefixParts[1]; // "filesystem", "database", etc.
+	const dataSourceName = simplePrefix ? '' : prefixParts[2]; // Normalized data source name
+	const originalScheme = simplePrefix ? prefixParts[0] : prefixParts[3]; // Original URI scheme
 
-	const uriPrefix = `${accessMethod}+${providerType}+${dataSourceName}`;
+	const uriPrefix = simplePrefix ? '' :  `${accessMethod}+${providerType}+${dataSourceName}`;
 	// Reconstruct the original URI
 	const originalUri = `${originalScheme}${restOfUri}`;
 

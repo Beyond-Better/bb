@@ -86,3 +86,31 @@ export interface PortableTextOperationResult {
 	/** Key of the affected block */
 	affectedKey?: string;
 }
+
+// Enhanced PortableText for rich content (extends existing types)
+export interface EnhancedPortableTextBlock extends PortableTextBlock {
+	// Additional properties for rich formatting
+	paragraphStyle?: {
+		alignment?: 'left' | 'center' | 'right' | 'justify';
+		backgroundColor?: string;
+		spacing?: { above?: number; below?: number };
+		indentation?: { first?: number; left?: number; right?: number };
+	};
+
+	// Table support
+	table?: {
+		rows: number;
+		columns: number;
+		cells: any[][]; //EnhancedTableCell[][];
+	};
+}
+
+export interface EnhancedPortableTextSpan extends PortableTextSpan {
+	// Enhanced text formatting
+	textStyle?: {
+		color?: string;
+		backgroundColor?: string;
+		fontSize?: number;
+		fontFamily?: string;
+	};
+}

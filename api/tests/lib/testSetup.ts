@@ -13,8 +13,14 @@ import { SessionManager } from 'api/auth/session.ts';
 import { getProjectPersistenceManager } from 'api/storage/projectPersistenceManager.ts';
 import { FilesystemProvider } from 'api/dataSources/filesystemProvider.ts';
 import { getDataSourceRegistry } from 'api/dataSources/dataSourceRegistry.ts';
+import { TestNotionProvider, TestGoogleDocsProvider } from './testProviders.ts';
+import { MockNotionClient, MockGoogleDocsClient } from './mockClients.ts';
+import { getDefaultNotionTestData, getDefaultGoogleDocsTestData } from './testData.ts';
+import type { DataSourceConnection } from 'api/dataSources/interfaces/dataSourceConnection.ts';
+import type { DataSourceRegistry } from 'api/dataSources/dataSourceRegistry.ts';
+import type { DataSourceProviderType } from 'shared/types/dataSource.ts';
 
-export async function setupTestProject(): Promise<
+export async function setupTestProject(extraDatasources?: DataSourceProviderType[]): Promise<
 	{ dataSourceRoot: string; projectId: ProjectId; globalConfigDir: string; projectAdminDir: string }
 > {
 	Deno.env.set('BB_UNIT_TESTS', '1');
@@ -35,6 +41,15 @@ export async function setupTestProject(): Promise<
 	await configManager.ensureGlobalConfig();
 
 	const dataSourceRegistry = await getDataSourceRegistry();
+
+	// Setup test providers if extra datasources are requested
+	const additionalDsConnections: DataSourceConnection[] = [];
+	if (extraDatasources && extraDatasources.length > 0) {
+		await setupTestProviders(dataSourceRegistry, extraDatasources, additionalDsConnections);
+	}
+	//console.log('setupTestProject: additionalDsConnections', additionalDsConnections);
+	//console.log('setupTestProject: dataSourceRegistry', dataSourceRegistry);
+
 	const dataSourceRoot = await Deno.makeTempDir();
 	const dsConnection = FilesystemProvider.createFileSystemDataSource(
 		'primary',
@@ -52,6 +67,7 @@ export async function setupTestProject(): Promise<
 		status: 'active',
 		dsConnections: [
 			dsConnection,
+			...additionalDsConnections,
 		],
 	};
 	const projectPersistenceManager = await getProjectPersistenceManager();
@@ -101,8 +117,8 @@ export async function getToolManager(
 		projectEditor.projectConfig = await configManager.getProjectConfig(projectEditor.projectId);
 	}
 
-	const toolManager = await new LLMToolManager(projectEditor.projectConfig, projectEditor.sessionManager, 'core')
-		.init(); // Assuming 'core' is the default toolset
+	const toolManager = await new LLMToolManager(projectEditor.projectConfig, projectEditor.sessionManager, ['core','legacy'])
+		.init(); // Assuming 'core' is the default toolset - need to allow testing 'legacy' tools as well
 
 	assert(toolManager, 'Failed to get LLMToolManager');
 
@@ -138,8 +154,9 @@ export async function createTestChatInteraction(
 
 export async function withTestProject<T>(
 	testFn: (projectId: ProjectId, dataSourceRoot: string) => Promise<T>,
+	extraDatasources?: DataSourceProviderType[],
 ): Promise<T> {
-	const { projectId, dataSourceRoot } = await setupTestProject();
+	const { projectId, dataSourceRoot } = await setupTestProject(extraDatasources);
 	try {
 		return await testFn(projectId, dataSourceRoot);
 	} finally {
@@ -153,4 +170,106 @@ export function incrementInteractionStats(interactionStats: InteractionStats): I
 		statementTurnCount: interactionStats.statementTurnCount++,
 		interactionTurnCount: interactionStats.interactionTurnCount++,
 	};
+}
+
+/**
+ * Setup test providers for additional datasources
+ * @param registry The datasource registry to register providers with
+ * @param extraDatasources List of datasource types to setup
+ * @param additionalDsConnections Array to add new connections to
+ */
+async function setupTestProviders(
+	dataSourceRegistry: DataSourceRegistry,
+	extraDatasources: DataSourceProviderType[],
+	additionalDsConnections: DataSourceConnection[],
+): Promise<void> {
+	for (const datasourceType of extraDatasources) {
+		if (datasourceType === 'notion') {
+			// Create mock client with default test data
+			const mockNotionClient = new MockNotionClient();
+			mockNotionClient.setPagesData(getDefaultNotionTestData());
+
+			// Create test provider with mock client
+			const testNotionProvider = new TestNotionProvider(mockNotionClient);
+
+			// Register test provider (replaces real provider)
+			dataSourceRegistry.registerProvider(testNotionProvider);
+
+			// Create a datasource connection
+			const notionConnection = dataSourceRegistry.createConnection(
+				testNotionProvider,
+				'Test Notion Connection',
+				{ workspaceId: 'test-workspace' },
+				{
+					id: 'test-notion-connection',
+					auth: {
+						method: 'apiKey',
+						apiKey: 'test-api-key',
+					},
+				},
+			);
+
+			additionalDsConnections.push(notionConnection);
+		}
+
+		if (datasourceType === 'googledocs') {
+			// Create mock client with default test data
+			const mockGoogleDocsClient = new MockGoogleDocsClient();
+			mockGoogleDocsClient.setDocumentsData(getDefaultGoogleDocsTestData());
+
+			// Create test provider with mock client
+			const testGoogleDocsProvider = new TestGoogleDocsProvider(mockGoogleDocsClient);
+
+			// Register test provider (replaces real provider)
+			dataSourceRegistry.registerProvider(testGoogleDocsProvider);
+
+			// Create a datasource connection
+			const googleDocsConnection = dataSourceRegistry.createConnection(
+				testGoogleDocsProvider,
+				'Test Google Docs Connection',
+				{}, // No required config for Google Docs
+				{
+					id: 'test-googledocs-connection',
+					auth: {
+						method: 'oauth2',
+						oauth2: {
+							accessToken: 'test-access-token',
+							refreshToken: 'test-refresh-token',
+							expiresAt: Date.now() + 3600000, // 1 hour from now
+						},
+					},
+				},
+			);
+
+			additionalDsConnections.push(googleDocsConnection);
+		}
+	}
+}
+
+/**
+ * Get test providers for additional setup or inspection
+ * @param projectEditor The project editor to get providers from
+ * @param datasourceType The type of datasource provider to get
+ * @returns The test provider instance or undefined
+ */
+export async function getTestProvider(
+	projectEditor: ProjectEditor,
+	datasourceType: DataSourceProviderType,
+): Promise<TestNotionProvider | TestGoogleDocsProvider | undefined> {
+	const dsConnections = projectEditor.projectData.dsConnections;
+	
+	for (const connection of dsConnections) {
+		if (connection.providerType === datasourceType) {
+			const dataSourceRegistry = await getDataSourceRegistry();
+			const provider = dataSourceRegistry.getProvider(datasourceType, 'bb');
+			
+			if (provider instanceof TestNotionProvider) {
+				return provider;
+			} else if (provider instanceof TestGoogleDocsProvider) {
+				return provider;
+			}
+		}
+	}
+	
+	return undefined;
 }

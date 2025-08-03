@@ -1,8 +1,13 @@
 {
 	"name": "block_edit",
-	"description": "Apply Portable Text operations to edit document blocks in supported data sources. Supports update, insert, delete, and move operations on structured document content. Designed for document-based systems like Notion that use block-based content representation.",
+	"description": "[LEGACY] Use edit_resource with blockEdits instead. Apply Portable Text operations to edit document blocks in supported data sources. Supports update, insert, delete, and move operations on structured document content. Designed for document-based systems like Notion that use block-based content representation.",
 	"version": "1.0.0",
 	"author": "BB Team",
 	"license": "MIT",
+	"toolSets": ["legacy"],
+	"enabled": true,
+	"deprecated": true,
+	"replacedBy": "edit_resource",
+	"category": ["deprecated"],
 	"mutates": true
 }

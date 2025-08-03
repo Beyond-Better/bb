@@ -1,10 +1,11 @@
 import { join } from '@std/path';
 //import { existsSync } from '@std/fs';
 
-import { assert, assertStringIncludes } from 'api/tests/deps.ts';
+import { assert, assertStringIncludes, assertEquals } from 'api/tests/deps.ts';
 //import type LLMToolFindResources from '../tool.ts';
 import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 import { getProjectEditor, getToolManager, withTestProject } from 'api/tests/testSetup.ts';
+import { isFindResourcesResponse } from '../types.ts';
 
 async function createTestResources(testProjectRoot: string) {
 	Deno.writeTextFileSync(join(testProjectRoot, 'file1.txt'), 'Hello, world!');
@@ -127,7 +128,7 @@ async function setResourceModificationTime(resourcePath: string, date: Date) {
 	await Deno.utime(resourcePath, date, date);
 }
 
-// Type guard to check if bbResponse is a string
+// Type guard to check if bbResponse is a string (legacy support)
 function isString(value: unknown): value is string {
 	return typeof value === 'string';
 }
@@ -158,15 +159,16 @@ Deno.test({
 			// console.log('Basic content search functionality - toolResponse:', result.toolResponse);
 			// console.log('Basic content search functionality - toolResults:', result.toolResults);
 
-			assert(isString(result.bbResponse), 'bbResponse should be a string');
+			assert(isFindResourcesResponse(result.bbResponse), 'bbResponse should have correct structure');
 
-			if (isString(result.bbResponse)) {
+			if (isFindResourcesResponse(result.bbResponse)) {
+				assertEquals(result.bbResponse.data.resources.length, 3, 'Should find 3 resources');
 				assertStringIncludes(
-					result.bbResponse,
-					'BB found 3 resources matching the search criteria: content pattern "Hello", case-insensitive',
+					result.bbResponse.data.searchCriteria,
+					'content pattern "Hello", case-insensitive',
 				);
 			} else {
-				assert(false, 'bbResponse is not a string as expected');
+				assert(false, 'bbResponse does not have expected structure');
 			}
 
 			assertStringIncludes(
@@ -227,15 +229,16 @@ Deno.test({
 			// console.log('Search pattern spanning multiple buffers - toolResponse:', result.toolResponse);
 			// console.log('Search pattern spanning multiple buffers - toolResults:', result.toolResults);
 
-			assert(isString(result.bbResponse), 'bbResponse should be a string');
+			assert(isFindResourcesResponse(result.bbResponse), 'bbResponse should have correct structure');
 
-			if (isString(result.bbResponse)) {
+			if (isFindResourcesResponse(result.bbResponse)) {
+				assertEquals(result.bbResponse.data.resources.length, 1, 'Should find 1 resource');
 				assertStringIncludes(
-					result.bbResponse,
-					`BB found 1 resources matching the search criteria: content pattern "Start of pattern\\n[B]+\\nEnd of pattern", case-insensitive`,
+					result.bbResponse.data.searchCriteria,
+					`content pattern "Start of pattern\\n[B]+\\nEnd of pattern", case-insensitive`,
 				);
 			} else {
-				assert(false, 'bbResponse is not a string as expected');
+				assert(false, 'bbResponse does not have expected structure');
 			}
 
 			assertStringIncludes(
@@ -295,15 +298,16 @@ Deno.test({
 			// console.log('Date-based search - toolResponse:', result.toolResponse);
 			// console.log('Date-based search - toolResults:', result.toolResults);
 
-			assert(isString(result.bbResponse), 'bbResponse should be a string');
+			assert(isFindResourcesResponse(result.bbResponse), 'bbResponse should have correct structure');
 
-			if (isString(result.bbResponse)) {
+			if (isFindResourcesResponse(result.bbResponse)) {
+				assertEquals(result.bbResponse.data.resources.length, 9, 'Should find 9 resources');
 				assertStringIncludes(
-					result.bbResponse,
-					`BB found 9 resources matching the search criteria: modified after 2024-01-01, modified before 2026-01-01`,
+					result.bbResponse.data.searchCriteria,
+					`modified after 2024-01-01, modified before 2026-01-01`,
 				);
 			} else {
-				assert(false, 'bbResponse is not a string as expected');
+				assert(false, 'bbResponse does not have expected structure');
 			}
 
 			assertStringIncludes(
@@ -377,15 +381,16 @@ Deno.test({
 			// console.log('Resource-only search (metadata) - toolResponse:', result.toolResponse);
 			// console.log('Resource-only search (metadata) - toolResults:', result.toolResults);
 
-			assert(isString(result.bbResponse), 'bbResponse should be a string');
+			assert(isFindResourcesResponse(result.bbResponse), 'bbResponse should have correct structure');
 
-			if (isString(result.bbResponse)) {
+			if (isFindResourcesResponse(result.bbResponse)) {
+				assertEquals(result.bbResponse.data.resources.length, 9, 'Should find 9 resources');
 				assertStringIncludes(
-					result.bbResponse,
-					`BB found 9 resources matching the search criteria: resource pattern "*.txt", minimum size 1 bytes`,
+					result.bbResponse.data.searchCriteria,
+					`resource pattern "*.txt", minimum size 1 bytes`,
 				);
 			} else {
-				assert(false, 'bbResponse is not a string as expected');
+				assert(false, 'bbResponse does not have expected structure');
 			}
 
 			assertStringIncludes(
@@ -461,15 +466,16 @@ Deno.test({
 			// console.log('Combining all search criteria - toolResponse:', result.toolResponse);
 			// console.log('Combining all search criteria - toolResults:', result.toolResults);
 
-			assert(isString(result.bbResponse), 'bbResponse should be a string');
+			assert(isFindResourcesResponse(result.bbResponse), 'bbResponse should have correct structure');
 
-			if (isString(result.bbResponse)) {
+			if (isFindResourcesResponse(result.bbResponse)) {
+				assertEquals(result.bbResponse.data.resources.length, 2, 'Should find 2 resources');
 				assertStringIncludes(
-					result.bbResponse,
-					`BB found 2 resources matching the search criteria: content pattern "Hello", case-insensitive, resource pattern "*.txt", modified after 2022-01-01, modified before 2024-01-01, minimum size 1 bytes, maximum size 1000 bytes`,
+					result.bbResponse.data.searchCriteria,
+					`content pattern "Hello", case-insensitive, resource pattern "*.txt", modified after 2022-01-01, modified before 2024-01-01, minimum size 1 bytes, maximum size 1000 bytes`,
 				);
 			} else {
-				assert(false, 'bbResponse is not a string as expected');
+				assert(false, 'bbResponse does not have expected structure');
 			}
 
 			assertStringIncludes(
@@ -529,15 +535,16 @@ Deno.test({
 			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
-			assert(isString(result.bbResponse), 'bbResponse should be a string');
+			assert(isFindResourcesResponse(result.bbResponse), 'bbResponse should have correct structure');
 
-			if (isString(result.bbResponse)) {
+			if (isFindResourcesResponse(result.bbResponse)) {
+				assertEquals(result.bbResponse.data.resources.length, 1, 'Should find 1 resource');
 				assertStringIncludes(
-					result.bbResponse,
-					`BB found 1 resources matching the search criteria: resource pattern "*.txt", maximum size 0 bytes`,
+					result.bbResponse.data.searchCriteria,
+					`resource pattern "*.txt", maximum size 0 bytes`,
 				);
 			} else {
-				assert(false, 'bbResponse is not a string as expected');
+				assert(false, 'bbResponse does not have expected structure');
 			}
 
 			assertStringIncludes(
@@ -596,15 +603,16 @@ Deno.test({
 			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
-			assert(isString(result.bbResponse), 'bbResponse should be a string');
+			assert(isFindResourcesResponse(result.bbResponse), 'bbResponse should have correct structure');
 
-			if (isString(result.bbResponse)) {
+			if (isFindResourcesResponse(result.bbResponse)) {
+				assertEquals(result.bbResponse.data.resources.length, 2, 'Should find 2 resources');
 				assertStringIncludes(
-					result.bbResponse,
-					`BB found 2 resources matching the search criteria: content pattern "Hello", case-insensitive, resource pattern "*.txt"`,
+					result.bbResponse.data.searchCriteria,
+					`content pattern "Hello", case-insensitive, resource pattern "*.txt"`,
 				);
 			} else {
-				assert(false, 'bbResponse is not a string as expected');
+				assert(false, 'bbResponse does not have expected structure');
 			}
 
 			assertStringIncludes(
@@ -663,12 +671,13 @@ Deno.test({
 			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
-			assert(isString(result.bbResponse), 'bbResponse should be a string');
+			assert(isFindResourcesResponse(result.bbResponse), 'bbResponse should have correct structure');
 
-			if (isString(result.bbResponse)) {
+			if (isFindResourcesResponse(result.bbResponse)) {
+				assertEquals(result.bbResponse.data.resources.length, 2, 'Should find 2 resources');
 				assertStringIncludes(
-					result.bbResponse,
-					`BB found 2 resources matching the search criteria: resource pattern "*.txt", minimum size 5000 bytes`,
+					result.bbResponse.data.searchCriteria,
+					`resource pattern "*.txt", minimum size 5000 bytes`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -729,12 +738,13 @@ Deno.test({
 			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
-			assert(isString(result.bbResponse), 'bbResponse should be a string');
+			assert(isFindResourcesResponse(result.bbResponse), 'bbResponse should have correct structure');
 
-			if (isString(result.bbResponse)) {
+			if (isFindResourcesResponse(result.bbResponse)) {
+				assertEquals(result.bbResponse.data.resources.length, 0, 'Should find 0 resources');
 				assertStringIncludes(
-					result.bbResponse,
-					`BB found 0 resources matching the search criteria: content pattern "NonexistentPattern"`,
+					result.bbResponse.data.searchCriteria,
+					`content pattern "NonexistentPattern"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -779,12 +789,13 @@ Deno.test({
 			// console.log('Error handling for invalid search pattern - toolResponse:', result.toolResponse);
 			// console.log('Error handling for invalid search pattern - toolResults:', result.toolResults);
 
-			assert(isString(result.bbResponse), 'bbResponse should be a string');
+			assert(isFindResourcesResponse(result.bbResponse), 'bbResponse should have correct structure');
 
-			if (isString(result.bbResponse)) {
+			if (isFindResourcesResponse(result.bbResponse)) {
+				assertEquals(result.bbResponse.data.resources.length, 0, 'Should find 0 resources');
 				assertStringIncludes(
-					result.bbResponse,
-					`BB found 0 resources matching the search criteria: content pattern "["`,
+					result.bbResponse.data.searchCriteria,
+					`content pattern "["`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -833,12 +844,13 @@ Deno.test({
 			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
-			assert(isString(result.bbResponse), 'bbResponse should be a string');
+			assert(isFindResourcesResponse(result.bbResponse), 'bbResponse should have correct structure');
 
-			if (isString(result.bbResponse)) {
+			if (isFindResourcesResponse(result.bbResponse)) {
+				assertEquals(result.bbResponse.data.resources.length, 2, 'Should find 2 resources');
 				assertStringIncludes(
-					result.bbResponse,
-					`BB found 2 resources matching the search criteria: content pattern "Hello", case-insensitive, resource pattern "*.txt", maximum size 1000 bytes`,
+					result.bbResponse.data.searchCriteria,
+					`content pattern "Hello", case-insensitive, resource pattern "*.txt", maximum size 1000 bytes`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -899,12 +911,13 @@ Deno.test({
 			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
-			assert(isString(result.bbResponse), 'bbResponse should be a string');
+			assert(isFindResourcesResponse(result.bbResponse), 'bbResponse should have correct structure');
 
-			if (isString(result.bbResponse)) {
+			if (isFindResourcesResponse(result.bbResponse)) {
+				assertEquals(result.bbResponse.data.resources.length, 1, 'Should find 1 resource');
 				assertStringIncludes(
-					result.bbResponse,
-					`BB found 1 resources matching the search criteria: resource pattern "file2.js`,
+					result.bbResponse.data.searchCriteria,
+					`resource pattern "file2.js`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -974,13 +987,13 @@ Deno.test({
 			//console.log('Search with specific content and resource pattern - toolResponse:', result.toolResponse);
 			//console.log('Search with specific content and resource pattern - toolResults:', result.toolResults);
 
-			assert(isString(result.bbResponse), 'bbResponse should be a string');
+			assert(isFindResourcesResponse(result.bbResponse), 'bbResponse should have correct structure');
 
-			if (isString(result.bbResponse)) {
+			if (isFindResourcesResponse(result.bbResponse)) {
+				assertEquals(result.bbResponse.data.resources.length, 1, 'Should find 1 resource');
 				assertStringIncludes(
-					result.bbResponse,
-					String
-						.raw`BB found 1 resources matching the search criteria: content pattern "currentInteraction\?\.title", case-insensitive, resource pattern "bui/src/islands/Chat.tsx"`,
+					result.bbResponse.data.searchCriteria,
+					String.raw`content pattern "currentInteraction\?\.title", case-insensitive, resource pattern "bui/src/islands/Chat.tsx"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -1047,13 +1060,13 @@ Deno.test({
 			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
-			assert(isString(result.bbResponse), 'bbResponse should be a string');
+			assert(isFindResourcesResponse(result.bbResponse), 'bbResponse should have correct structure');
 
-			if (isString(result.bbResponse)) {
+			if (isFindResourcesResponse(result.bbResponse)) {
+				assertEquals(result.bbResponse.data.resources.length, 3, 'Should find 3 resources');
 				assertStringIncludes(
-					result.bbResponse,
-					String
-						.raw`BB found 3 resources matching the search criteria: content pattern "\btest\b", case-insensitive, resource pattern "regex_test*.txt"`,
+					result.bbResponse.data.searchCriteria,
+					String.raw`content pattern "\btest\b", case-insensitive, resource pattern "regex_test*.txt"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -1092,13 +1105,13 @@ Deno.test({
 			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
-			assert(isString(result.bbResponse), 'bbResponse should be a string');
+			assert(isFindResourcesResponse(result.bbResponse), 'bbResponse should have correct structure');
 
-			if (isString(result.bbResponse)) {
+			if (isFindResourcesResponse(result.bbResponse)) {
+				assertEquals(result.bbResponse.data.resources.length, 1, 'Should find 1 resource');
 				assertStringIncludes(
-					result.bbResponse,
-					String
-						.raw`BB found 1 resources matching the search criteria: content pattern "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", case-insensitive, resource pattern "regex_test*.txt"`,
+					result.bbResponse.data.searchCriteria,
+					String.raw`content pattern "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", case-insensitive, resource pattern "regex_test*.txt"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -1136,13 +1149,13 @@ Deno.test({
 			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
-			assert(isString(result.bbResponse), 'bbResponse should be a string');
+			assert(isFindResourcesResponse(result.bbResponse), 'bbResponse should have correct structure');
 
-			if (isString(result.bbResponse)) {
+			if (isFindResourcesResponse(result.bbResponse)) {
+				assertEquals(result.bbResponse.data.resources.length, 1, 'Should find 1 resource');
 				assertStringIncludes(
-					result.bbResponse,
-					String
-						.raw`BB found 1 resources matching the search criteria: content pattern "https?://[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", case-insensitive, resource pattern "regex_test*.txt"`,
+					result.bbResponse.data.searchCriteria,
+					String.raw`content pattern "https?://[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", case-insensitive, resource pattern "regex_test*.txt"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -1180,13 +1193,13 @@ Deno.test({
 			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
-			assert(isString(result.bbResponse), 'bbResponse should be a string');
+			assert(isFindResourcesResponse(result.bbResponse), 'bbResponse should have correct structure');
 
-			if (isString(result.bbResponse)) {
+			if (isFindResourcesResponse(result.bbResponse)) {
+				assertEquals(result.bbResponse.data.resources.length, 1, 'Should find 1 resource');
 				assertStringIncludes(
-					result.bbResponse,
-					String
-						.raw`BB found 1 resources matching the search criteria: content pattern "(\d{3}[-.]?\d{3}[-.]?\d{4}|\(\d{3}\)\s*\d{3}[-.]?\d{4})", case-insensitive, resource pattern "regex_test*.txt"`,
+					result.bbResponse.data.searchCriteria,
+					String.raw`content pattern "(\d{3}[-.]?\d{3}[-.]?\d{4}|\(\d{3}\)\s*\d{3}[-.]?\d{4})", case-insensitive, resource pattern "regex_test*.txt"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -1224,13 +1237,13 @@ Deno.test({
 			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
-			assert(isString(result.bbResponse), 'bbResponse should be a string');
+			assert(isFindResourcesResponse(result.bbResponse), 'bbResponse should have correct structure');
 
-			if (isString(result.bbResponse)) {
+			if (isFindResourcesResponse(result.bbResponse)) {
+				assertEquals(result.bbResponse.data.resources.length, 1, 'Should find 1 resource');
 				assertStringIncludes(
-					result.bbResponse,
-					String
-						.raw`BB found 1 resources matching the search criteria: content pattern "\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b", case-insensitive, resource pattern "regex_test*.txt"`,
+					result.bbResponse.data.searchCriteria,
+					String.raw`content pattern "\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b", case-insensitive, resource pattern "regex_test*.txt"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -1272,13 +1285,13 @@ Deno.test({
 			// console.log('Search with regex using quantifiers - case-sensitive - toolResponse:', result.toolResponse);
 			// console.log('Search with regex using quantifiers - case-sensitive - toolResults:', result.toolResults);
 
-			assert(isString(result.bbResponse), 'bbResponse should be a string');
+			assert(isFindResourcesResponse(result.bbResponse), 'bbResponse should have correct structure');
 
-			if (isString(result.bbResponse)) {
+			if (isFindResourcesResponse(result.bbResponse)) {
+				assertEquals(result.bbResponse.data.resources.length, 1, 'Should find 1 resource');
 				assertStringIncludes(
-					result.bbResponse,
-					String
-						.raw`BB found 1 resources matching the search criteria: content pattern "test.*test", case-sensitive, resource pattern "regex_test*.txt"`,
+					result.bbResponse.data.searchCriteria,
+					String.raw`content pattern "test.*test", case-sensitive, resource pattern "regex_test*.txt"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -1320,13 +1333,13 @@ Deno.test({
 			// console.log('Search with regex using quantifiers - case-insensitive - toolResponse:', result.toolResponse);
 			// console.log('Search with regex using quantifiers - case-insensitive - toolResults:', result.toolResults);
 
-			assert(isString(result.bbResponse), 'bbResponse should be a string');
+			assert(isFindResourcesResponse(result.bbResponse), 'bbResponse should have correct structure');
 
-			if (isString(result.bbResponse)) {
+			if (isFindResourcesResponse(result.bbResponse)) {
+				assertEquals(result.bbResponse.data.resources.length, 3, 'Should find 3 resources');
 				assertStringIncludes(
-					result.bbResponse,
-					String
-						.raw`BB found 3 resources matching the search criteria: content pattern "test.*test", case-insensitive, resource pattern "regex_test*.txt"`,
+					result.bbResponse.data.searchCriteria,
+					String.raw`content pattern "test.*test", case-insensitive, resource pattern "regex_test*.txt"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -1364,13 +1377,13 @@ Deno.test({
 			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
-			assert(isString(result.bbResponse), 'bbResponse should be a string');
+			assert(isFindResourcesResponse(result.bbResponse), 'bbResponse should have correct structure');
 
-			if (isString(result.bbResponse)) {
+			if (isFindResourcesResponse(result.bbResponse)) {
+				assertEquals(result.bbResponse.data.resources.length, 1, 'Should find 1 resource');
 				assertStringIncludes(
-					result.bbResponse,
-					String
-						.raw`BB found 1 resources matching the search criteria: content pattern "[Tt]esting [0-9]+", case-insensitive, resource pattern "regex_test*.txt"`,
+					result.bbResponse.data.searchCriteria,
+					String.raw`content pattern "[Tt]esting [0-9]+", case-insensitive, resource pattern "regex_test*.txt"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -1408,13 +1421,13 @@ Deno.test({
 			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
-			assert(isString(result.bbResponse), 'bbResponse should be a string');
+			assert(isFindResourcesResponse(result.bbResponse), 'bbResponse should have correct structure');
 
-			if (isString(result.bbResponse)) {
+			if (isFindResourcesResponse(result.bbResponse)) {
+				assertEquals(result.bbResponse.data.resources.length, 1, 'Should find 1 resource');
 				assertStringIncludes(
-					result.bbResponse,
-					String
-						.raw`BB found 1 resources matching the search criteria: content pattern "Test(?=ing)", case-insensitive, resource pattern "regex_test*.txt"`,
+					result.bbResponse.data.searchCriteria,
+					String.raw`content pattern "Test(?=ing)", case-insensitive, resource pattern "regex_test*.txt"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -1455,13 +1468,13 @@ Deno.test({
 			// console.log('Search with negative lookahead regex - toolResponse:', result.toolResponse);
 			// console.log('Search with negative lookahead regex - toolResults:', result.toolResults);
 
-			assert(isString(result.bbResponse), 'bbResponse should be a string');
+			assert(isFindResourcesResponse(result.bbResponse), 'bbResponse should have correct structure');
 
-			if (isString(result.bbResponse)) {
+			if (isFindResourcesResponse(result.bbResponse)) {
+				assertEquals(result.bbResponse.data.resources.length, 3, 'Should find 3 resources');
 				assertStringIncludes(
-					result.bbResponse,
-					String
-						.raw`BB found 3 resources matching the search criteria: content pattern "test(?!ing)", case-insensitive, resource pattern "regex_test*.txt"`,
+					result.bbResponse.data.searchCriteria,
+					String.raw`content pattern "test(?!ing)", case-insensitive, resource pattern "regex_test*.txt"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -1520,12 +1533,13 @@ Deno.test({
 			// console.log('Case-sensitive search - toolResponse:', result.toolResponse);
 			// console.log('Case-sensitive search - toolResults:', result.toolResults);
 
-			assert(isString(result.bbResponse), 'bbResponse should be a string');
+			assert(isFindResourcesResponse(result.bbResponse), 'bbResponse should have correct structure');
 
-			if (isString(result.bbResponse)) {
+			if (isFindResourcesResponse(result.bbResponse)) {
+				assertEquals(result.bbResponse.data.resources.length, 2, 'Should find 2 resources');
 				assertStringIncludes(
-					result.bbResponse,
-					`BB found 2 resources matching the search criteria: content pattern "Test", case-sensitive, resource pattern "regex_test*.txt"`,
+					result.bbResponse.data.searchCriteria,
+					`content pattern "Test", case-sensitive, resource pattern "regex_test*.txt"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -1586,12 +1600,13 @@ Deno.test({
 			// console.log('Case-insensitive search - toolResponse:', result.toolResponse);
 			// console.log('Case-insensitive search - toolResults:', result.toolResults);
 
-			assert(isString(result.bbResponse), 'bbResponse should be a string');
+			assert(isFindResourcesResponse(result.bbResponse), 'bbResponse should have correct structure');
 
-			if (isString(result.bbResponse)) {
+			if (isFindResourcesResponse(result.bbResponse)) {
+				assertEquals(result.bbResponse.data.resources.length, 4, 'Should find 4 resources');
 				assertStringIncludes(
-					result.bbResponse,
-					`BB found 4 resources matching the search criteria: content pattern "Test", case-insensitive, resource pattern "regex_test*.txt"`,
+					result.bbResponse.data.searchCriteria,
+					`content pattern "Test", case-insensitive, resource pattern "regex_test*.txt"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -1647,12 +1662,13 @@ Deno.test({
 			// console.log('complex pattern with multiple extensions - toolResponse:', result.toolResponse);
 			// console.log('complex pattern with multiple extensions - toolResults:', result.toolResults);
 
-			assert(isString(result.bbResponse), 'bbResponse should be a string');
+			assert(isFindResourcesResponse(result.bbResponse), 'bbResponse should have correct structure');
 
-			if (isString(result.bbResponse)) {
+			if (isFindResourcesResponse(result.bbResponse)) {
+				assertEquals(result.bbResponse.data.resources.length, 3, 'Should find 3 resources');
 				assertStringIncludes(
-					result.bbResponse,
-					`BB found 3 resources matching the search criteria: resource pattern "*.js|*.ts|*.json"`,
+					result.bbResponse.data.searchCriteria,
+					`resource pattern "*.js|*.ts|*.json"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -1708,12 +1724,13 @@ Deno.test({
 			// console.log('complex pattern with different directories - toolResponse:', result.toolResponse);
 			// console.log('complex pattern with different directories - toolResults:', result.toolResults);
 
-			assert(isString(result.bbResponse), 'bbResponse should be a string');
+			assert(isFindResourcesResponse(result.bbResponse), 'bbResponse should have correct structure');
 
-			if (isString(result.bbResponse)) {
+			if (isFindResourcesResponse(result.bbResponse)) {
+				assertEquals(result.bbResponse.data.resources.length, 2, 'Should find 2 resources');
 				assertStringIncludes(
-					result.bbResponse,
-					`BB found 2 resources matching the search criteria: resource pattern "src/*.js|test/*.ts"`,
+					result.bbResponse.data.searchCriteria,
+					`resource pattern "src/*.js|test/*.ts"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -1769,12 +1786,13 @@ Deno.test({
 			// console.log('deep directory traversal with Kubernetes resources - toolResponse:', result.toolResponse);
 			// console.log('deep directory traversal with Kubernetes resources - toolResults:', result.toolResults);
 
-			assert(isString(result.bbResponse), 'bbResponse should be a string');
+			assert(isFindResourcesResponse(result.bbResponse), 'bbResponse should have correct structure');
 
-			if (isString(result.bbResponse)) {
+			if (isFindResourcesResponse(result.bbResponse)) {
+				assertEquals(result.bbResponse.data.resources.length, 5, 'Should find 5 resources');
 				assertStringIncludes(
-					result.bbResponse,
-					`BB found 5 resources matching the search criteria: resource pattern "deploy/Kubernetes/**/*"`,
+					result.bbResponse.data.searchCriteria,
+					`resource pattern "deploy/Kubernetes/**/*"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -1844,12 +1862,13 @@ Deno.test({
 			console.log('deep directory traversal with double-star pattern - toolResponse:', result.toolResponse);
 			console.log('deep directory traversal with double-star pattern - toolResults:', result.toolResults);
 
-			assert(isString(result.bbResponse), 'bbResponse should be a string');
+			assert(isFindResourcesResponse(result.bbResponse), 'bbResponse should have correct structure');
 
-			if (isString(result.bbResponse)) {
+			if (isFindResourcesResponse(result.bbResponse)) {
+				assertEquals(result.bbResponse.data.resources.length, 3, 'Should find 3 resources');
 				assertStringIncludes(
-					result.bbResponse,
-					`BB found 3 resources matching the search criteria: resource pattern "**/findResources*test.ts"`,
+					result.bbResponse.data.searchCriteria,
+					`resource pattern "**/findResources*test.ts"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -1920,12 +1939,13 @@ Deno.test({
 			// console.log('deep directory traversal with dual double-star pattern - toolResponse:', result.toolResponse);
 			// console.log('deep directory traversal with dual double-star pattern - toolResults:', result.toolResults);
 
-			assert(isString(result.bbResponse), 'bbResponse should be a string');
+			assert(isFindResourcesResponse(result.bbResponse), 'bbResponse should have correct structure');
 
-			if (isString(result.bbResponse)) {
+			if (isFindResourcesResponse(result.bbResponse)) {
+				assertEquals(result.bbResponse.data.resources.length, 1, 'Should find 1 resource');
 				assertStringIncludes(
-					result.bbResponse,
-					`BB found 1 resources matching the search criteria: resource pattern "**/findResources*/**/*.test.ts"`,
+					result.bbResponse.data.searchCriteria,
+					`resource pattern "**/findResources*/**/*.test.ts"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');

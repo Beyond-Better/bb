@@ -153,14 +153,15 @@ export class DataSourceConnection implements IDataSourceConnection {
 	}
 
 	/**
-	 * Get the URI prefix for this data source
-	 * @returns The URI prefix to use for resources from this data source
+	 * Get the URI for this data source
+	 * @returns The URI to use for resources from this data source
 	 */
 	getUriForResource(resourceUri: string): string {
 		//logger.info(`DataSourceConnection: getUriForResource ${resourceUri}`);
 		return resourceUri.startsWith(`${this.accessMethod}+`)
 			? resourceUri
-			: this.uriPrefix || generateDataSourceUri(this.accessMethod, this.providerType, this.name, resourceUri);
+			: generateDataSourceUri(this.accessMethod, this.providerType, this.name, resourceUri);
+			//: this.uriPrefix || generateDataSourceUri(this.accessMethod, this.providerType, this.name, resourceUri);
 	}
 
 	/**

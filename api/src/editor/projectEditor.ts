@@ -21,6 +21,7 @@ import { ResourceManager } from 'api/resources/resourceManager.ts';
 import type {
 	ResourceForInteraction,
 	ResourceRevisionMetadata,
+	ResourceLoadOptions,
 	//ResourceMetadata,
 	ResourcesForInteraction,
 } from 'shared/types/dataSourceResource.ts';
@@ -374,6 +375,7 @@ class ProjectEditor {
 	// only existing resources can be prepared and added, otherwise call write_resource tools with createIfMissing:true
 	async prepareResourcesForInteraction(
 		resourceUris: string[],
+		options?: ResourceLoadOptions,
 	): Promise<ResourcesForInteraction> {
 		const resourcesAdded: Array<ResourceForInteraction> = [];
 
@@ -381,7 +383,7 @@ class ProjectEditor {
 			try {
 				// Always load from original source to ensure we have the latest version
 				logger.info(`ProjectEditor: Get resource for: ${resourceUri}`);
-				const resource = await this.resourceManager.loadResource(resourceUri);
+				const resource = await this.resourceManager.loadResource(resourceUri, options);
 
 				// Store at project level for future reference
 				await this.projectData.storeProjectResource(resourceUri, resource.content, resource.metadata);

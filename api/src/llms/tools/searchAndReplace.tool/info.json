@@ -1,8 +1,13 @@
 {
 	"name": "search_and_replace",
-	"description": "Apply a list of search and replace operations to a resource for one data source. Each operation can use exact literal text matching (preserving whitespace) or regex patterns. For exact matches, whitespace and indentation must match the source resource exactly. For regex patterns, use the regexPattern option. When no data source is specified, operates on the primary data source.",
+	"description": "[LEGACY] Use edit_resource with searchAndReplaceEdits instead. Apply a list of search and replace operations to a resource for one data source. Each operation can use exact literal text matching (preserving whitespace) or regex patterns. For exact matches, whitespace and indentation must match the source resource exactly. For regex patterns, use the regexPattern option. When no data source is specified, operates on the primary data source.",
 	"version": "1.0.0",
 	"author": "BB Team",
 	"license": "MIT",
+	"toolSets": ["legacy"],
+	"enabled": true,
+	"deprecated": true,
+	"replacedBy": "edit_resource",
+	"category": ["deprecated"],
 	"mutates": true
 }

@@ -14,10 +14,17 @@ import type {
 } from 'shared/types/dataSource.ts';
 import type { MCPManager } from 'api/mcp/mcpManager.ts';
 import { getMCPManager } from 'api/mcp/mcpManager.ts';
-import { FilesystemProvider } from 'api/dataSources/filesystemProvider.ts';
-import { GoogleDocsProvider } from 'api/dataSources/googledocsProvider.ts';
-import { NotionProvider } from 'api/dataSources/notionProvider.ts';
+// Dynamic imports - providers will be loaded conditionally
+// import { FilesystemProvider } from 'api/dataSources/filesystemProvider.ts';
+// import { GoogleDocsProvider } from 'api/dataSources/googledocsProvider.ts';
+// import { NotionProvider } from 'api/dataSources/notionProvider.ts';
 import { GenericMCPProvider } from 'api/dataSources/genericMCPProvider.ts';
+import { CORE_DATASOURCES, type DataSourceMetadata } from './dataSource_manifest.ts';
+import { exists } from '@std/fs';
+import { isAbsolute, join } from '@std/path';
+import { getGlobalConfigDir } from 'shared/dataDir.ts';
+import { getConfigManager } from 'shared/config/configManager.ts';
+import type { GlobalConfig } from 'shared/config/types.ts';
 
 /**
  * Registry of available data source providers
@@ -41,6 +48,10 @@ export class DataSourceRegistry {
 
 	private mcpManager!: MCPManager;
 	private initialized = false;
+	private dataSourceMetadata: Map<string, DataSourceMetadata> = new Map();
+	private userPluginDirectories: string[] | undefined;
+	private productVariant: 'opensource' | 'saas' | undefined;
+	private globalConfig: GlobalConfig | undefined;
 
 	/**
 	 * Private constructor - use getInstance() instead
@@ -120,9 +131,25 @@ export class DataSourceRegistry {
 
 		logger.info('DataSourceRegistry: Initializing');
 		this.mcpManager = await getMCPManager();
+
+		// Set up directories for third-party datasources
+		try {
+			const configManager = await getConfigManager();
+			const globalConfig = await configManager.getGlobalConfig();
+			this.userPluginDirectories = globalConfig?.api?.userPluginDirectories || [];
+		} catch (error) {
+			logger.warn(`DataSourceRegistry: Could not load global config: ${(error as Error).message}`);
+		}
+
+		// Detect product variant
+		this.productVariant = await this.detectProductVariant();
+		logger.info(`DataSourceRegistry: Detected product variant: ${this.productVariant}`);
+
 		this.initialized = true;
 
-		this.registerBBProviders();
+		// Load datasource metadata and register providers
+		await this.loadDataSourceMetadata();
+		await this.registerBBProviders();
 		logger.info('DataSourceRegistry: Registered BB providers');
 
 		// Discover and register MCP servers
@@ -194,6 +221,22 @@ export class DataSourceRegistry {
 			...this.bbProviders,
 			...this.mcpProviders,
 		];
+	}
+
+	/**
+	 * Get datasource metadata
+	 * @returns Map of datasource metadata
+	 */
+	getDataSourceMetadata(): Map<string, DataSourceMetadata> {
+		return this.dataSourceMetadata;
+	}
+
+	/**
+	 * Get current product variant
+	 * @returns The detected product variant
+	 */
+	getProductVariant(): 'opensource' | 'saas' | undefined {
+		return this.productVariant;
 	}
 
 	/**
@@ -283,19 +326,213 @@ export class DataSourceRegistry {
 	}
 
 	/**
-	 * register BB providers
+	 * Detect product variant based on available provider files
 	 */
-	registerBBProviders(): void {
+	private async detectProductVariant(): Promise<'opensource' | 'saas'> {
+		try {
+			// Check if saas-specific providers exist by attempting to import them
+			const notionExists = await this.checkProviderExists('api/dataSources/notion/notionProvider.ts');
+			const googleDocsExists = await this.checkProviderExists('api/dataSources/googledocs/googledocsProvider.ts');
+
+			return (notionExists || googleDocsExists) ? 'saas' : 'opensource';
+		} catch (error) {
+			logger.warn(`DataSourceRegistry: Error detecting product variant: ${(error as Error).message}`);
+			return 'opensource'; // Default to opensource if detection fails
+		}
+	}
+
+	/**
+	 * Check if a provider file exists by attempting to resolve its import
+	 */
+	private async checkProviderExists(importPath: string): Promise<boolean> {
+		try {
+			const resolvedUrl = new URL(importPath, import.meta.url).href;
+			// Try to fetch the module metadata without importing it
+			await import.meta.resolve(resolvedUrl);
+			return true;
+		} catch {
+			return false;
+		}
+	}
+
+	/**
+	 * Load datasource metadata from manifest and third-party directories
+	 */
+	private async loadDataSourceMetadata(): Promise<void> {
+		// Load core datasources from manifest
+		for (const coreDataSource of CORE_DATASOURCES) {
+			this.dataSourceMetadata.set(coreDataSource.metadata.name, coreDataSource.metadata);
+		}
+
+		// Load third-party datasources from configured directories
+		// TODO: Add support for userPluginDirectories configuration
+		// This would be similar to how llmToolManager loads from userPluginDirectories
+		await this.loadThirdPartyDataSources();
+	}
+
+	/**
+	 * Load third-party datasources from plugin directories
+	 */
+	private async loadThirdPartyDataSources(): Promise<void> {
+		// Get plugin directories from global config
+		const directories = this.userPluginDirectories || [];
+		const globalConfigDir = await getGlobalConfigDir();
+
+		for (const directory of directories) {
+			// For each directory, check both project root and global config locations
+			const dirsToCheck: string[] = [];
+
+			if (isAbsolute(directory)) {
+				dirsToCheck.push(directory);
+			} else {
+				// Add global config path if available
+				if (globalConfigDir) {
+					dirsToCheck.push(join(globalConfigDir, directory));
+				}
+			}
+
+			// Process each resolved directory
+			for (const resolvedDir of dirsToCheck) {
+				try {
+					if (!await exists(resolvedDir)) {
+						continue;
+					}
+					const directoryInfo = await Deno.stat(resolvedDir);
+					if (!directoryInfo.isDirectory) {
+						continue;
+					}
+
+					for await (const entry of Deno.readDir(resolvedDir)) {
+						if (entry.isDirectory && entry.name.endsWith('.datasource')) {
+							try {
+								const dataSourcePath = join(resolvedDir, entry.name);
+								const metadataInfoPath = join(dataSourcePath, 'info.json');
+								const metadata: DataSourceMetadata = JSON.parse(
+									await Deno.readTextFile(metadataInfoPath),
+								);
+
+								// Set the import path to the provider.ts file in the datasource directory
+								metadata.importPath = join(dataSourcePath, 'provider.ts');
+
+								if (this.isDataSourceInVariant(metadata)) {
+									if (this.dataSourceMetadata.has(metadata.name)) {
+										const existingMetadata = this.dataSourceMetadata.get(metadata.name)!;
+										if (this.shouldReplaceExistingDataSource(existingMetadata, metadata)) {
+											this.dataSourceMetadata.set(metadata.name, metadata);
+											logger.info(
+												`DataSourceRegistry: Replaced built-in datasource ${metadata.name} with user-supplied version`,
+											);
+										} else {
+											logger.warn(
+												`DataSourceRegistry: Datasource ${metadata.name} has already been loaded and shouldn't be replaced`,
+											);
+										}
+									} else {
+										this.dataSourceMetadata.set(metadata.name, metadata);
+										logger.info(
+											`DataSourceRegistry: Loaded third-party datasource ${metadata.name}`,
+										);
+									}
+								} else {
+									logger.warn(
+										`DataSourceRegistry: Datasource ${entry.name} is not available in ${this.productVariant} variant`,
+									);
+								}
+							} catch (error) {
+								logger.error(
+									`DataSourceRegistry: Error loading third-party datasource metadata for ${entry.name}: ${
+										(error as Error).message
+									}`,
+								);
+							}
+						}
+					}
+				} catch (error) {
+					logger.error(
+						`DataSourceRegistry: Error processing directory ${directory}: ${(error as Error).message}`,
+					);
+				}
+			}
+		}
+	}
+
+	/**
+	 * Check if existing datasource should be replaced with a third-party version
+	 */
+	private shouldReplaceExistingDataSource(
+		existing: DataSourceMetadata,
+		newMetadata: DataSourceMetadata,
+	): boolean {
+		// Always prefer user-supplied datasources over built-in ones
+		// This allows users to override built-in datasources with custom implementations
+		if (newMetadata.importPath && !newMetadata.importPath.startsWith('api/dataSources/')) {
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Register BB providers based on product variant and metadata
+	 */
+	private async registerBBProviders(): Promise<void> {
 		try {
 			// Clear existing BB providers
 			this.bbProvidersMap.clear();
 
-			this.registerProvider(new FilesystemProvider());
-			this.registerProvider(new NotionProvider());
-			this.registerProvider(new GoogleDocsProvider());
+			// Load built-in datasources conditionally based on product variant
+			for (const metadata of this.dataSourceMetadata.values()) {
+				if (!this.isDataSourceInVariant(metadata)) {
+					logger.debug(
+						`DataSourceRegistry: Skipping datasource ${metadata.name} - not available in ${this.productVariant} variant`,
+					);
+					continue;
+				}
+
+				if (!this.isDataSourceEnabled(metadata)) {
+					logger.debug(`DataSourceRegistry: Skipping disabled datasource ${metadata.name}`);
+					continue;
+				}
+
+				try {
+					// Dynamic import of the provider
+					const module = await import(new URL(metadata.importPath, import.meta.url).href);
+					const ProviderClass = module[metadata.providerClass];
+
+					if (!ProviderClass) {
+						logger.error(
+							`DataSourceRegistry: Provider class ${metadata.providerClass} not found in ${metadata.importPath}`,
+						);
+						continue;
+					}
+
+					const provider = new ProviderClass();
+					this.registerProvider(provider);
+					logger.info(`DataSourceRegistry: Registered ${metadata.name} provider`);
+				} catch (error) {
+					logger.error(
+						`DataSourceRegistry: Failed to load datasource ${metadata.name}: ${(error as Error).message}`,
+					);
+				}
+			}
 		} catch (error) {
-			logger.error('DataSourceRegistry: Error registering MCP servers:', error);
+			logger.error('DataSourceRegistry: Error registering BB providers:', error);
 		}
+	}
+
+	/**
+	 * Check if datasource is available in current product variant
+	 */
+	private isDataSourceInVariant(metadata: DataSourceMetadata): boolean {
+		if (!this.productVariant) return false;
+		return metadata.productVariants.includes(this.productVariant);
+	}
+
+	/**
+	 * Check if datasource is enabled
+	 */
+	private isDataSourceEnabled(metadata: DataSourceMetadata): boolean {
+		// enabled may not be set in metadata, so default to true
+		return metadata.enabled !== false;
 	}
 
 	/**
@@ -341,9 +578,10 @@ export class DataSourceRegistry {
 							serverId,
 							serverConfig.name || serverId,
 							serverConfig.description || `Provider for ${serverConfig.name || serverId}`,
-							capabilities,
 							requiredConfigFields,
 							this.mcpManager,
+							'none',
+							capabilities,
 						),
 					);
 				} catch (error) {

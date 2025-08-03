@@ -315,12 +315,14 @@ export interface ResourceHandlingErrorOptions extends ErrorOptions {
 		| 'delete'
 		| 'move'
 		| 'rename'
-		| 'change'
+		| 'change' // deprecated - use 'edit' instead
+		| 'edit'
 		| 'search-resources'
 		| 'apply-patch'
 		| 'search-replace'
 		| 'rewrite-resource'
 		| 'block-edit'
+		| 'access-check'
 		//| 'move-resource'
 		| 'create-dir'
 		// these are not really resourceHandling (datasource) - they only affect files in the conversation

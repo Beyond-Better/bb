@@ -54,7 +54,7 @@ interface UnifiedEditInput {
 **Decision**: Consolidate around fundamental **intent** rather than **implementation approach**.
 
 **New Tool Structure**:
-- **`create_resource`**: Making new things (with optional overwrite for rewrite functionality)
+- **`write_resource`**: Writing things (with optional overwrite for rewrite functionality)
 - **`edit_resource`**: Modifying existing things with multiple editing approaches
 - **`load_resource`**: Remains separate (different intent: read vs modify)  
 - **`find_resource`**: Remains separate (discovery across multiple resources)
@@ -77,7 +77,7 @@ interface UnifiedEditInput {
 
 **Decision**: Mark old tools as legacy and exclude from new conversations.
 
-**Implementation**: Use existing `enabled: false` attribute in `info.json` or potentially leverage tool sets for automatic exclusion.
+**Implementation**: Use `"toolSets": ["legacy"]` attribute in `info.json`. The LLMToolManager will only include legacy tools in existing (old) conversations. 
 
 ### 6. Content Type Guidance Integration
 
@@ -92,7 +92,7 @@ interface UnifiedEditInput {
 
 ### Create Resource Schema
 ```typescript
-interface CreateResourceInput {
+interface WriteResourceInput {
   dataSourceId?: string;
   resourcePath: string;
   overwriteExisting?: boolean;  // Replaces rewrite_resource functionality

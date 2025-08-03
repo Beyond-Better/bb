@@ -197,11 +197,11 @@ describe('NotionProvider', () => {
 	it('should create a provider with correct properties', () => {
 		assertEquals(provider.providerType, 'notion');
 		assertEquals(provider.accessMethod, 'bb');
-		assertEquals(provider.capabilities.includes('blockRead'), true);
-		assertEquals(provider.capabilities.includes('blockEdit'), true);
+		assertEquals(provider.capabilities.includes('read'), true);
+		assertEquals(provider.capabilities.includes('edit'), true);
 		assertEquals(provider.capabilities.includes('list'), true);
 		assertEquals(provider.capabilities.includes('search'), true);
-		assertEquals(provider.capabilities.includes('write'), false);
+		assertEquals(provider.capabilities.includes('write'), true);
 	});
 
 	it('should validate correct config', () => {
@@ -298,6 +298,7 @@ describe('NotionProvider', () => {
 	});
 });
 
+
 describe('NotionAccessor', () => {
 	let provider: NotionProvider;
 	let connection: DataSourceConnection;
@@ -332,10 +333,11 @@ describe('NotionAccessor', () => {
 	});
 
 	it('should have correct capabilities', () => {
-		assertEquals(accessor.hasCapability('blockRead'), true);
-		assertEquals(accessor.hasCapability('blockEdit'), true);
+console.log('NotionProvider - provider.caps', provider.capabilities)
+		assertEquals(accessor.hasCapability('read'), true);
+		assertEquals(accessor.hasCapability('edit'), true);
 		assertEquals(accessor.hasCapability('search'), true);
-		assertEquals(accessor.hasCapability('write'), false);
+		assertEquals(accessor.hasCapability('write'), true);
 	});
 
 	it('should load a page resource', async () => {
@@ -433,12 +435,13 @@ describe('NotionAccessor', () => {
 		assertEquals(result.matches.length >= 2, true); // Page + database
 
 		// Should include page and database matches
-		const pageMatch = result.matches.find((m) => m.resource.uri.includes('page/'));
+		const pageMatch = result.matches.find((m) => m.resourceUri.includes('page/'));
 		assertExists(pageMatch);
-		assertEquals(pageMatch.resource.type, 'page');
+		assertEquals(pageMatch.resourceType, 'page');
 
-		const dbMatch = result.matches.find((m) => m.resource.uri.includes('database/'));
+		const dbMatch = result.matches.find((m) => m.resourceUri.includes('database/'));
 		assertExists(dbMatch);
-		assertEquals(dbMatch.resource.type, 'database');
+		assertEquals(dbMatch.resourceType, 'database');
 	});
 });
+

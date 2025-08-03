@@ -65,6 +65,32 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		},
 	},
 	{
+		'toolNamePath': 'writeResource.tool',
+		'metadata': {
+			'name': 'write_resource',
+			'version': '1.0.0',
+			'description':
+				'Create new or rewrite existing resources with content-type-aware input handling. For filesystem data sources, use plainTextContent or binaryContent. For structured content data sources like Notion, use structuredContent. The tool validates content type compatibility with the target data source and provides clear error messages for mismatches.',
+			'author': 'BB Core',
+			'license': 'MIT',
+			'toolSets': [
+				'core',
+			],
+			'enabled': true,
+			'mutates': true,
+			'category': [
+				'file_management',
+				'content_creation',
+			],
+			'capabilities': [
+				'create',
+				'write',
+				'overwrite',
+			],
+			'protocolType': 'bb',
+		},
+	},
+	{
 		'toolNamePath': 'loadResources.tool',
 		'metadata': {
 			'name': 'load_resources',
@@ -73,6 +99,28 @@ export const CORE_TOOLS: Array<CoreTool> = [
 			'version': '1.0.0',
 			'author': 'BB Team',
 			'license': 'MIT',
+			'protocolType': 'bb',
+		},
+	},
+	{
+		'toolNamePath': 'rewriteResource.tool',
+		'metadata': {
+			'name': 'rewrite_resource',
+			'description':
+				'[LEGACY] Use write_resource with overwriteExisting=true instead. Completely replaces an existing resource\'s contents or creates a new resource for one data source. Use with caution as this overwrites the entire resource. Always check existing resource contents before using this tool. For partial changes, prefer search_and_replace.\nIMPORTANT:\n- Must provide complete resource content including ALL imports, types, and code\n- Never use placeholder comments like "// Previous code remains..."\n- Never assume code exists outside what is provided in content\n- Cannot preserve any existing code that isn\'t explicitly included in content\n- Will completely delete and replace the entire resource\nFor modifying specific parts of a resource, use search_and_replace instead.\nDANGER: Completely replaces resource contents.\nREQUIRED STEPS:\n1. Use load_resources to show current content\n2. In <thinking> tags show:\n   - Diff/comparison with planned changes\n   - Justification for complete rewrite\n3. If skipping steps 1-2, tool will fail.\n\nWhen no data source is specified, operates on the primary data source.',
+			'version': '1.0.0',
+			'category': [
+				'deprecated',
+			],
+			'author': 'BB Team',
+			'license': 'MIT',
+			'toolSets': [
+				'legacy',
+			],
+			'enabled': true,
+			'deprecated': true,
+			'replacedBy': 'write_resource',
+			'mutates': true,
 			'protocolType': 'bb',
 		},
 	},
@@ -120,10 +168,19 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		'metadata': {
 			'name': 'search_and_replace',
 			'description':
-				'Apply a list of search and replace operations to a resource for one data source. Each operation can use exact literal text matching (preserving whitespace) or regex patterns. For exact matches, whitespace and indentation must match the source resource exactly. For regex patterns, use the regexPattern option. When no data source is specified, operates on the primary data source.',
+				'[LEGACY] Use edit_resource with searchAndReplaceEdits instead. Apply a list of search and replace operations to a resource for one data source. Each operation can use exact literal text matching (preserving whitespace) or regex patterns. For exact matches, whitespace and indentation must match the source resource exactly. For regex patterns, use the regexPattern option. When no data source is specified, operates on the primary data source.',
 			'version': '1.0.0',
 			'author': 'BB Team',
 			'license': 'MIT',
+			'toolSets': [
+				'legacy',
+			],
+			'enabled': true,
+			'deprecated': true,
+			'replacedBy': 'edit_resource',
+			'category': [
+				'deprecated',
+			],
 			'mutates': true,
 			'protocolType': 'bb',
 		},
@@ -146,10 +203,19 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		'metadata': {
 			'name': 'block_edit',
 			'description':
-				'Apply Portable Text operations to edit document blocks in supported data sources. Supports update, insert, delete, and move operations on structured document content. Designed for document-based systems like Notion that use block-based content representation.',
+				'[LEGACY] Use edit_resource with blockEdits instead. Apply Portable Text operations to edit document blocks in supported data sources. Supports update, insert, delete, and move operations on structured document content. Designed for document-based systems like Notion that use block-based content representation.',
 			'version': '1.0.0',
 			'author': 'BB Team',
 			'license': 'MIT',
+			'toolSets': [
+				'legacy',
+			],
+			'enabled': true,
+			'deprecated': true,
+			'replacedBy': 'edit_resource',
+			'category': [
+				'deprecated',
+			],
 			'mutates': true,
 			'protocolType': 'bb',
 		},
@@ -216,6 +282,34 @@ export const CORE_TOOLS: Array<CoreTool> = [
 			'author': 'BB Team',
 			'license': 'MIT',
 			'category': 'integration',
+			'protocolType': 'bb',
+		},
+	},
+	{
+		'toolNamePath': 'editResource.tool',
+		'metadata': {
+			'name': 'edit_resource',
+			'version': '1.0.0',
+			'description':
+				'Edit existing resources with multiple editing approaches and content-type awareness. Consolidates search-and-replace, block editing, and structured data editing capabilities.',
+			'author': 'BB Core',
+			'license': 'MIT',
+			'toolSets': [
+				'core',
+			],
+			'enabled': true,
+			'mutates': true,
+			'category': [
+				'file_management',
+				'content_editing',
+			],
+			'capabilities': [
+				'edit',
+				'search',
+				'replace',
+				'block_edit',
+				'structured_data',
+			],
 			'protocolType': 'bb',
 		},
 	},
@@ -321,20 +415,6 @@ export const CORE_TOOLS: Array<CoreTool> = [
 			'description':
 				'Apply a unified diff format patch to one or more files for one data source. Supports both modifying existing files and creating new ones. Use for complex multi-line changes where context is important. For simpler changes, prefer search_and_replace. Patches must match file content closely, with a small fuzz factor for nearby lines. When no data source is specified, operates on the primary data source.',
 			'version': '1.0.0',
-			'author': 'BB Team',
-			'license': 'MIT',
-			'mutates': true,
-			'protocolType': 'bb',
-		},
-	},
-	{
-		'toolNamePath': 'rewriteResource.tool',
-		'metadata': {
-			'name': 'rewrite_resource',
-			'description':
-				'Completely replaces an existing resource\'s contents or creates a new resource for one data source. Use with caution as this overwrites the entire resource. Always check existing resource contents before using this tool. For partial changes, prefer search_and_replace.\nIMPORTANT:\n- Must provide complete resource content including ALL imports, types, and code\n- Never use placeholder comments like "// Previous code remains..."\n- Never assume code exists outside what is provided in content\n- Cannot preserve any existing code that isn\'t explicitly included in content\n- Will completely delete and replace the entire resource\nFor modifying specific parts of a resource, use search_and_replace instead.\nDANGER: Completely replaces resource contents.\nREQUIRED STEPS:\n1. Use load_resources to show current content\n2. In <thinking> tags show:\n   - Diff/comparison with planned changes\n   - Justification for complete rewrite\n3. If skipping steps 1-2, tool will fail.\n\nWhen no data source is specified, operates on the primary data source.',
-			'version': '1.0.0',
-			'category': 'ResourceManipulation',
 			'author': 'BB Team',
 			'license': 'MIT',
 			'mutates': true,
