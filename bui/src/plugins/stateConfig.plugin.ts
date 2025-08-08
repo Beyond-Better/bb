@@ -1,5 +1,5 @@
 import type { MiddlewareHandler, MiddlewareHandlerContext, Plugin } from '$fresh/server.ts';
-import type { FreshAppState } from 'bui/types/state.types.ts';
+import type { FreshAppState } from 'bui/types/state.ts';
 
 export const stateConfigPlugin = (initialState: FreshAppState): Plugin<FreshAppState> => {
 	const handler: MiddlewareHandler<FreshAppState> = async (_req, ctx: MiddlewareHandlerContext<FreshAppState>) => {
