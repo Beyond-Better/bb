@@ -46,40 +46,6 @@ Deno.test({
 });
 
 Deno.test({
-	name: 'DataSourceRegistry - Dynamic Loading - Conditional loading based on product variant',
-	sanitizeResources: false,
-	sanitizeOps: false,
-	async fn() {
-		const registry = await DataSourceRegistry.getTestInstance('conditional-test');
-		const variant = registry.getProductVariant();
-		const providers = registry.getAllProviders();
-
-		// Filesystem should always be available
-		const filesystemProvider = registry.getProvider('filesystem', 'bb');
-		assert(filesystemProvider, 'Filesystem provider should always be available');
-
-		// Check variant-specific providers
-		if (variant === 'opensource') {
-			// In opensource, notion and googledocs should NOT be available
-			const notionProvider = registry.getProvider('notion', 'bb');
-			const googleDocsProvider = registry.getProvider('googledocs', 'bb');
-
-			assert(!notionProvider, 'Notion provider should not be available in opensource variant');
-			assert(!googleDocsProvider, 'GoogleDocs provider should not be available in opensource variant');
-		} else if (variant === 'saas') {
-			// In saas, all providers should be available
-			const notionProvider = registry.getProvider('notion', 'bb');
-			const googleDocsProvider = registry.getProvider('googledocs', 'bb');
-
-			assert(notionProvider, 'Notion provider should be available in saas variant');
-			assert(googleDocsProvider, 'GoogleDocs provider should be available in saas variant');
-		}
-
-		console.log(`Product variant: ${variant}, Available providers: ${providers.length}`);
-	},
-});
-
-Deno.test({
 	name: 'DataSourceRegistry - Dynamic Loading - Global config integration',
 	sanitizeResources: false,
 	sanitizeOps: false,

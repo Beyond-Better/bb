@@ -1,5 +1,5 @@
 import { FreshContext, Handlers } from '$fresh/server.ts';
-import type { FreshAppState } from 'bui/types/state.types.ts';
+import type { FreshAppState } from 'bui/types/state.ts';
 
 export const handler: Handlers = {
 	async GET(req, ctx: FreshContext<FreshAppState>) {
