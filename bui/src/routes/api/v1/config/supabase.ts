@@ -1,7 +1,7 @@
 import { FreshContext, Handlers } from '$fresh/server.ts';
-import type { FreshAppState } from 'bui/types/state.types.ts';
+import type { FreshAppState } from 'bui/types/state.ts';
 
-export const handler: Handlers = {
+export const handler: Handlers<any, FreshAppState> = {
 	async GET(req, ctx: FreshContext<FreshAppState>) {
 		const supabaseUrl = ctx.state.buiConfig.supabaseUrl;
 		const supabaseAnonKey = ctx.state.buiConfig.supabaseAnonKey;

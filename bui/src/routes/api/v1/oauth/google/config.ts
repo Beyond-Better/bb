@@ -1,10 +1,10 @@
 import { type FreshContext, Handlers } from '$fresh/server.ts';
-import type { FreshAppState } from 'bui/types/state.types.ts';
+import type { FreshAppState } from 'bui/types/state.ts';
 
 /**
  * Get Google OAuth configuration for the BUI
  */
-export const handler: Handlers = {
+export const handler: Handlers<any, FreshAppState> = {
 	GET(_req, ctx: FreshContext<FreshAppState>) {
 		try {
 			// Get OAuth configuration from state (set by stateConfig plugin)

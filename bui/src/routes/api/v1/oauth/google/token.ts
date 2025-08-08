@@ -1,5 +1,5 @@
 import { type FreshContext, Handlers } from '$fresh/server.ts';
-import type { FreshAppState } from 'bui/types/state.types.ts';
+import type { FreshAppState } from 'bui/types/state.ts';
 
 /**
  * Handle Google OAuth token operations:
@@ -12,7 +12,7 @@ import type { FreshAppState } from 'bui/types/state.types.ts';
  *
  * For token refresh, the client secret is securely handled server-side.
  */
-export const handler: Handlers = {
+export const handler: Handlers<any, FreshAppState> = {
 	async POST(req, ctx: FreshContext<FreshAppState>) {
 		const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 
