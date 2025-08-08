@@ -3,7 +3,7 @@ import type { FreshContext, Plugin } from '$fresh/server.ts';
 //import { type AuthState } from '../types/auth.ts';
 import { initializeAuthState, useAuthState } from '../hooks/useAuthStateSupabase.ts';
 import { type BuiConfig } from 'shared/config/types.ts';
-import { FreshAppState } from 'bui/types/state.ts'; // Augment Fresh context state types
+//import { FreshAppState } from 'bui/types/state.ts'; // Augment Fresh context state types
 
 export const supabaseAuthPlugin = (buiConfig: BuiConfig): Plugin => {
 	//console.log('supabaseAuthPlugin: Auth system config:', buiConfig);
@@ -37,7 +37,7 @@ export const supabaseAuthPlugin = (buiConfig: BuiConfig): Plugin => {
 	};
 };
 
-async function setSessionState(req: Request, ctx: FreshContext<FreshAppState>) {
+async function setSessionState(req: Request, ctx: FreshContext) {
 	if (ctx.destination !== 'route') return await ctx.next();
 
 	const { authState, getServerClient } = useAuthState();

@@ -246,7 +246,7 @@ export default defineConfig({
 			name: 'highlight.js-theme',
 			...highlightStyles,
 		},
-		stateConfigPlugin({ buiConfig, user: null, session: null } satisfies FreshAppState),
+		stateConfigPlugin({ buiConfig, user: null, session: null }),
 	],
 	// build: {
 	// 	esbuild: {
