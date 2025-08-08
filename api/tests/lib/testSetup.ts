@@ -13,9 +13,6 @@ import { SessionManager } from 'api/auth/session.ts';
 import { getProjectPersistenceManager } from 'api/storage/projectPersistenceManager.ts';
 import { FilesystemProvider } from 'api/dataSources/filesystemProvider.ts';
 import { getDataSourceRegistry } from 'api/dataSources/dataSourceRegistry.ts';
-import { TestGoogleDocsProvider, TestNotionProvider } from './testProviders.ts';
-import { MockGoogleDocsClient, MockNotionClient } from './mockClients.ts';
-import { getDefaultGoogleDocsTestData, getDefaultNotionTestData } from './testData.ts';
 import type { DataSourceConnection } from 'api/dataSources/interfaces/dataSourceConnection.ts';
 import type { DataSourceRegistry } from 'api/dataSources/dataSourceRegistry.ts';
 import type { DataSourceProviderType } from 'shared/types/dataSource.ts';
@@ -187,65 +184,6 @@ async function setupTestProviders(
 	additionalDsConnections: DataSourceConnection[],
 ): Promise<void> {
 	for (const datasourceType of extraDatasources) {
-		if (datasourceType === 'notion') {
-			// Create mock client with default test data
-			const mockNotionClient = new MockNotionClient();
-			mockNotionClient.setPagesData(getDefaultNotionTestData());
-
-			// Create test provider with mock client
-			const testNotionProvider = new TestNotionProvider(mockNotionClient);
-
-			// Register test provider (replaces real provider)
-			dataSourceRegistry.registerProvider(testNotionProvider);
-
-			// Create a datasource connection
-			const notionConnection = dataSourceRegistry.createConnection(
-				testNotionProvider,
-				'Test Notion Connection',
-				{ workspaceId: 'test-workspace' },
-				{
-					id: 'test-notion-connection',
-					auth: {
-						method: 'apiKey',
-						apiKey: 'test-api-key',
-					},
-				},
-			);
-
-			additionalDsConnections.push(notionConnection);
-		}
-
-		if (datasourceType === 'googledocs') {
-			// Create mock client with default test data
-			const mockGoogleDocsClient = new MockGoogleDocsClient();
-			mockGoogleDocsClient.setDocumentsData(getDefaultGoogleDocsTestData());
-
-			// Create test provider with mock client
-			const testGoogleDocsProvider = new TestGoogleDocsProvider(mockGoogleDocsClient);
-
-			// Register test provider (replaces real provider)
-			dataSourceRegistry.registerProvider(testGoogleDocsProvider);
-
-			// Create a datasource connection
-			const googleDocsConnection = dataSourceRegistry.createConnection(
-				testGoogleDocsProvider,
-				'Test Google Docs Connection',
-				{}, // No required config for Google Docs
-				{
-					id: 'test-googledocs-connection',
-					auth: {
-						method: 'oauth2',
-						oauth2: {
-							accessToken: 'test-access-token',
-							refreshToken: 'test-refresh-token',
-							expiresAt: Date.now() + 3600000, // 1 hour from now
-						},
-					},
-				},
-			);
-
-			additionalDsConnections.push(googleDocsConnection);
-		}
 	}
 }
 
@@ -258,19 +196,13 @@ async function setupTestProviders(
 export async function getTestProvider(
 	projectEditor: ProjectEditor,
 	datasourceType: DataSourceProviderType,
-): Promise<TestNotionProvider | TestGoogleDocsProvider | undefined> {
+): Promise<undefined> {
 	const dsConnections = projectEditor.projectData.dsConnections;
 
 	for (const connection of dsConnections) {
 		if (connection.providerType === datasourceType) {
 			const dataSourceRegistry = await getDataSourceRegistry();
 			const provider = dataSourceRegistry.getProvider(datasourceType, 'bb');
-
-			if (provider instanceof TestNotionProvider) {
-				return provider;
-			} else if (provider instanceof TestGoogleDocsProvider) {
-				return provider;
-			}
 		}
 	}
 
