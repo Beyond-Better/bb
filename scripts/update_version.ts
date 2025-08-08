@@ -19,12 +19,15 @@ import { parse as parseToml } from '@std/toml';
 // security: Security-related change
 
 const updateVersion = async (newVersion: string, minVersion: string) => {
+	// Add +oss build metadata for open source version
+	const ossVersion = newVersion + '+oss';
+	
 	const files = ['deno.jsonc', 'cli/deno.jsonc', 'bui/deno.jsonc', 'api/deno.jsonc', 'dui/src-tauri/tauri.conf.json'];
 
 	for await (const file of files) {
 		const content = await Deno.readTextFile(file);
 		const json = JSON.parse(content);
-		json.version = newVersion;
+		json.version = ossVersion;
 		await Deno.writeTextFile(file, JSON.stringify(json, null, 2));
 		//deno fmt file
 		const formatCommand = new Deno.Command('deno', {
@@ -39,7 +42,7 @@ const updateVersion = async (newVersion: string, minVersion: string) => {
 	const cargoPath = 'dui/src-tauri/Cargo.toml';
 	const cargoContent = await Deno.readTextFile(cargoPath);
 	const cargoToml = parseToml(cargoContent);
-	cargoToml.package.version = newVersion;
+	cargoToml.package.version = ossVersion;
 	
 	// Format the TOML content maintaining the original structure
 	const formattedCargoContent = [
@@ -51,13 +54,13 @@ const updateVersion = async (newVersion: string, minVersion: string) => {
 	await Deno.writeTextFile(cargoPath, formattedCargoContent);
 
 	// Update version.ts
-	await Deno.writeTextFile('version.ts', `export const VERSION = "${newVersion}";\n\nexport const REQUIRED_API_VERSION = "${minVersion}";`);
+	await Deno.writeTextFile('version.ts', `export const VERSION = "${ossVersion}";\n\nexport const REQUIRED_API_VERSION = "${minVersion}";`);
 
 	// Update other files that might need the version
 	for await (const entry of walk('.', { exts: ['.ts', '.rb'] })) {
 		if (entry.isFile) {
 			let content = await Deno.readTextFile(entry.path);
-			content = content.replace(/^\s*(?<!API_|MINIMUM_)VERSION\s*=\s*["'][\d.]+["']\s*;?\s*$/m, `VERSION = "${newVersion}"`);
+			content = content.replace(/^\s*(?<!API_|MINIMUM_)VERSION\s*=\s*["'][\d.-]+["']\s*;?\s*$/m, `VERSION = "${ossVersion}"`);
 			await Deno.writeTextFile(entry.path, content);
 		}
 	}

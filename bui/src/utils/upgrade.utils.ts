@@ -18,7 +18,7 @@ export interface GithubRelease {
 export async function fetchLatestRelease(): Promise<GithubRelease> {
 	//console.log('upgrade.utils: Fetching latest release');
 	try {
-		const response = await fetch('https://api.github.com/repos/Beyond-Better/bb/releases/latest');
+		const response = await fetch('https://asyagnmzoxgyhqprdaky.storage.supabase.co/storage/v1/object/releases/latest.json');
 		//console.log('upgrade.utils: GitHub API response status:', response.status);
 
 		if (!response.ok) {
