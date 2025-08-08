@@ -541,7 +541,6 @@ Deno.test({
 					foundResources.length === expectedResources.length,
 					'Number of found resources does not match expected',
 				);
-
 			} finally {
 				logChangeAndCommitStub.restore();
 			}

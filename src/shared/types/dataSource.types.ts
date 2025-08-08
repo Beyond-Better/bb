@@ -111,7 +111,6 @@ export interface ContentTypeGuidance {
 // DATASOURCE METADATA
 // =============================================================================
 
-
 export interface DataSourceMetadata {
 	totalResources: number;
 	resourceTypes: Record<string, number>;

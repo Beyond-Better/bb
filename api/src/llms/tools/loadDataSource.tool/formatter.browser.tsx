@@ -234,9 +234,10 @@ export const formatLogEntryToolResult = (
 									<div className='guidance-notes'>
 										{LLMTool.TOOL_TAGS_BROWSER.base.label('Important Notes:')}
 										{LLMTool.TOOL_TAGS_BROWSER.base.list(
-											data.contentTypeGuidance.notes.slice(0, 3).map((note: string, idx: number) => (
-												<div key={idx} className='guidance-note'>• {note}</div>
-											)),
+											data.contentTypeGuidance.notes.slice(0, 3).map((
+												note: string,
+												idx: number,
+											) => <div key={idx} className='guidance-note'>• {note}</div>),
 										)}
 									</div>
 								)}

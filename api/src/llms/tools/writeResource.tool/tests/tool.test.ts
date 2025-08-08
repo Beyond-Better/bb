@@ -238,46 +238,50 @@ Deno.test({
 
 				// Find the page using the exact resource ID (most reliable method)
 				const newestNotionPage = mockNotionClient.getPageData(notionResourceId);
-				
+
 				if (!newestNotionPage) {
 					console.log('Available Notion Page IDs:', Array.from(allNotionPages.keys()));
 					console.log('Looking for Resource ID:', notionResourceId);
 				}
-				
+
 				assert(newestNotionPage, `Should have created a Notion page with ID: ${notionResourceId}`);
-				
+
 				// Verify exact content match (no duplication)
 				const notionActualContent = newestNotionPage.blocks.map((block: any) => ({
 					style: block.style,
-					text: block.children?.map((child: any) => child.text).join('') || ''
+					text: block.children?.map((child: any) => child.text).join('') || '',
 				}));
-				
+
 				// Account for automatic title block when creating pages with parent
 				const notionExpectedContent = [
 					{ style: 'h1', text: 'Test Multi Datasource' }, // Auto-generated title
 					{ style: 'h1', text: 'Multi-Datasource Test' },
-					{ style: 'normal', text: 'This content should be created in available structured datasources.' }
+					{ style: 'normal', text: 'This content should be created in available structured datasources.' },
 				];
-				
+
 				//console.log('Notion actual content:', JSON.stringify(notionActualContent, null, 2));
 				//console.log('Notion expected content:', JSON.stringify(notionExpectedContent, null, 2));
-				
+
 				assertEquals(
 					notionActualContent.length,
 					notionExpectedContent.length,
-					`Notion page should have exactly ${notionExpectedContent.length} blocks, got ${notionActualContent.length}`
+					`Notion page should have exactly ${notionExpectedContent.length} blocks, got ${notionActualContent.length}`,
 				);
-				
+
 				for (let i = 0; i < notionExpectedContent.length; i++) {
 					assertEquals(
 						notionActualContent[i].style,
 						notionExpectedContent[i].style,
-						`Notion block ${i} should have style '${notionExpectedContent[i].style}', got '${notionActualContent[i].style}'`
+						`Notion block ${i} should have style '${notionExpectedContent[i].style}', got '${
+							notionActualContent[i].style
+						}'`,
 					);
 					assertEquals(
 						notionActualContent[i].text,
 						notionExpectedContent[i].text,
-						`Notion block ${i} should have text '${notionExpectedContent[i].text}', got '${notionActualContent[i].text}'`
+						`Notion block ${i} should have text '${notionExpectedContent[i].text}', got '${
+							notionActualContent[i].text
+						}'`,
 					);
 				}
 
@@ -333,45 +337,49 @@ Deno.test({
 					throw new Error('Unable to extract resource ID from Google Docs response');
 				}
 				const testGoogleDoc = mockGoogleDocsClient.getDocumentData(googleDocsResourceId);
-				
+
 				if (!testGoogleDoc) {
 					console.log('Available Google Docs IDs:', Array.from(allGoogleDocs.keys()));
 					console.log('Looking for Resource ID:', googleDocsResourceId);
 				}
-				
+
 				assert(testGoogleDoc, `Should have created a Google Docs document with ID: ${googleDocsResourceId}`);
-				
+
 				// Verify exact content match (no duplication)
 				const googleActualContent = testGoogleDoc.blocks.map((block: any) => ({
 					style: block.style,
-					text: block.children?.map((child: any) => child.text).join('') || ''
+					text: block.children?.map((child: any) => child.text).join('') || '',
 				}));
 				//console.log('test multiple datasources with structured content - googleActualContent:', googleActualContent);
-				
+
 				const googleExpectedContent = [
 					{ style: 'h1', text: 'Multi-Datasource Test' },
-					{ style: 'normal', text: 'This content should be created in available structured datasources.' }
+					{ style: 'normal', text: 'This content should be created in available structured datasources.' },
 				];
-				
+
 				//console.log('Google Docs actual content:', JSON.stringify(googleActualContent, null, 2));
 				//console.log('Google Docs expected content:', JSON.stringify(googleExpectedContent, null, 2));
-				
+
 				assertEquals(
 					googleActualContent.length,
 					googleExpectedContent.length,
-					`Google Docs document should have exactly ${googleExpectedContent.length} blocks, got ${googleActualContent.length}`
+					`Google Docs document should have exactly ${googleExpectedContent.length} blocks, got ${googleActualContent.length}`,
 				);
-				
+
 				for (let i = 0; i < googleExpectedContent.length; i++) {
 					assertEquals(
 						googleActualContent[i].style,
 						googleExpectedContent[i].style,
-						`Google Docs block ${i} should have style '${googleExpectedContent[i].style}', got '${googleActualContent[i].style}'`
+						`Google Docs block ${i} should have style '${googleExpectedContent[i].style}', got '${
+							googleActualContent[i].style
+						}'`,
 					);
 					assertEquals(
 						googleActualContent[i].text,
 						googleExpectedContent[i].text,
-						`Google Docs block ${i} should have text '${googleExpectedContent[i].text}', got '${googleActualContent[i].text}'`
+						`Google Docs block ${i} should have text '${googleExpectedContent[i].text}', got '${
+							googleActualContent[i].text
+						}'`,
 					);
 				}
 			} finally {
@@ -695,7 +703,10 @@ Deno.test({
 					);
 				}
 
-				assertStringIncludes(result.toolResponse, 'Created page/test-page-123/structured-test with structured content');
+				assertStringIncludes(
+					result.toolResponse,
+					'Created page/test-page-123/structured-test with structured content',
+				);
 
 				// Verify structured content was created correctly
 				// For Notion datasource, verify the mock client received the data

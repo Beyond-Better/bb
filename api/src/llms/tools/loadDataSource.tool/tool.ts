@@ -82,14 +82,15 @@ export default class LLMToolLoadDatasource extends LLMTool {
 	 * @returns Formatted string for display
 	 */
 	private formatContentTypeGuidance(guidance: any): string {
-		const { primaryContentType, acceptedContentTypes, acceptedEditTypes, preferredContentType, examples, notes } = guidance;
-		
+		const { primaryContentType, acceptedContentTypes, acceptedEditTypes, preferredContentType, examples, notes } =
+			guidance;
+
 		let formatted = `\nContent Type Guidance:\n`;
 		formatted += `Primary Type: ${primaryContentType}\n`;
 		formatted += `Accepted Content Types: ${acceptedContentTypes.join(', ')}\n`;
 		formatted += `Accepted Edit Types: ${acceptedEditTypes.join(', ')}\n`;
 		formatted += `Preferred Content Type: ${preferredContentType}\n`;
-		
+
 		if (examples && examples.length > 0) {
 			formatted += `\nUsage Examples:\n`;
 			examples.forEach((example: any, index: number) => {
@@ -98,7 +99,7 @@ export default class LLMToolLoadDatasource extends LLMTool {
 				const inputKeys = Object.keys(example.toolCall.input);
 				if (inputKeys.length > 0) {
 					formatted += `   Key Parameters:\n`;
-					inputKeys.forEach(key => {
+					inputKeys.forEach((key) => {
 						if (key !== 'resourcePath') {
 							formatted += `     ${key}: ${typeof example.toolCall.input[key]}\n`;
 						}
@@ -107,14 +108,14 @@ export default class LLMToolLoadDatasource extends LLMTool {
 				formatted += `\n`;
 			});
 		}
-		
+
 		if (notes && notes.length > 0) {
 			formatted += `Important Notes:\n`;
 			notes.forEach((note: string, index: number) => {
 				formatted += `• ${note}\n`;
 			});
 		}
-		
+
 		return formatted;
 	}
 

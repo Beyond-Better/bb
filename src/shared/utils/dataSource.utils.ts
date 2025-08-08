@@ -91,7 +91,7 @@ export function parseDataSourceUri(uri: string): {
 	const dataSourceName = simplePrefix ? '' : prefixParts[2]; // Normalized data source name
 	const originalScheme = simplePrefix ? prefixParts[0] : prefixParts[3]; // Original URI scheme
 
-	const uriPrefix = simplePrefix ? '' :  `${accessMethod}+${providerType}+${dataSourceName}`;
+	const uriPrefix = simplePrefix ? '' : `${accessMethod}+${providerType}+${dataSourceName}`;
 	// Reconstruct the original URI
 	const originalUri = `${originalScheme}${restOfUri}`;
 

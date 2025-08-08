@@ -30,8 +30,8 @@ import type {
 	LLMMessageContentPart,
 	LLMMessageContentPartAudioBlock,
 	LLMMessageContentPartImageBlock,
-	LLMMessageContentParts,
 	LLMMessageContentPartRedactedThinkingBlock,
+	LLMMessageContentParts,
 	LLMMessageContentPartTextBlock,
 	LLMMessageContentPartThinkingBlock,
 	LLMMessageContentPartToolResultBlock,
@@ -616,20 +616,21 @@ class LLMInteraction {
 	private validateContentPart(part: LLMMessageContentPart): boolean {
 		switch (part.type) {
 			case 'text':
-				return typeof (part as LLMMessageContentPartTextBlock).text === 'string' && 
-				       (part as LLMMessageContentPartTextBlock).text.trim().length > 0;
+				return typeof (part as LLMMessageContentPartTextBlock).text === 'string' &&
+					(part as LLMMessageContentPartTextBlock).text.trim().length > 0;
 			case 'thinking':
-				return typeof (part as LLMMessageContentPartThinkingBlock).thinking === 'string' && 
-				       (part as LLMMessageContentPartThinkingBlock).thinking.trim().length > 0;
+				return typeof (part as LLMMessageContentPartThinkingBlock).thinking === 'string' &&
+					(part as LLMMessageContentPartThinkingBlock).thinking.trim().length > 0;
 			case 'redacted_thinking':
-				return typeof (part as LLMMessageContentPartRedactedThinkingBlock).data === 'string' && 
-				       (part as LLMMessageContentPartRedactedThinkingBlock).data.trim().length > 0;
+				return typeof (part as LLMMessageContentPartRedactedThinkingBlock).data === 'string' &&
+					(part as LLMMessageContentPartRedactedThinkingBlock).data.trim().length > 0;
 			case 'tool_use':
 				const toolUsePart = part as LLMMessageContentPartToolUseBlock;
 				return !!(toolUsePart.id && toolUsePart.name && toolUsePart.input);
 			case 'tool_result':
 				const toolResultPart = part as LLMMessageContentPartToolResultBlock;
-				return !!(toolResultPart.tool_use_id && (toolResultPart.content || toolResultPart.is_error !== undefined));
+				return !!(toolResultPart.tool_use_id &&
+					(toolResultPart.content || toolResultPart.is_error !== undefined));
 			case 'image':
 				const imagePart = part as LLMMessageContentPartImageBlock;
 				return !!(imagePart.source?.data && imagePart.source?.media_type);

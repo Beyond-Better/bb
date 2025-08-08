@@ -153,7 +153,9 @@ function formatSimpleSearchResults(content: string, bbResponse: any) {
 			title: LLMTool.TOOL_STYLES_CONSOLE.content.title('Tool Result', 'Find Resources'),
 			subtitle: LLMTool.TOOL_STYLES_CONSOLE.content.subtitle(String(bbResponse)),
 			content: LLMTool.TOOL_STYLES_CONSOLE.base.value(
-				`${LLMTool.TOOL_STYLES_CONSOLE.content.icon('⚠️')} ${LLMTool.TOOL_STYLES_CONSOLE.base.label('Error:')} ${LLMTool.TOOL_STYLES_CONSOLE.status.error(errorMatch[1])}`
+				`${LLMTool.TOOL_STYLES_CONSOLE.content.icon('⚠️')} ${
+					LLMTool.TOOL_STYLES_CONSOLE.base.label('Error:')
+				} ${LLMTool.TOOL_STYLES_CONSOLE.status.error(errorMatch[1])}`,
 			),
 			preview: 'Search failed due to invalid pattern',
 		};
@@ -194,7 +196,9 @@ function formatStructuredSearchResults(bbResponse: any, toolContent: string) {
 			title: LLMTool.TOOL_STYLES_CONSOLE.content.title('Tool Result', 'Find Resources'),
 			subtitle: LLMTool.TOOL_STYLES_CONSOLE.content.subtitle('Search failed'),
 			content: LLMTool.TOOL_STYLES_CONSOLE.base.value(
-				`${LLMTool.TOOL_STYLES_CONSOLE.content.icon('⚠️')} ${LLMTool.TOOL_STYLES_CONSOLE.base.label('Error:')} ${LLMTool.TOOL_STYLES_CONSOLE.status.error(errorMessage)}`
+				`${LLMTool.TOOL_STYLES_CONSOLE.content.icon('⚠️')} ${
+					LLMTool.TOOL_STYLES_CONSOLE.base.label('Error:')
+				} ${LLMTool.TOOL_STYLES_CONSOLE.status.error(errorMessage)}`,
 			),
 			preview: 'Search failed due to error',
 		};
@@ -248,38 +252,46 @@ function formatStructuredSearchResults(bbResponse: any, toolContent: string) {
 
 		let content = enhancedContent;
 		if (pagination?.hasMore) {
-			content += `\n\n${LLMTool.TOOL_STYLES_CONSOLE.content.subtitle(
-				`More results available (page size: ${pagination.pageSize})`
-			)}`;
+			content += `\n\n${
+				LLMTool.TOOL_STYLES_CONSOLE.content.subtitle(
+					`More results available (page size: ${pagination.pageSize})`,
+				)
+			}`;
 		}
 
 		return {
 			title: LLMTool.TOOL_STYLES_CONSOLE.content.title('Tool Result', 'Find Resources'),
-			subtitle: LLMTool.TOOL_STYLES_CONSOLE.content.subtitle(`Found ${resources.length} files with ${totalMatches} matches`),
+			subtitle: LLMTool.TOOL_STYLES_CONSOLE.content.subtitle(
+				`Found ${resources.length} files with ${totalMatches} matches`,
+			),
 			content,
 			preview: `Found ${resources.length} files with ${totalMatches} matches`,
 		};
 	} else {
 		let content = stripIndents`
 			${
-				resources.map((resource: string) =>
-					LLMTool.TOOL_STYLES_CONSOLE.base.listItem(
-						LLMTool.TOOL_STYLES_CONSOLE.content.filename(resource),
-					)
-				).join('\n')
-			}
+			resources.map((resource: string) =>
+				LLMTool.TOOL_STYLES_CONSOLE.base.listItem(
+					LLMTool.TOOL_STYLES_CONSOLE.content.filename(resource),
+				)
+			).join('\n')
+		}
 		`;
 
 		if (dataSources.length > 0) {
-			content += `\n\n${LLMTool.TOOL_STYLES_CONSOLE.content.subtitle(
-				`Searched: ${dataSources.map((ds: any) => ds.dsConnectionName).join(', ')}`
-			)}`;
+			content += `\n\n${
+				LLMTool.TOOL_STYLES_CONSOLE.content.subtitle(
+					`Searched: ${dataSources.map((ds: any) => ds.dsConnectionName).join(', ')}`,
+				)
+			}`;
 		}
 
 		if (pagination?.hasMore) {
-			content += `\n\n${LLMTool.TOOL_STYLES_CONSOLE.content.subtitle(
-				`More results available (page size: ${pagination.pageSize})`
-			)}`;
+			content += `\n\n${
+				LLMTool.TOOL_STYLES_CONSOLE.content.subtitle(
+					`More results available (page size: ${pagination.pageSize})`,
+				)
+			}`;
 		}
 
 		return {

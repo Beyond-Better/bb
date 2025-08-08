@@ -26,7 +26,7 @@ export const formatLogEntryToolUse = (toolInput: LLMToolInputSchema): LLMToolLog
 	// Handle new unified operations format
 	if (operations && Array.isArray(operations)) {
 		operationCount = operations.length;
-		const editTypes = new Set(operations.map(op => op.editType));
+		const editTypes = new Set(operations.map((op) => op.editType));
 		editType = editTypes.size === 1 ? Array.from(editTypes)[0] : 'mixed';
 
 		operationElements = (
@@ -41,24 +41,22 @@ export const formatLogEntryToolUse = (toolInput: LLMToolInputSchema): LLMToolLog
 										{LLMTool.TOOL_TAGS_BROWSER.base.label(`Search & Replace ${index + 1}:`)}
 										({LLMTool.TOOL_TAGS_BROWSER.content.boolean(
 											op.searchReplace_caseSensitive ?? true,
-											'case-sensitive/case-insensitive'
-										)})
-										({LLMTool.TOOL_TAGS_BROWSER.content.boolean(
+											'case-sensitive/case-insensitive',
+										)}) ({LLMTool.TOOL_TAGS_BROWSER.content.boolean(
 											op.searchReplace_regexPattern ?? false,
-											'regex/literal'
-										)})
-										({LLMTool.TOOL_TAGS_BROWSER.content.boolean(
+											'regex/literal',
+										)}) ({LLMTool.TOOL_TAGS_BROWSER.content.boolean(
 											op.searchReplace_replaceAll ?? false,
-											'all/first'
+											'all/first',
 										)})
 									</div>
 									<div>
 										{LLMTool.TOOL_TAGS_BROWSER.base.label('Search:')}
-										{LLMTool.TOOL_TAGS_BROWSER.base.pre(op.searchReplace_search||'')}
+										{LLMTool.TOOL_TAGS_BROWSER.base.pre(op.searchReplace_search || '')}
 									</div>
 									<div>
 										{LLMTool.TOOL_TAGS_BROWSER.base.label('Replace:')}
-										{LLMTool.TOOL_TAGS_BROWSER.base.pre(op.searchReplace_replace||'')}
+										{LLMTool.TOOL_TAGS_BROWSER.base.pre(op.searchReplace_replace || '')}
 									</div>
 								</div>
 							);
@@ -66,7 +64,9 @@ export const formatLogEntryToolUse = (toolInput: LLMToolInputSchema): LLMToolLog
 							return (
 								<div key={index}>
 									<div>
-										{LLMTool.TOOL_TAGS_BROWSER.base.label(`Block ${op.blocks_operationType?.toUpperCase()} ${index + 1}:`)}
+										{LLMTool.TOOL_TAGS_BROWSER.base.label(
+											`Block ${op.blocks_operationType?.toUpperCase()} ${index + 1}:`,
+										)}
 									</div>
 									{op.blocks_index !== undefined && (
 										<div>
@@ -88,7 +88,8 @@ export const formatLogEntryToolUse = (toolInput: LLMToolInputSchema): LLMToolLog
 									)}
 									{op.blocks_from !== undefined && op.blocks_to !== undefined && (
 										<div>
-											Move: {LLMTool.TOOL_TAGS_BROWSER.content.number(op.blocks_from)} → {LLMTool.TOOL_TAGS_BROWSER.content.number(op.blocks_to)}
+											Move: {LLMTool.TOOL_TAGS_BROWSER.content.number(op.blocks_from)} →{' '}
+											{LLMTool.TOOL_TAGS_BROWSER.content.number(op.blocks_to)}
 										</div>
 									)}
 								</div>
@@ -97,7 +98,9 @@ export const formatLogEntryToolUse = (toolInput: LLMToolInputSchema): LLMToolLog
 							return (
 								<div key={index}>
 									<div>
-										{LLMTool.TOOL_TAGS_BROWSER.base.label(`Range ${op.range_rangeType} ${index + 1}:`)}
+										{LLMTool.TOOL_TAGS_BROWSER.base.label(
+											`Range ${op.range_rangeType} ${index + 1}:`,
+										)}
 									</div>
 									{op.range_location && (
 										<div>
@@ -134,12 +137,11 @@ export const formatLogEntryToolUse = (toolInput: LLMToolInputSchema): LLMToolLog
 								</div>
 							);
 						}
-					})
+					}),
 				)}
 			</>
 		);
-	}
-	// Legacy format support
+	} // Legacy format support
 	else if (searchAndReplaceEdits) {
 		editType = 'search-replace';
 		operationCount = searchAndReplaceEdits.operations.length;
@@ -149,15 +151,15 @@ export const formatLogEntryToolUse = (toolInput: LLMToolInputSchema): LLMToolLog
 					{LLMTool.TOOL_TAGS_BROWSER.base.label('Default settings:')}
 					{LLMTool.TOOL_TAGS_BROWSER.content.boolean(
 						searchAndReplaceEdits.caseSensitive ?? true,
-						'case-sensitive/case-insensitive'
+						'case-sensitive/case-insensitive',
 					)}
 					{LLMTool.TOOL_TAGS_BROWSER.content.boolean(
 						searchAndReplaceEdits.regexPattern ?? false,
-						'regex/literal'
+						'regex/literal',
 					)}
 					{LLMTool.TOOL_TAGS_BROWSER.content.boolean(
 						searchAndReplaceEdits.replaceAll ?? false,
-						'all/first'
+						'all/first',
 					)}
 				</div>
 				{LLMTool.TOOL_TAGS_BROWSER.base.label('Operations:')}
@@ -168,15 +170,13 @@ export const formatLogEntryToolUse = (toolInput: LLMToolInputSchema): LLMToolLog
 								{LLMTool.TOOL_TAGS_BROWSER.base.label(`Operation ${index + 1}:`)}
 								({LLMTool.TOOL_TAGS_BROWSER.content.boolean(
 									op.caseSensitive ?? searchAndReplaceEdits.caseSensitive ?? true,
-									'case-sensitive/case-insensitive'
-								)})
-								({LLMTool.TOOL_TAGS_BROWSER.content.boolean(
+									'case-sensitive/case-insensitive',
+								)}) ({LLMTool.TOOL_TAGS_BROWSER.content.boolean(
 									op.regexPattern ?? searchAndReplaceEdits.regexPattern ?? false,
-									'regex/literal'
-								)})
-								({LLMTool.TOOL_TAGS_BROWSER.content.boolean(
+									'regex/literal',
+								)}) ({LLMTool.TOOL_TAGS_BROWSER.content.boolean(
 									op.replaceAll ?? searchAndReplaceEdits.replaceAll ?? false,
-									'all/first'
+									'all/first',
 								)})
 							</div>
 							<div>
@@ -188,7 +188,7 @@ export const formatLogEntryToolUse = (toolInput: LLMToolInputSchema): LLMToolLog
 								{LLMTool.TOOL_TAGS_BROWSER.base.pre(op.replace)}
 							</div>
 						</div>
-					))
+					)),
 				)}
 			</>
 		);
@@ -224,12 +224,13 @@ export const formatLogEntryToolUse = (toolInput: LLMToolInputSchema): LLMToolLog
 								)}
 								{op.from !== undefined && op.to !== undefined && (
 									<div>
-										Move: {LLMTool.TOOL_TAGS_BROWSER.content.number(op.from)} → {LLMTool.TOOL_TAGS_BROWSER.content.number(op.to)}
+										Move: {LLMTool.TOOL_TAGS_BROWSER.content.number(op.from)} →{' '}
+										{LLMTool.TOOL_TAGS_BROWSER.content.number(op.to)}
 									</div>
 								)}
 							</div>
 						);
-					})
+					}),
 				)}
 			</>
 		);
@@ -263,7 +264,7 @@ export const formatLogEntryToolUse = (toolInput: LLMToolInputSchema): LLMToolLog
 				</div>
 			)}
 			{operationElements}
-		</>
+		</>,
 	);
 
 	return {
@@ -287,9 +288,9 @@ export const formatLogEntryToolResult = (
 			title: LLMTool.TOOL_TAGS_BROWSER.content.title('Tool Result', 'Edit Resource'),
 			subtitle: LLMTool.TOOL_TAGS_BROWSER.content.subtitle('Error: No response data'),
 			content: LLMTool.TOOL_TAGS_BROWSER.base.container(
-				<div className="text-red-700 dark:text-red-300">
+				<div className='text-red-700 dark:text-red-300'>
 					{LLMTool.TOOL_TAGS_BROWSER.base.label('Error: Response data is not available')}
-				</div>
+				</div>,
 			),
 			preview: 'Edit resource operation failed - no response data',
 		};
@@ -309,10 +310,12 @@ export const formatLogEntryToolResult = (
 	const content = LLMTool.TOOL_TAGS_BROWSER.base.container(
 		<>
 			<div className={isSuccess ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}>
-				{LLMTool.TOOL_TAGS_BROWSER.base.label(`Edit operations applied to ${responseData.resourcePath ?? 'unknown resource'}`)}
+				{LLMTool.TOOL_TAGS_BROWSER.base.label(
+					`Edit operations applied to ${responseData.resourcePath ?? 'unknown resource'}`,
+				)}
 			</div>
 			{results.length > 0 && (
-				<div className="mt-2">
+				<div className='mt-2'>
 					{LLMTool.TOOL_TAGS_BROWSER.base.list(
 						results.map((result, index) => {
 							// Style operation results based on their status
@@ -329,23 +332,23 @@ export const formatLogEntryToolResult = (
 									{result}
 								</div>
 							);
-						})
+						}),
 					)}
 				</div>
 			)}
-		</>
+		</>,
 	);
-	
-	const statusSummary = isSuccess 
-		? (warningCount > 0 
-			? `${successCount} successful, ${warningCount} warnings`
-			: `${successCount} successful`)
+
+	const statusSummary = isSuccess
+		? (warningCount > 0 ? `${successCount} successful, ${warningCount} warnings` : `${successCount} successful`)
 		: `${failedCount} failed`;
 
 	return {
 		title: LLMTool.TOOL_TAGS_BROWSER.content.title('Tool Result', 'Edit Resource'),
 		subtitle: LLMTool.TOOL_TAGS_BROWSER.content.subtitle(`${editType}: ${statusSummary}`),
 		content,
-		preview: `${responseData.operationsApplied ?? 0} operations applied to ${responseData.resourcePath ?? 'unknown resource'}`,
+		preview: `${responseData.operationsApplied ?? 0} operations applied to ${
+			responseData.resourcePath ?? 'unknown resource'
+		}`,
 	};
 };

@@ -13,9 +13,9 @@ import { SessionManager } from 'api/auth/session.ts';
 import { getProjectPersistenceManager } from 'api/storage/projectPersistenceManager.ts';
 import { FilesystemProvider } from 'api/dataSources/filesystemProvider.ts';
 import { getDataSourceRegistry } from 'api/dataSources/dataSourceRegistry.ts';
-import { TestNotionProvider, TestGoogleDocsProvider } from './testProviders.ts';
-import { MockNotionClient, MockGoogleDocsClient } from './mockClients.ts';
-import { getDefaultNotionTestData, getDefaultGoogleDocsTestData } from './testData.ts';
+import { TestGoogleDocsProvider, TestNotionProvider } from './testProviders.ts';
+import { MockGoogleDocsClient, MockNotionClient } from './mockClients.ts';
+import { getDefaultGoogleDocsTestData, getDefaultNotionTestData } from './testData.ts';
 import type { DataSourceConnection } from 'api/dataSources/interfaces/dataSourceConnection.ts';
 import type { DataSourceRegistry } from 'api/dataSources/dataSourceRegistry.ts';
 import type { DataSourceProviderType } from 'shared/types/dataSource.ts';
@@ -117,7 +117,10 @@ export async function getToolManager(
 		projectEditor.projectConfig = await configManager.getProjectConfig(projectEditor.projectId);
 	}
 
-	const toolManager = await new LLMToolManager(projectEditor.projectConfig, projectEditor.sessionManager, ['core','legacy'])
+	const toolManager = await new LLMToolManager(projectEditor.projectConfig, projectEditor.sessionManager, [
+		'core',
+		'legacy',
+	])
 		.init(); // Assuming 'core' is the default toolset - need to allow testing 'legacy' tools as well
 
 	assert(toolManager, 'Failed to get LLMToolManager');
@@ -257,12 +260,12 @@ export async function getTestProvider(
 	datasourceType: DataSourceProviderType,
 ): Promise<TestNotionProvider | TestGoogleDocsProvider | undefined> {
 	const dsConnections = projectEditor.projectData.dsConnections;
-	
+
 	for (const connection of dsConnections) {
 		if (connection.providerType === datasourceType) {
 			const dataSourceRegistry = await getDataSourceRegistry();
 			const provider = dataSourceRegistry.getProvider(datasourceType, 'bb');
-			
+
 			if (provider instanceof TestNotionProvider) {
 				return provider;
 			} else if (provider instanceof TestGoogleDocsProvider) {
@@ -270,6 +273,6 @@ export async function getTestProvider(
 			}
 		}
 	}
-	
+
 	return undefined;
 }

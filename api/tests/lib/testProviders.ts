@@ -5,7 +5,7 @@ import { NotionProvider } from 'api/dataSources/notionProvider.ts';
 import { GoogleDocsProvider } from 'api/dataSources/googledocsProvider.ts';
 import { NotionAccessor } from 'api/dataSources/notionAccessor.ts';
 import { GoogleDocsAccessor } from 'api/dataSources/googledocsAccessor.ts';
-import { MockNotionClient, MockGoogleDocsClient } from './mockClients.ts';
+import { MockGoogleDocsClient, MockNotionClient } from './mockClients.ts';
 import type { DataSourceConnection } from 'api/dataSources/interfaces/dataSourceConnection.ts';
 import type { ResourceAccessor } from 'api/dataSources/interfaces/resourceAccessor.ts';
 

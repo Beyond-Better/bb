@@ -38,5 +38,5 @@ export const CORE_DATASOURCES: Array<CoreDataSource> = [
 			enabled: true,
 			capabilities: ['read', 'write', 'list', 'search', 'move', 'delete'],
 		},
-	}
+	},
 ];

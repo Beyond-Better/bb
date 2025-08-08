@@ -63,7 +63,7 @@ Deno.test({
 				//		}],
 				//	},
 				//};
-//
+				//
 				//await assertRejects(
 				//	async () => await tool.runTool(interaction, multipleEditToolUse, projectEditor),
 				//	Error,
@@ -249,7 +249,6 @@ Deno.test({
 					);
 				}
 
-
 				// Check that both delete operations were processed
 				assert(Array.isArray(result.toolResults), 'toolResults should be an array');
 				// Should have: datasource info + summary + 2 operation results
@@ -258,7 +257,6 @@ Deno.test({
 				// Verify operation count
 				const summaryResult = result.toolResults[1] as LLMMessageContentPartTextBlock;
 				assertStringIncludes(summaryResult.text, 'Some operations skipped or failed. 0/1 operations succeeded');
-
 			} finally {
 				logChangeAndCommitStub.restore();
 			}

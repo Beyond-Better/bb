@@ -161,7 +161,7 @@ export class DataSourceConnection implements IDataSourceConnection {
 		return resourceUri.startsWith(`${this.accessMethod}+`)
 			? resourceUri
 			: generateDataSourceUri(this.accessMethod, this.providerType, this.name, resourceUri);
-			//: this.uriPrefix || generateDataSourceUri(this.accessMethod, this.providerType, this.name, resourceUri);
+		//: this.uriPrefix || generateDataSourceUri(this.accessMethod, this.providerType, this.name, resourceUri);
 	}
 
 	/**

@@ -298,7 +298,6 @@ describe('NotionProvider', () => {
 	});
 });
 
-
 describe('NotionAccessor', () => {
 	let provider: NotionProvider;
 	let connection: DataSourceConnection;
@@ -333,7 +332,7 @@ describe('NotionAccessor', () => {
 	});
 
 	it('should have correct capabilities', () => {
-console.log('NotionProvider - provider.caps', provider.capabilities)
+		console.log('NotionProvider - provider.caps', provider.capabilities);
 		assertEquals(accessor.hasCapability('read'), true);
 		assertEquals(accessor.hasCapability('edit'), true);
 		assertEquals(accessor.hasCapability('search'), true);
@@ -444,4 +443,3 @@ console.log('NotionProvider - provider.caps', provider.capabilities)
 		assertEquals(dbMatch.resourceType, 'database');
 	});
 });
-

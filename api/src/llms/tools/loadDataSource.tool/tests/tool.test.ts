@@ -308,7 +308,8 @@ Deno.test({
 				assert(editExample, 'Should have edit_resource example');
 				assert(editExample.toolCall.input.operations, 'Should have edit_resource.toolCall.input.operations');
 				assertEquals(
-					editExample.toolCall.input.operations[0].editType, 'searchReplace',
+					editExample.toolCall.input.operations[0].editType,
+					'searchReplace',
 					'edit_resource example should be searchReplace type',
 				);
 
@@ -402,18 +403,21 @@ Deno.test({
 				);
 				assert(notionWriteExample, 'Should have structured content write_resource example');
 
-				const notionEditExample = notionGuidance.examples.find((ex) =>
-					ex.toolCall.tool === 'edit_resource'
-				);
+				const notionEditExample = notionGuidance.examples.find((ex) => ex.toolCall.tool === 'edit_resource');
 				//logger.info('loadDataSource - notionEditExample.toolCall.input', notionEditExample?.toolCall?.input );
 				assert(notionEditExample, 'Should have blocks example');
-				assert(notionEditExample.toolCall.input.operations, 'Should have edit_resource.toolCall.input.operations');
+				assert(
+					notionEditExample.toolCall.input.operations,
+					'Should have edit_resource.toolCall.input.operations',
+				);
 				assertEquals(
-					notionEditExample.toolCall.input.operations[0].editType, 'blocks',
+					notionEditExample.toolCall.input.operations[0].editType,
+					'blocks',
 					'first edit_resource example should be blocks type',
 				);
 				assertEquals(
-					notionEditExample.toolCall.input.operations[1].editType, 'searchReplace',
+					notionEditExample.toolCall.input.operations[1].editType,
+					'searchReplace',
 					'second edit_resource example should be searchReplace type',
 				);
 				assertStringIncludes(
@@ -796,7 +800,7 @@ Deno.test({
 				'toolResults should have at least 3 parts for metadata with guidance',
 			);
 			const guidanceResult = result.toolResults[2];
-				logger.info('loadDataSource - guidanceResult', guidanceResult );
+			logger.info('loadDataSource - guidanceResult', guidanceResult);
 			assert(guidanceResult.type === 'text', 'Third result should be content type guidance');
 			assertStringIncludes(guidanceResult.text, 'Content Type Guidance:');
 			assertStringIncludes(guidanceResult.text, 'Primary Type: plain-text');

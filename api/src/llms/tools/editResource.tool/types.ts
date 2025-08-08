@@ -9,32 +9,31 @@ import type {
 	BlockEdits,
 	DataSourceInfo,
 	OperationResult,
+	RangeCharacters,
+	RangeLocation,
+	RangeOperationType,
+	RangeParagraphStyle,
+	RangeTextStyle,
+	ResourceEditOperation,
+	ResourceEditResult,
 	SearchReplaceEdits,
 	SearchReplaceOperation,
 	StructuredDataEdits,
-	RangeLocation,
-	RangeCharacters,
-	RangeTextStyle,
-	RangeParagraphStyle,
-	RangeOperationType,
-	ResourceEditResult,
-	ResourceEditOperation,
-	
 } from 'shared/types/dataSourceResource.ts';
 
 export type {
 	BlockEdits,
 	OperationResult,
+	RangeCharacters,
+	RangeLocation,
+	RangeOperationType,
+	RangeParagraphStyle,
+	RangeTextStyle,
+	ResourceEditOperation,
+	ResourceEditResult,
 	SearchReplaceEdits,
 	SearchReplaceOperation,
 	StructuredDataEdits,
-	RangeLocation,
-	RangeCharacters,
-	RangeTextStyle,
-	RangeParagraphStyle,
-	RangeOperationType,
-	ResourceEditOperation,
-	ResourceEditResult,
 } from 'shared/types/dataSourceResource.ts';
 
 // Shared content types (for validation and type guards)
@@ -45,7 +44,6 @@ export { isBinaryContent, isPlainTextContent, isStructuredContent } from 'shared
 
 // Response data types
 export type { DataSourceInfo, ResourceUpdateInfo } from 'shared/types/dataSourceResource.ts';
-
 
 /**
  * Input for edit_resource tool (updated for operations array approach)
