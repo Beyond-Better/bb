@@ -46,6 +46,10 @@ jobs:
             llmProviders:
               anthropic: 
                 apiKey: sk-not-a-valid-key-not-a-valid-key-not-a-valid-key-not-a-valid-key-not-a-valid-key
+            dataSourceProviders:
+              googledocs:
+                refreshExchangeUri: https://chat.beyondbetter.app/api/v1/oauth/google/token
+
           bui:
             environment: local
             hostname: localhost
@@ -54,6 +58,10 @@ jobs:
               useTls: false
             logFile: bui.log
             logLevel: info
+            googleOauth:
+              redirectUri: https://chat.beyondbetter.app/oauth/google/callback
+              clientId: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
+              clientSecret: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
           cli: {}
           EOF
 

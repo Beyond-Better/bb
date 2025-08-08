@@ -6,6 +6,9 @@ import type { LLMToolLoadDatasourceResponseData } from '../types.ts';
 import type { DataSourceConnection } from 'api/dataSources/dataSourceConnection.ts';
 import { FilesystemProvider } from 'api/dataSources/filesystemProvider.ts';
 import { getDataSourceRegistry } from 'api/dataSources/dataSourceRegistry.ts';
+import type { DataSourceProviderType } from 'shared/types/dataSource.ts';
+import type { ContentTypeGuidance } from 'shared/types/dataSource.ts';
+import { logger } from 'shared/logger.ts';
 
 // Type guard for response validation
 export function isLoadDatasourceResponse(
@@ -117,6 +120,7 @@ Deno.test({
 					id: 'ds-xyz1234',
 					isPrimary: true,
 					//capabilities: ['read', 'write', 'list', 'search'],
+					projectConfig: projectEditor.projectConfig,
 				},
 			);
 			const accessor = await dsConnection.getResourceAccessor();
@@ -212,6 +216,453 @@ Deno.test({
 	sanitizeOps: false,
 });
 
+// ============================================================================
+// CONTENT TYPE GUIDANCE TESTS
+// ============================================================================
+
+Deno.test({
+	name: 'LoadDatasourceTool - Content type guidance for filesystem provider',
+	fn: async () => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
+
+			// Create test files
+			await createTestFiles(testProjectRoot);
+
+			const toolManager = await getToolManager(projectEditor);
+			const tool = await toolManager.getTool('load_datasource');
+			assert(tool, 'Failed to get tool');
+
+			// Setup filesystem datasource
+			const dataSourceRegistry = await getDataSourceRegistry();
+			const dsConnection = FilesystemProvider.createFileSystemDataSource(
+				'test filesystem guidance',
+				testProjectRoot,
+				dataSourceRegistry,
+				{
+					id: 'ds-filesystem-guidance',
+					isPrimary: true,
+					projectConfig: projectEditor.projectConfig,
+				},
+			);
+
+			projectEditor.projectData.setDsConnections([dsConnection]);
+
+			const toolUse: LLMAnswerToolUse = {
+				toolValidation: { validated: true, results: '' },
+				toolUseId: 'test-filesystem-guidance',
+				toolName: 'load_datasource',
+				toolInput: {
+					dataSourceId: 'ds-filesystem-guidance',
+					returnType: 'metadata',
+				},
+			};
+
+			const initialInteraction = await projectEditor.initInteraction(
+				'test-filesystem-guidance-collaboration',
+				'test-filesystem-guidance-interaction',
+			);
+			const result = await tool.runTool(initialInteraction, toolUse, projectEditor);
+
+			// Verify content type guidance is present
+			assert(
+				isMetadataResponse(result.bbResponse),
+				'bbResponse should have the correct structure for metadata response',
+			);
+
+			if (isMetadataResponse(result.bbResponse)) {
+				const guidance = result.bbResponse.data.contentTypeGuidance as ContentTypeGuidance;
+				assert(guidance, 'Content type guidance should be present');
+
+				// Verify filesystem-specific guidance
+				assertEquals(guidance.primaryContentType, 'plain-text');
+				assert(
+					guidance.acceptedContentTypes.includes('plainTextContent'),
+					'Should accept plainTextContent',
+				);
+				assert(
+					guidance.acceptedContentTypes.includes('binaryContent'),
+					'Should accept binaryContent',
+				);
+				assert(
+					guidance.acceptedEditTypes.includes('searchReplace'),
+					'Should accept searchReplace',
+				);
+				assertEquals(guidance.preferredContentType, 'plainTextContent');
+
+				// Verify examples are present
+				assert(Array.isArray(guidance.examples), 'Examples should be an array');
+				assert(guidance.examples.length >= 2, 'Should have at least 2 examples');
+
+				// Check for write_resource example
+				const writeExample = guidance.examples.find((ex) => ex.toolCall.tool === 'write_resource');
+				assert(writeExample, 'Should have write_resource example');
+				assert(
+					writeExample.toolCall.input.plainTextContent,
+					'write_resource example should use plainTextContent',
+				);
+
+				// Check for edit_resource example
+				const editExample = guidance.examples.find((ex) => ex.toolCall.tool === 'edit_resource');
+				//logger.info('loadDataSource - editExample', editExample );
+				assert(editExample, 'Should have edit_resource example');
+				assert(editExample.toolCall.input.operations, 'Should have edit_resource.toolCall.input.operations');
+				assertEquals(
+					editExample.toolCall.input.operations[0].editType, 'searchReplace',
+					'edit_resource example should be searchReplace type',
+				);
+
+				// Verify notes contain corrected information
+				assert(Array.isArray(guidance.notes), 'Notes should be an array');
+				const notesText = guidance.notes.join(' ');
+				assertStringIncludes(
+					notesText,
+					'multi-line string',
+					'Notes should mention multi-line string search (not line-by-line)',
+				);
+				assert(
+					!notesText.includes('line-by-line'),
+					'Notes should not mention line-by-line',
+				);
+			}
+
+			// Verify guidance appears in toolResults
+			assert(Array.isArray(result.toolResults), 'toolResults should be an array');
+			const guidanceResult = result.toolResults.find((r: any) =>
+				r.type === 'text' && r.text.includes('Content Type Guidance:')
+			);
+			assert(guidanceResult, 'Content type guidance should appear in toolResults');
+		});
+	},
+	sanitizeResources: false,
+	sanitizeOps: false,
+});
+
+Deno.test({
+	name: 'LoadDatasourceTool - Content type guidance for multiple datasource types',
+	fn: async () => {
+		const extraDatasources = ['notion', 'googledocs'] as DataSourceProviderType[];
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
+
+			const toolManager = await getToolManager(projectEditor);
+			const tool = await toolManager.getTool('load_datasource');
+			assert(tool, 'Failed to get tool');
+
+			// Test Notion datasource guidance
+			const notionToolUse: LLMAnswerToolUse = {
+				toolValidation: { validated: true, results: '' },
+				toolUseId: 'test-notion-guidance',
+				toolName: 'load_datasource',
+				toolInput: {
+					dataSourceId: 'test-notion-connection',
+					returnType: 'metadata',
+				},
+			};
+
+			const interaction = await projectEditor.initInteraction(
+				'test-multi-guidance-collaboration',
+				'test-multi-guidance-interaction',
+			);
+			const notionResult = await tool.runTool(interaction, notionToolUse, projectEditor);
+			// console.log('Content type guidance for multiple datasource types - notion - bbResponse:', notionResult.bbResponse);
+			// console.log('Content type guidance for multiple datasource types - notion - toolResponse:', notionResult.toolResponse);
+			// console.log('Content type guidance for multiple datasource types - notion - toolResults:', notionResult.toolResults);
+
+			// Verify Notion guidance
+			assert(
+				isMetadataResponse(notionResult.bbResponse),
+				'Notion bbResponse should have the correct structure',
+			);
+
+			if (isMetadataResponse(notionResult.bbResponse)) {
+				const notionGuidance = notionResult.bbResponse.data.contentTypeGuidance as ContentTypeGuidance;
+				//logger.info('loadDataSource - notionGuidance', notionGuidance );
+				assert(notionGuidance, 'Notion content type guidance should be present');
+
+				// Verify Notion-specific guidance
+				assertEquals(notionGuidance.primaryContentType, 'structured');
+				assert(
+					notionGuidance.acceptedContentTypes.includes('structuredContent'),
+					'Notion should accept structuredContent',
+				);
+				assert(
+					notionGuidance.acceptedContentTypes.includes('plainTextContent'),
+					'Notion should accept plainTextContent (auto-converted)',
+				);
+				assert(
+					notionGuidance.acceptedEditTypes.includes('blocks'),
+					'Notion should accept blocks',
+				);
+				assertEquals(notionGuidance.preferredContentType, 'structuredContent');
+
+				// Verify Notion examples
+				const notionWriteExample = notionGuidance.examples.find((ex) =>
+					ex.toolCall.tool === 'write_resource' && ex.toolCall.input.structuredContent
+				);
+				assert(notionWriteExample, 'Should have structured content write_resource example');
+
+				const notionEditExample = notionGuidance.examples.find((ex) =>
+					ex.toolCall.tool === 'edit_resource'
+				);
+				//logger.info('loadDataSource - notionEditExample.toolCall.input', notionEditExample?.toolCall?.input );
+				assert(notionEditExample, 'Should have blocks example');
+				assert(notionEditExample.toolCall.input.operations, 'Should have edit_resource.toolCall.input.operations');
+				assertEquals(
+					notionEditExample.toolCall.input.operations[0].editType, 'blocks',
+					'first edit_resource example should be blocks type',
+				);
+				assertEquals(
+					notionEditExample.toolCall.input.operations[1].editType, 'searchReplace',
+					'second edit_resource example should be searchReplace type',
+				);
+				assertStringIncludes(
+					notionEditExample.description,
+					'Edit Notion page with blocks and searchReplace operations',
+					'Edit example should emphasize loading resource first',
+				);
+
+				// Verify corrected notes (no API key references)
+				const notionNotesText = notionGuidance.notes?.join(' ') || '';
+				assert(
+					!notionNotesText.includes('API key'),
+					'Notion notes should not reference API key',
+				);
+				assertStringIncludes(
+					notionNotesText,
+					'load existing resources first',
+					'Notes should emphasize loading resources first',
+				);
+				assertStringIncludes(
+					notionNotesText,
+					'_key values must be preserved',
+					'Notes should mention _key preservation',
+				);
+			}
+
+			// Test Google Docs datasource guidance
+			const googleDocsToolUse: LLMAnswerToolUse = {
+				toolValidation: { validated: true, results: '' },
+				toolUseId: 'test-googledocs-guidance',
+				toolName: 'load_datasource',
+				toolInput: {
+					dataSourceId: 'test-googledocs-connection',
+					returnType: 'metadata',
+				},
+			};
+
+			const googleDocsResult = await tool.runTool(interaction, googleDocsToolUse, projectEditor);
+			// console.log('Content type guidance for multiple datasource types - googledocs - bbResponse:', googleDocsResult.bbResponse);
+			// console.log('Content type guidance for multiple datasource types - googledocs - toolResponse:', googleDocsResult.toolResponse);
+			// console.log('Content type guidance for multiple datasource types - googledocs - toolResults:', googleDocsResult.toolResults);
+
+			// Verify Google Docs guidance
+			assert(
+				isMetadataResponse(googleDocsResult.bbResponse),
+				'Google Docs bbResponse should have the correct structure',
+			);
+
+			if (isMetadataResponse(googleDocsResult.bbResponse)) {
+				const googleGuidance = googleDocsResult.bbResponse.data.contentTypeGuidance as ContentTypeGuidance;
+				assert(googleGuidance, 'Google Docs content type guidance should be present');
+
+				// Verify Google Docs-specific guidance
+				assertEquals(googleGuidance.primaryContentType, 'structured');
+				assert(
+					googleGuidance.acceptedContentTypes.includes('structuredContent'),
+					'Google Docs should accept structuredContent',
+				);
+				assert(
+					googleGuidance.acceptedEditTypes.includes('blocks'),
+					'Google Docs should accept blocks',
+				);
+
+				// Verify corrected notes (no OAuth2 references)
+				const googleNotesText = googleGuidance.notes?.join(' ') || '';
+				//logger.info('loadDataSource - googleNotesText', googleNotesText );
+				assert(
+					!googleNotesText.includes('OAuth2'),
+					'Google Docs notes should not reference OAuth2',
+				);
+				assert(
+					!googleNotesText.includes('authentication'),
+					'Google Docs notes should not reference authentication details',
+				);
+				assertStringIncludes(
+					googleNotesText,
+					'Always load existing resources first to see current document structure and range values',
+					'Notes should mention document structure and range values',
+				);
+				assertStringIncludes(
+					googleNotesText,
+					'Use contentFormat="structured" when loading for range operations',
+					'Notes should mention contentFormat choice',
+				);
+			}
+		}, extraDatasources);
+	},
+	sanitizeResources: false,
+	sanitizeOps: false,
+});
+
+Deno.test({
+	name: 'LoadDatasourceTool - Content type guidance with both returnType',
+	fn: async () => {
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
+
+			// Create test files
+			await createTestFiles(testProjectRoot);
+
+			const toolManager = await getToolManager(projectEditor);
+			const tool = await toolManager.getTool('load_datasource');
+			assert(tool, 'Failed to get tool');
+
+			// Setup filesystem datasource
+			const dataSourceRegistry = await getDataSourceRegistry();
+			const dsConnection = FilesystemProvider.createFileSystemDataSource(
+				'test both guidance',
+				testProjectRoot,
+				dataSourceRegistry,
+				{
+					id: 'ds-both-guidance',
+					isPrimary: true,
+					projectConfig: projectEditor.projectConfig,
+				},
+			);
+
+			projectEditor.projectData.setDsConnections([dsConnection]);
+
+			const toolUse: LLMAnswerToolUse = {
+				toolValidation: { validated: true, results: '' },
+				toolUseId: 'test-both-guidance',
+				toolName: 'load_datasource',
+				toolInput: {
+					dataSourceId: 'ds-both-guidance',
+					returnType: 'both',
+					depth: 2,
+				},
+			};
+
+			const initialInteraction = await projectEditor.initInteraction(
+				'test-both-guidance-collaboration',
+				'test-both-guidance-interaction',
+			);
+			const result = await tool.runTool(initialInteraction, toolUse, projectEditor);
+
+			// Verify both mode includes content type guidance
+			assert(
+				isLoadDatasourceResponse(result.bbResponse),
+				'bbResponse should have the correct structure',
+			);
+
+			if (isLoadDatasourceResponse(result.bbResponse)) {
+				// Should have metadata, resources, AND content type guidance
+				assert('metadata' in result.bbResponse.data, 'Should have metadata');
+				assert('resources' in result.bbResponse.data, 'Should have resources');
+				assert('contentTypeGuidance' in result.bbResponse.data, 'Should have content type guidance');
+
+				const guidance = result.bbResponse.data.contentTypeGuidance as ContentTypeGuidance;
+				assert(guidance, 'Content type guidance should be present');
+				assertEquals(guidance.primaryContentType, 'plain-text');
+			}
+
+			// Verify toolResults structure includes guidance
+			assert(Array.isArray(result.toolResults), 'toolResults should be an array');
+			assert(
+				result.toolResults.length >= 4,
+				'toolResults should have at least 4 parts for both mode with guidance',
+			);
+
+			// Should have: datasource info, metadata, guidance, sample resources
+			const guidanceResult = result.toolResults.find((r: any) =>
+				r.type === 'text' && r.text.includes('Content Type Guidance:')
+			);
+			assert(guidanceResult, 'Content type guidance should appear in toolResults');
+
+			const resourcesResult = result.toolResults.find((r: any) =>
+				r.type === 'text' && r.text.includes('Sample Resources')
+			);
+			assert(resourcesResult, 'Sample resources should appear in toolResults');
+		});
+	},
+	sanitizeResources: false,
+	sanitizeOps: false,
+});
+
+Deno.test({
+	name: 'LoadDatasourceTool - Content type guidance acknowledgement references',
+	fn: async () => {
+		const extraDatasources = ['notion'] as DataSourceProviderType[];
+		await withTestProject(async (testProjectId, _testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
+
+			const toolManager = await getToolManager(projectEditor);
+			const tool = await toolManager.getTool('load_datasource');
+			assert(tool, 'Failed to get tool');
+
+			const toolUse: LLMAnswerToolUse = {
+				toolValidation: { validated: true, results: '' },
+				toolUseId: 'test-acknowledgement-guidance',
+				toolName: 'load_datasource',
+				toolInput: {
+					dataSourceId: 'test-notion-connection',
+					returnType: 'metadata',
+				},
+			};
+
+			const interaction = await projectEditor.initInteraction(
+				'test-acknowledgement-collaboration',
+				'test-acknowledgement-interaction',
+			);
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
+			// console.log('Content type guidance acknowledgement references - bbResponse:', result.bbResponse);
+			// console.log('Content type guidance acknowledgement references - toolResponse:', result.toolResponse);
+			// console.log('Content type guidance acknowledgement references - toolResults:', result.toolResults);
+
+			// Verify guidance examples reference input schema instead of literal acknowledgements
+			assert(
+				isMetadataResponse(result.bbResponse),
+				'bbResponse should have the correct structure',
+			);
+
+			if (isMetadataResponse(result.bbResponse)) {
+				const guidance = result.bbResponse.data.contentTypeGuidance as ContentTypeGuidance;
+				assert(guidance, 'Content type guidance should be present');
+
+				// Check that examples reference input schema instead of literal acknowledgements
+				const writeExamples = guidance.examples.filter((ex) => ex.toolCall.tool === 'write_resource');
+				assert(writeExamples.length > 0, 'Should have write_resource examples');
+
+				for (const example of writeExamples) {
+					if (example.toolCall.input.structuredContent) {
+						const acknowledgement = example.toolCall.input.structuredContent.acknowledgement;
+						assertStringIncludes(
+							acknowledgement,
+							'input schema',
+							'Acknowledgement should reference input schema rather than literal text',
+						);
+						assert(
+							!acknowledgement.includes('Creating structured'),
+							'Should not contain literal acknowledgement text',
+						);
+					}
+					if (example.toolCall.input.plainTextContent) {
+						const acknowledgement = example.toolCall.input.plainTextContent.acknowledgement;
+						assertStringIncludes(
+							acknowledgement,
+							'input schema',
+							'Acknowledgement should reference input schema rather than literal text',
+						);
+					}
+				}
+			}
+		}, extraDatasources);
+	},
+	sanitizeResources: false,
+	sanitizeOps: false,
+});
+
 Deno.test({
 	name: 'LoadDatasourceTool - Get metadata from filesystem',
 	fn: async () => {
@@ -234,6 +685,7 @@ Deno.test({
 				{
 					id: 'ds-metadata-test',
 					isPrimary: true,
+					projectConfig: projectEditor.projectConfig,
 				},
 			);
 
@@ -303,9 +755,21 @@ Deno.test({
 				assertEquals(result.bbResponse.data.dataSource.dsConnectionId, 'ds-metadata-test');
 
 				// Resources should NOT be present in metadata-only response
+				// Resources should NOT be present in metadata-only response
 				assert(
 					!('resources' in result.bbResponse.data),
 					'Resources should not be present in metadata response',
+				);
+
+				// Content type guidance SHOULD be present in metadata response
+				assert(
+					'contentTypeGuidance' in result.bbResponse.data,
+					'Content type guidance should be present in metadata response',
+				);
+				assert(
+					result.bbResponse.data.contentTypeGuidance &&
+						typeof result.bbResponse.data.contentTypeGuidance === 'object',
+					'Content type guidance should be an object',
 				);
 			}
 
@@ -325,6 +789,19 @@ Deno.test({
 			assert(metadataResult.type === 'text', 'Second result should be of type text');
 			assertStringIncludes(metadataResult.text, 'Metadata:');
 			assertStringIncludes(metadataResult.text, 'Total Resources:');
+
+			// Check for content type guidance in toolResults
+			assert(
+				result.toolResults.length >= 3,
+				'toolResults should have at least 3 parts for metadata with guidance',
+			);
+			const guidanceResult = result.toolResults[2];
+				logger.info('loadDataSource - guidanceResult', guidanceResult );
+			assert(guidanceResult.type === 'text', 'Third result should be content type guidance');
+			assertStringIncludes(guidanceResult.text, 'Content Type Guidance:');
+			assertStringIncludes(guidanceResult.text, 'Primary Type: plain-text');
+			assertStringIncludes(guidanceResult.text, 'plainTextContent, binaryContent');
+			assertStringIncludes(guidanceResult.text, 'searchReplace');
 		});
 	},
 	sanitizeResources: false,
@@ -353,6 +830,7 @@ Deno.test({
 				{
 					id: 'ds-both-test',
 					isPrimary: true,
+					projectConfig: projectEditor.projectConfig,
 				},
 			);
 
@@ -374,7 +852,9 @@ Deno.test({
 				'test-both-interaction-id',
 			);
 			const result = await tool.runTool(initialInteraction, toolUse, projectEditor);
-			console.log('Get both metadata and resources - bbResponse:', result.bbResponse);
+			// console.log('Get both metadata and sample resources - bbResponse:', result.bbResponse);
+			// console.log('Get both metadata and sample resources - toolResponse:', result.toolResponse);
+			// console.log('Get both metadata and sample resources - toolResults:', result.toolResults);
 
 			assert(
 				result.bbResponse && typeof result.bbResponse === 'object',
@@ -392,6 +872,10 @@ Deno.test({
 				// Verify both metadata and resources are present
 				assert('metadata' in result.bbResponse.data, 'Metadata should be present in both response');
 				assert('resources' in result.bbResponse.data, 'Resources should be present in both response');
+				assert(
+					'contentTypeGuidance' in result.bbResponse.data,
+					'Content type guidance should be present in both response',
+				);
 
 				// Verify metadata structure
 				const metadata = result.bbResponse.data.metadata;
@@ -443,7 +927,12 @@ Deno.test({
 			assert(metadataResult.type === 'text', 'Second result should be metadata');
 			assertStringIncludes(metadataResult.text, 'Metadata:');
 
-			const resourcesResult = result.toolResults[2];
+			const resourcesGuidance = result.toolResults[2];
+			assert(resourcesGuidance.type === 'text', 'Third result should be guidance');
+			assertStringIncludes(resourcesGuidance.text, 'Content Type Guidance');
+			assertStringIncludes(resourcesGuidance.text, 'Primary Type: plain-text');
+
+			const resourcesResult = result.toolResults[3];
 			assert(resourcesResult.type === 'text', 'Third result should be sample resources');
 			assertStringIncludes(resourcesResult.text, 'Sample Resources');
 			assertStringIncludes(resourcesResult.text, 'URI Template: file:./{path}');

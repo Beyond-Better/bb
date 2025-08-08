@@ -1,0 +1,12 @@
+{
+  "name": "edit_resource",
+  "version": "1.0.0",
+  "description": "Edit existing resources with multiple editing approaches and content-type awareness. Consolidates search-and-replace, block editing, and structured data editing capabilities.",
+  "author": "BB Core",
+  "license": "MIT",
+  "toolSets": ["core"],
+  "enabled": true,
+  "mutates": true,
+  "category": ["file_management", "content_editing"],
+  "capabilities": ["edit", "search", "replace", "block_edit", "structured_data"]
+}

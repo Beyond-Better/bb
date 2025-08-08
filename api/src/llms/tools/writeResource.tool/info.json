@@ -1,0 +1,12 @@
+{
+	"name": "write_resource",
+	"version": "1.0.0",
+	"description": "Create new or rewrite existing resources with content-type-aware input handling. For filesystem data sources, use plainTextContent or binaryContent. For structured content data sources like Notion, use structuredContent. The tool validates content type compatibility with the target data source and provides clear error messages for mismatches.",
+	"author": "BB Core",
+	"license": "MIT",
+	"toolSets": ["core"],
+	"enabled": true,
+	"mutates": true,
+	"category": ["file_management", "content_creation"],
+	"capabilities": ["create", "write", "overwrite"]
+}

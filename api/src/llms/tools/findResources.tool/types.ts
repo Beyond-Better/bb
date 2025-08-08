@@ -1,7 +1,8 @@
 import type { DataSourceProviderType } from 'shared/types/dataSource.ts';
-import type { ContentMatch, ResourceMatch } from 'api/utils/fileHandling.ts';
+import type { ContentMatch, ResourceMatch } from 'shared/types/dataSourceResource.ts';
 
 export interface LLMToolFindResourcesInput {
+	dataSourceId?: string;
 	dataSourceIds?: string[];
 	contentPattern?: string;
 	caseSensitive?: boolean;
@@ -12,6 +13,12 @@ export interface LLMToolFindResourcesInput {
 	sizeMax?: number;
 	contextLines?: number;
 	maxMatchesPerFile?: number;
+	// New unified operations parameters
+	resultLevel?: 'resource' | 'container' | 'fragment' | 'detailed';
+	pageSize?: number;
+	pageToken?: string;
+	regexPattern?: boolean;
+	structuredQuery?: any;
 }
 
 export type LLMToolFindResourcesContentMatch = ContentMatch;
@@ -32,6 +39,12 @@ export type LLMToolFindResourcesResourceMatch = ResourceMatch;
 //}
 export type LLMToolFindResourcesResourceMatches = Array<LLMToolFindResourcesResourceMatch>;
 
+export interface LLMToolFindResourcesPaginationInfo {
+	hasMore: boolean;
+	pageSize: number;
+	pageToken?: string;
+}
+
 export interface LLMToolFindResourcesResponseData {
 	data: {
 		resources: string[];
@@ -45,12 +58,33 @@ export interface LLMToolFindResourcesResponseData {
 				dsProviderType: DataSourceProviderType;
 			}
 		>;
+		pagination?: LLMToolFindResourcesPaginationInfo;
 	};
 }
 
 export interface LLMToolFindResourcesResult {
 	toolResults: string;
 	toolResponse: string;
-	bbResponse: string;
-	// bbResponse: LLMToolFindResources;
+	bbResponse: LLMToolFindResourcesResponseData;
+}
+
+// Type guard for response validation
+export function isFindResourcesResponse(
+	response: unknown,
+): response is LLMToolFindResourcesResponseData {
+	const data = response && typeof response === 'object' && 'data' in response
+		? (response as { data: unknown }).data
+		: null;
+	return (
+		data !== null &&
+		typeof data === 'object' &&
+		'resources' in data &&
+		Array.isArray((data as { resources: unknown }).resources) &&
+		'matches' in data &&
+		Array.isArray((data as { matches: unknown }).matches) &&
+		'searchCriteria' in data &&
+		typeof (data as { searchCriteria: unknown }).searchCriteria === 'string' &&
+		'dataSources' in data &&
+		Array.isArray((data as { dataSources: unknown }).dataSources)
+	);
 }

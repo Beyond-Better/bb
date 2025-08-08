@@ -34,7 +34,10 @@ export default class LogEntryFormatterManager {
 	public async init(): Promise<LogEntryFormatterManager> {
 		const configManager = await getConfigManager();
 		this.globalConfig = await configManager.getGlobalConfig();
-		this.toolManager = await new LLMToolManager(this.projectConfig, this.projectEditor.sessionManager, 'core')
+		this.toolManager = await new LLMToolManager(this.projectConfig, this.projectEditor.sessionManager, [
+			'core',
+			'legacy',
+		])
 			.init(); // Pass MCPManager to LLMToolManager
 		//logger.debug(`LogEntryFormatterManager: Initialized toolManager:`, this.toolManager.getAllToolsMetadata());
 		return this;
@@ -227,6 +230,7 @@ export default class LogEntryFormatterManager {
 		if (typeof content === 'string') {
 			// Remove any XML-style tags and trim
 			const cleaned = content.replace(/<[^>]+>/g, '').trim();
+			if (!cleaned) return '';
 			// Take first 50 characters, try to end at a word boundary
 			if (cleaned.length <= 400) return cleaned;
 			const truncated = cleaned.substring(0, 400);

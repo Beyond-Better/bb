@@ -429,7 +429,8 @@ Deno.test({
 				assert(false, 'bbResponse does not have the expected structure for LoadResourcesTool');
 			}
 
-			assertStringIncludes(result.toolResponse, 'Failed to load resource: File not found');
+			assertStringIncludes(result.toolResponse, 'Failed to add resources to the conversation');
+			assertStringIncludes(result.toolResponse, 'bb+filesystem+primary+file:./../outside_project.txt: Access denied: resource is outside the data source directory');
 
 			// Check toolResults
 			assert(Array.isArray(result.toolResults), 'toolResults should be an array');
@@ -442,7 +443,7 @@ Deno.test({
 
 			const errorResult = result.toolResults[1];
 			assert(errorResult.type === 'text', 'Second result should be of type text');
-			assertStringIncludes(errorResult.text, 'Failed to load resource: File not found');
+			assertStringIncludes(errorResult.text, 'Access denied: resource is outside the data source directory');
 		});
 	},
 	sanitizeResources: false,
@@ -473,9 +474,9 @@ Deno.test({
 
 			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
-			// console.log('Direct Mode - Resource outside project root - bbResponse:', result.bbResponse);
-			// console.log('Direct Mode - Resource outside project root - toolResponse:', result.toolResponse);
-			// console.log('Direct Mode - Resource outside project root - toolResults:', result.toolResults);
+			//console.log('Direct Mode - Resource outside project root - bbResponse:', result.bbResponse);
+			//console.log('Direct Mode - Resource outside project root - toolResponse:', result.toolResponse);
+			//console.log('Direct Mode - Resource outside project root - toolResults:', result.toolResults);
 
 			assert(
 				result.bbResponse && typeof result.bbResponse === 'object',
@@ -506,7 +507,8 @@ Deno.test({
 				assert(false, 'bbResponse does not have the expected structure for LoadResourcesTool');
 			}
 
-			assertStringIncludes(result.toolResponse, 'Failed to load resource: File not found');
+			assertStringIncludes(result.toolResponse, 'Failed to add resources to the conversation');
+			assertStringIncludes(result.toolResponse, 'bb+filesystem+primary+file:./../outside_project.txt: Access denied: resource is outside the data source directory');
 
 			// Check toolResults
 			assert(Array.isArray(result.toolResults), 'toolResults should be an array');
@@ -519,7 +521,7 @@ Deno.test({
 
 			const errorResult = result.toolResults[1];
 			assert(errorResult.type === 'text', 'Second result should be of type text');
-			assertStringIncludes(errorResult.text, 'Failed to load resource: File not found');
+			assertStringIncludes(errorResult.text, 'Access denied: resource is outside the data source directory');
 		});
 	},
 	sanitizeResources: false,

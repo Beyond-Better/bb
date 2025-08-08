@@ -5,6 +5,7 @@
 import { logger } from 'shared/logger.ts';
 import { generateId } from 'shared/projectData.ts';
 import { generateDataSourcePrefix, generateDataSourceUri } from 'shared/dataSource.ts';
+import type { ProjectConfig } from 'shared/config/types.ts';
 import type {
 	DataSourceConnection as IDataSourceConnection,
 	DataSourceConnectionSystemPrompt,
@@ -69,6 +70,8 @@ export class DataSourceConnection implements IDataSourceConnection {
 	public readonly uriPrefix?: string;
 	public readonly uriTemplate?: string;
 
+	public projectConfig?: ProjectConfig;
+
 	/**
 	 * Human-readable name for this connection
 	 */
@@ -119,6 +122,7 @@ export class DataSourceConnection implements IDataSourceConnection {
 			enabled?: boolean;
 			isPrimary?: boolean;
 			priority?: number;
+			projectConfig?: ProjectConfig;
 		} = {},
 		//dataSourceRegistry?: DataSourceRegistry,
 	) {
@@ -130,6 +134,7 @@ export class DataSourceConnection implements IDataSourceConnection {
 		this.enabled = options.enabled !== undefined ? options.enabled : true;
 		this.isPrimary = options.isPrimary !== undefined ? options.isPrimary : false;
 		this.priority = options.priority !== undefined ? options.priority : 0;
+		this.projectConfig = options.projectConfig;
 		//if (dataSourceRegistry) {
 		//	this._dataSourceRegistry = dataSourceRegistry;
 		//} else {
@@ -148,12 +153,15 @@ export class DataSourceConnection implements IDataSourceConnection {
 	}
 
 	/**
-	 * Get the URI prefix for this data source
-	 * @returns The URI prefix to use for resources from this data source
+	 * Get the URI for this data source
+	 * @returns The URI to use for resources from this data source
 	 */
 	getUriForResource(resourceUri: string): string {
-		logger.info(`DataSourceConnection: getUriForResource ${resourceUri}`);
-		return this.uriPrefix || generateDataSourceUri(this.accessMethod, this.providerType, this.name, resourceUri);
+		//logger.info(`DataSourceConnection: getUriForResource ${resourceUri}`);
+		return resourceUri.startsWith(`${this.accessMethod}+`)
+			? resourceUri
+			: generateDataSourceUri(this.accessMethod, this.providerType, this.name, resourceUri);
+			//: this.uriPrefix || generateDataSourceUri(this.accessMethod, this.providerType, this.name, resourceUri);
 	}
 
 	/**
@@ -245,7 +253,7 @@ export class DataSourceConnection implements IDataSourceConnection {
 		// Don't allow changing id, providerType, or accessMethod
 		if (updates.name !== undefined) this.name = updates.name;
 		if (updates.config !== undefined) this.config = { ...updates.config };
-		if (updates.auth !== undefined) this.auth = updates.auth ? { ...updates.auth } : undefined;
+		if (updates.auth !== undefined) this.auth = { ...updates.auth };
 		if (updates.enabled !== undefined) this.enabled = updates.enabled;
 		if (updates.isPrimary !== undefined) this.isPrimary = updates.isPrimary;
 		if (updates.priority !== undefined) this.priority = updates.priority;

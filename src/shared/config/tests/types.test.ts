@@ -62,7 +62,7 @@ describe('Configuration Types', () => {
 				logFileHydration: false,
 				ignoreLLMRequestCache: false,
 				usePromptCaching: true,
-				userToolDirectories: ['./tools'],
+				userPluginDirectories: ['./plugins'],
 				toolConfigs: {},
 			};
 			assertExists(config);
@@ -85,6 +85,11 @@ describe('Configuration Types', () => {
 				port: 8080,
 				tls: { useTls: true },
 				logLevel: 'info',
+				googleOauth: {
+					redirectUri: 'https://localhost:8080/oauth/google/callback',
+					clientId: '983662643295-xxxx.apps.googleusercontent.com',
+					clientSecret: 'GO-xxxx',
+				},
 			};
 			assertExists(config);
 		});
@@ -138,7 +143,7 @@ describe('Configuration Types', () => {
 	describe('Global Configuration', () => {
 		it('should combine all component configs', () => {
 			const config: GlobalConfig = {
-				version: '2.2.0',
+				version: '2.2.1',
 				myPersonsName: 'Test User',
 				myAssistantsName: 'Assistant',
 				defaultModels: {
@@ -159,7 +164,7 @@ describe('Configuration Types', () => {
 					logFileHydration: false,
 					ignoreLLMRequestCache: false,
 					usePromptCaching: true,
-					userToolDirectories: ['./tools'],
+					userPluginDirectories: ['./plugins'],
 					toolConfigs: {},
 				},
 				bui: {
@@ -167,6 +172,11 @@ describe('Configuration Types', () => {
 					port: 8080,
 					tls: { useTls: true },
 					logLevel: 'info',
+					googleOauth: {
+						redirectUri: 'https://localhost:8080/oauth/google/callback',
+						clientId: '983662643295-xxxx.apps.googleusercontent.com',
+						clientSecret: 'GO-xxxx',
+					},
 				},
 				cli: {
 					historySize: 1000,

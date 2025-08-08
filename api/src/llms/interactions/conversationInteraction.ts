@@ -143,29 +143,31 @@ class LLMConversationInteraction extends LLMInteraction {
 
 	public override async prepareTools(tools: Map<string, LLMTool>): Promise<LLMTool[]> {
 		if (!this.interactionPersistence) {
-			throw new Error(
-				'InteractionPersistence not initialized',
-			);
+			throw new Error('InteractionPersistence not initialized');
 		}
 
-		// First, try to get the prepared tools from storage
-		let preparedTools = await this.interactionPersistence.getPreparedTools();
+		// Always generate tools from the passed in tools argument (no caching)
+		const currentTools = Array.from(tools.values()).map((tool) => ({
+			name: tool.name,
+			description: tool.description,
+			inputSchema: tool.inputSchema,
+		} as LLMTool));
 
-		if (!preparedTools) {
-			// If not found in storage, prepare the tools
+		// Get existing persisted tools for reference only
+		let persistedTools = await this.interactionPersistence.getPreparedTools() || [];
 
-			preparedTools = Array.from(tools.values()).map((tool) => ({
-				name: tool.name,
-				description: tool.description,
-				inputSchema: tool.inputSchema,
-			} as LLMTool));
+		// Find new tools that aren't in the historical record
+		const persistedToolNames = new Set(persistedTools.map((t) => t.name));
+		const newTools = currentTools.filter((tool) => !persistedToolNames.has(tool.name));
 
-			// Save the prepared tools
-			await this.interactionPersistence.savePreparedTools(preparedTools || []);
+		// Add any new tools to the historical record
+		if (newTools.length > 0) {
+			persistedTools = [...persistedTools, ...newTools];
+			await this.interactionPersistence.savePreparedTools(persistedTools);
 		}
-		//logger.info('ConversationInteraction: preparedTools', preparedTools);
 
-		return preparedTools || [];
+		// Always return current tools (what LLMToolManager actually loaded)
+		return currentTools;
 	}
 
 	public override async prepareMessages(messages: LLMMessage[]): Promise<LLMMessage[]> {

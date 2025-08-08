@@ -3,15 +3,23 @@
  * Implements common functionality for both BB-managed and MCP-managed providers.
  */
 import { logger } from 'shared/logger.ts';
+import type { ProjectConfig } from 'shared/config/types.ts';
 import type { DataSourceConnection } from 'api/dataSources/interfaces/dataSourceConnection.ts';
 import type { ResourceAccessor } from 'api/dataSources/interfaces/resourceAccessor.ts';
 import type { DataSourceProvider } from 'api/dataSources/interfaces/dataSourceProvider.ts';
 import type {
+	AcceptedContentType,
+	AcceptedEditType,
+	ContentTypeGuidance,
 	DataSourceAccessMethod,
 	DataSourceAuth,
 	DataSourceAuthMethod,
 	DataSourceCapability,
+	DataSourceEditCapability,
+	DataSourceLoadCapability,
+	DataSourceProviderStructuredQuerySchema,
 	DataSourceProviderType,
+	DataSourceSearchCapability,
 } from 'shared/types/dataSource.ts';
 
 /**
@@ -28,6 +36,21 @@ export abstract class BaseDataSourceProvider implements DataSourceProvider {
 	 * Access method - abstract property that must be defined by subclasses
 	 */
 	public abstract readonly accessMethod: DataSourceAccessMethod;
+
+	/**
+	 * Content types this provider accepts - must be defined by subclasses
+	 */
+	public abstract readonly acceptedContentTypes: AcceptedContentType[];
+
+	/**
+	 * Edit approaches this provider supports - must be defined by subclasses
+	 */
+	public abstract readonly acceptedEditTypes: AcceptedEditType[];
+
+	/**
+	 * Preferred content type for this provider - must be defined by subclasses
+	 */
+	public abstract readonly preferredContentType: AcceptedContentType;
 
 	/**
 	 * Human-readable name for this provider type
@@ -47,7 +70,11 @@ export abstract class BaseDataSourceProvider implements DataSourceProvider {
 	/**
 	 * List of supported operations
 	 */
-	public readonly capabilities: DataSourceCapability[];
+	public abstract capabilities: DataSourceCapability[];
+	public abstract editCapabilities: DataSourceEditCapability[];
+	public abstract searchCapabilities: DataSourceSearchCapability[];
+	public abstract loadCapabilities: DataSourceLoadCapability[];
+	public abstract structuredQuerySchema: DataSourceProviderStructuredQuerySchema | undefined;
 
 	/**
 	 * List of configuration fields required for this provider
@@ -75,7 +102,6 @@ export abstract class BaseDataSourceProvider implements DataSourceProvider {
 		providerType: DataSourceProviderType,
 		name: string,
 		description: string,
-		capabilities: DataSourceCapability[],
 		requiredConfigFields: string[],
 		authType: DataSourceAuthMethod = 'none',
 		//requiredAuthFields: string[] = [],
@@ -84,7 +110,6 @@ export abstract class BaseDataSourceProvider implements DataSourceProvider {
 		this.providerType = providerType;
 		this.name = name;
 		this.description = description;
-		this.capabilities = [...capabilities]; // Make a copy to prevent modification
 		this.requiredConfigFields = [...requiredConfigFields]; // Make a copy to prevent modification
 		this.authType = authType;
 		//this.requiredAuthFields = [...requiredAuthFields]; // Make a copy to prevent modification
@@ -122,8 +147,13 @@ export abstract class BaseDataSourceProvider implements DataSourceProvider {
 	 */
 	validateAuth(auth: DataSourceAuth): boolean {
 		//const authType: DataSourceAuthMethod = this.authType;
-		if (this.authType !== auth.method) return false;
-		// Check that required auth fields are present
+		if (!auth || this.authType !== auth.method) return false;
+		// // Check that required auth fields are present
+		// logger.info(
+		// 	`BaseDataSourceProvider: auth for ${this.providerType}`,
+		// 	auth,
+		// );
+
 		switch (this.authType) {
 			case 'none': // No authentication required
 				return true;
@@ -137,7 +167,14 @@ export abstract class BaseDataSourceProvider implements DataSourceProvider {
 			case 'bearer': // Bearer token
 				return !!('bearer' in auth && auth.bearer &&
 					'tokenRef' in auth.bearer && auth.bearer.tokenRef);
-			case 'oauth2': // OAuth 2.0 (placeholder for future implementation)
+			case 'oauth2': // OAuth 2.0
+				return !!(
+					'oauth2' in auth && auth.oauth2 &&
+					//'clientId' in auth.oauth2 && auth.oauth2.clientId &&
+					//'clientSecret' in auth.oauth2 && auth.oauth2.clientSecret &&
+					'accessToken' in auth.oauth2 && auth.oauth2.accessToken
+					//&& (!auth.oauth2.expiresAt || auth.oauth2.expiresAt > Date.now())
+				);
 			case 'custom': // Custom auth method
 				return true;
 
@@ -154,4 +191,11 @@ export abstract class BaseDataSourceProvider implements DataSourceProvider {
 	hasCapability(capability: DataSourceCapability): boolean {
 		return this.capabilities.includes(capability);
 	}
+
+	/**
+	 * Get content type guidance for LLM tool usage
+	 * Must be implemented by subclasses to provide provider-specific guidance
+	 * @returns ContentTypeGuidance object with usage examples and constraints
+	 */
+	abstract getContentTypeGuidance(): ContentTypeGuidance;
 }

@@ -9,6 +9,7 @@ import type {
 	LLMToolFindResourcesResourceMatch,
 	LLMToolFindResourcesResourceMatches,
 } from './types.ts';
+import type { FindResourceParams, FindResourceResult, ResultLevel } from 'src/shared/types/dataSourceResource.types.ts';
 
 import {
 	formatLogEntryToolResult as formatLogEntryToolResultBrowser,
@@ -96,6 +97,33 @@ Leave empty to search only by resource name, date, or size.`,
 					minimum: 1,
 					maximum: 20,
 				},
+				resultLevel: {
+					type: 'string',
+					enum: ['resource', 'container', 'fragment', 'detailed'],
+					default: 'fragment',
+					description:
+						'Level of detail in results: resource=just list, container=with containers, fragment=with text fragments, detailed=full context',
+				},
+				pageSize: {
+					type: 'number',
+					default: 20,
+					minimum: 1,
+					maximum: 100,
+					description: 'Maximum number of resources to return per page',
+				},
+				pageToken: {
+					type: 'string',
+					description: 'Continuation token from previous results',
+				},
+				regexPattern: {
+					type: 'boolean',
+					default: false,
+					description: 'Whether contentPattern should be treated as a regex (true) or literal text (false)',
+				},
+				structuredQuery: {
+					type: 'object',
+					description: 'Provider-specific structured query for advanced search capabilities',
+				},
 			},
 		};
 	}
@@ -132,33 +160,28 @@ Leave empty to search only by resource name, date, or size.`,
 			sizeMax,
 			contextLines = 2,
 			maxMatchesPerFile = 5,
+			resultLevel = 'fragment',
+			pageSize = 20,
+			pageToken,
+			regexPattern = false,
+			structuredQuery,
 			dataSourceIds = [],
 		} = input;
-		// caseSensitive controls the regex flag
-		// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_expressions#advanced_searching_with_flags
+
+		// Handle both string and array parameters
+		const targetDataSourceIds = Array.isArray(dataSourceIds) ? dataSourceIds : [dataSourceIds];
 
 		const { dsConnections, notFound } = this.getDsConnectionsById(
 			projectEditor,
-			dataSourceIds,
+			targetDataSourceIds,
 		);
 
 		if (dsConnections.length === 0) {
 			throw createError(ErrorType.DataSourceHandling, `No valid data sources found`, {
 				name: 'data-source',
-				dataSourceIds: dataSourceIds,
+				dataSourceIds: targetDataSourceIds,
 			} as DataSourceHandlingErrorOptions);
 		}
-
-		// const searchOptions = {
-		// 	resourcePattern,
-		// 	dateAfter,
-		// 	dateBefore,
-		// 	sizeMin,
-		// 	sizeMax,
-		// 	contextLines,
-		// 	maxMatchesPerFile,
-		// 	includeContent: !!contentPattern, // Only include content when doing content search
-		// };
 
 		const searchCriteria = [
 			contentPattern && `content pattern "${contentPattern}"`,
@@ -169,6 +192,7 @@ Leave empty to search only by resource name, date, or size.`,
 			sizeMin !== undefined && `minimum size ${sizeMin} bytes`,
 			sizeMax !== undefined && `maximum size ${sizeMax} bytes`,
 		].filter(Boolean).join(', ');
+		//logger.info(`LLMToolFindResources: runTool - Input: ${JSON.stringify(input)}`, {searchCriteria});
 
 		try {
 			// Aggregate results across all data sources
@@ -176,7 +200,8 @@ Leave empty to search only by resource name, date, or size.`,
 				resources: [] as string[],
 				errorMessages: [] as string[],
 				dsConnectionsSearched: [] as string[],
-				enhancedMatches: [] as LLMToolFindResourcesResourceMatches, // Store enhanced matches for content searches
+				enhancedMatches: [] as LLMToolFindResourcesResourceMatches,
+				findResults: [] as FindResourceResult[], // Store full findResources results
 			};
 
 			// Process each data source
@@ -188,10 +213,111 @@ Leave empty to search only by resource name, date, or size.`,
 				try {
 					// Get the resource accessor for this data source
 					const resourceAccessor = await dsConnection.getResourceAccessor();
-					if (!resourceAccessor.searchResources) {
+
+					// Try the new findResources method first
+					if (resourceAccessor.findResources) {
+						// Use the new unified operations architecture
+						const findParams: FindResourceParams = {
+							contentPattern,
+							resourcePattern,
+							structuredQuery,
+							regexPattern,
+							options: {
+								caseSensitive,
+								resultLevel: resultLevel as ResultLevel,
+								maxMatchesPerResource: maxMatchesPerFile,
+								contextLines,
+								pageSize,
+								pageToken,
+								filters: {
+									dateAfter,
+									dateBefore,
+									sizeMin,
+									sizeMax,
+								},
+							},
+						};
+
+						const findResult = await resourceAccessor.findResources(findParams);
+						aggregatedResults.findResults.push(findResult);
+
+						// Handle error messages from findResources
+						if (findResult.errorMessage) {
+							aggregatedResults.errorMessages.push(`[${dsConnection.name}]: ${findResult.errorMessage}`);
+						}
+
+						// Extract resource paths for backward compatibility
+						const resources = findResult.resources.map((resource) => resource.resourcePath);
+						const prefixedResources = resources.map((resource) => `[${dsConnection.name}] ${resource}`);
+						aggregatedResults.resources.push(...prefixedResources);
+
+						// Store enhanced matches for content searches
+						if (contentPattern && findResult.resources.some((r) => r.contentMatches)) {
+							const enhancedMatches = findResult.resources
+								.filter((r) => r.contentMatches)
+								.map((resource) => ({
+									resourcePath: `[${dsConnection.name}] ${resource.resourcePath}`,
+									contentMatches: resource.contentMatches,
+								} as LLMToolFindResourcesResourceMatch));
+							aggregatedResults.enhancedMatches.push(...enhancedMatches);
+						}
+					} else if (resourceAccessor.searchResources) {
+						// Fallback to legacy searchResources method
+						const accessorSearchOptions: ResourceSearchOptions = {
+							contentPattern,
+							resourcePattern,
+							caseSensitive,
+							dateAfter,
+							dateBefore,
+							sizeMin,
+							sizeMax,
+							contextLines,
+							maxMatchesPerFile,
+							pageSize,
+							resultLevel: resultLevel as ResultLevel,
+							pageToken,
+							regexPattern,
+							includeContent: !!contentPattern,
+						};
+
+						const searchQuery = contentPattern || '';
+						const searchResult = await resourceAccessor.searchResources(searchQuery, accessorSearchOptions);
+
+						// Extract resource paths from matches (using legacy match format)
+						const resources = searchResult.matches.map((match: any) => {
+							const uri = match.resource?.uri || match.resourceUri;
+							if (uri.startsWith('file:./')) {
+								return uri.substring(7);
+							}
+							const pathPart = uri.includes('://') ? uri.split('://')[1] : uri;
+							return pathPart || uri;
+						});
+
+						// Store enhanced matches for content searches (using legacy match format)
+						if (contentPattern && searchResult.matches.some((match: any) => match.contentMatches)) {
+							const enhancedMatches = searchResult.matches
+								.filter((match: any) => match.contentMatches)
+								.map((match: any) => ({
+									resourcePath: `[${dsConnection.name}] ${
+										resources[searchResult.matches.indexOf(match)]
+									}`,
+									contentMatches: match.contentMatches,
+								} as LLMToolFindResourcesResourceMatch));
+							aggregatedResults.enhancedMatches.push(...enhancedMatches);
+						}
+
+						const prefixedResources = resources.map((resource) => `[${dsConnection.name}] ${resource}`);
+						aggregatedResults.resources.push(...prefixedResources);
+
+						if (searchResult.errorMessage) {
+							aggregatedResults.errorMessages.push(
+								`[${dsConnection.name}]: ${searchResult.errorMessage}`,
+							);
+						}
+					} else {
 						throw createError(
 							ErrorType.ToolHandling,
-							`No searchResources method on resourceAccessor for ${dsConnection.name}`,
+							`No search method available on resourceAccessor for ${dsConnection.name}`,
 							{
 								toolName: 'find_resources',
 								operation: 'tool-run',
@@ -199,60 +325,6 @@ Leave empty to search only by resource name, date, or size.`,
 						);
 					}
 
-					// Prepare search options for the accessor
-					const accessorSearchOptions: ResourceSearchOptions = {
-						contentPattern,
-						resourcePattern,
-						caseSensitive,
-						dateAfter,
-						dateBefore,
-						sizeMin,
-						sizeMax,
-						contextLines,
-						maxMatchesPerFile,
-						pageSize: 100, // Default page size
-						includeContent: !!contentPattern, // Include content when doing content search
-					};
-
-					// Use a dummy query string if no content pattern (for basic metadata search)
-					const searchQuery = contentPattern || '';
-
-					// Call the accessor's search method
-					const searchResult = await resourceAccessor.searchResources(searchQuery, accessorSearchOptions);
-
-					// Extract resource paths from matches
-					const resources = searchResult.matches.map((match) => {
-						// Extract relative path from URI
-						const uri = match.resource.uri;
-						// For filesystem resources, extract the path after 'file:./'
-						if (uri.startsWith('file:./')) {
-							return uri.substring(7); // Remove 'file:./'
-						}
-						// For other resources, use a more generic approach
-						const pathPart = uri.includes('://') ? uri.split('://')[1] : uri;
-						return pathPart || uri;
-					});
-
-					// Store enhanced matches for formatters (with data source prefix)
-					if (contentPattern && searchResult.matches.some((match) => match.contentMatches)) {
-						const enhancedMatches = searchResult.matches
-							.filter((match) => match.contentMatches)
-							.map((match) => ({
-								resourcePath: `[${dsConnection.name}] ${
-									resources[searchResult.matches.indexOf(match)]
-								}`,
-								contentMatches: match.contentMatches,
-							} as LLMToolFindResourcesResourceMatch));
-						aggregatedResults.enhancedMatches.push(...enhancedMatches);
-					}
-
-					// Add source prefix to resources for clarity
-					const prefixedResources = resources.map((resource: string) => `[${dsConnection.name}] ${resource}`);
-
-					aggregatedResults.resources.push(...prefixedResources);
-					if (searchResult.errorMessage) {
-						aggregatedResults.errorMessages.push(`[${dsConnection.name}]: ${searchResult.errorMessage}`);
-					}
 					aggregatedResults.dsConnectionsSearched.push(dsConnection.name);
 				} catch (error) {
 					aggregatedResults.errorMessages.push(`[${dsConnection.name}]: ${(error as Error).message}`);
@@ -298,24 +370,65 @@ Leave empty to search only by resource name, date, or size.`,
 				`;
 			}
 
+			// Include pagination info in response if using findResources
+			let paginationInfo = '';
+			if (aggregatedResults.findResults.length > 0) {
+				const firstResult = aggregatedResults.findResults[0];
+				if (firstResult.pagination.hasMore) {
+					paginationInfo =
+						`\nPage size: ${firstResult.pagination.pageSize}, More results available (use pageToken: "${firstResult.pagination.pageToken}")`;
+				}
+			}
+
 			const toolResponse =
-				`${dsConnectionStatus}\nFound ${aggregatedResults.resources.length} resources matching the search criteria: ${searchCriteria}`;
-			const bbResponse =
-				`BB found ${aggregatedResults.resources.length} resources matching the search criteria: ${searchCriteria}\n${dsConnectionStatus}`;
-			//dataSource: {
-			//	dsConnectionId: dsConnectionToUse.id,
-			//	dsConnectionName: dsConnectionToUse.name,
-			//	dsProviderType: dsConnectionToUse.providerType,
-			//},
+				`${dsConnectionStatus}\nFound ${aggregatedResults.resources.length} resources matching the search criteria: ${searchCriteria}${paginationInfo}`;
+
+			// Build structured bbResponse
+			const dataSources = dsConnections.map((dsConnection) => ({
+				dsConnectionId: dsConnection.id || '',
+				dsConnectionName: dsConnection.name,
+				dsProviderType: dsConnection.providerType,
+			}));
+
+			const paginationData =
+				aggregatedResults.findResults.length > 0 && aggregatedResults.findResults[0].pagination.hasMore
+					? {
+						hasMore: aggregatedResults.findResults[0].pagination.hasMore,
+						pageSize: aggregatedResults.findResults[0].pagination.pageSize,
+						pageToken: aggregatedResults.findResults[0].pagination.pageToken,
+					}
+					: undefined;
+
+			const bbResponse = {
+				data: {
+					resources: aggregatedResults.resources,
+					matches: aggregatedResults.enhancedMatches,
+					errorMessage: aggregatedResults.errorMessages.length > 0
+						? aggregatedResults.errorMessages.join('; ')
+						: undefined,
+					searchCriteria,
+					dataSources,
+					pagination: paginationData,
+				},
+			};
 
 			return { toolResults, toolResponse, bbResponse };
 		} catch (error) {
 			logger.error(`LLMToolFindResources: Error searching project: ${(error as Error).message}`);
 
-			throw createError(ErrorType.FileHandling, `Error searching project: ${(error as Error).message}`, {
-				name: 'search-project',
-				operation: 'search-project',
-			});
+			const errorMessage = `Error searching project: ${(error as Error).message}`;
+			const toolResults = `⚠️  ${errorMessage}`;
+			const bbResponse = {
+				data: {
+					resources: [],
+					matches: [],
+					errorMessage: errorMessage,
+					searchCriteria: 'Error occurred',
+					dataSources: [],
+				},
+			};
+			const toolResponse = `Failed to search resources. Error: ${errorMessage}`;
+			return { toolResults, toolResponse, bbResponse };
 		}
 	}
 }

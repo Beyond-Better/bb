@@ -334,7 +334,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 	private async createGlobalConfig(): Promise<void> {
 		// Create and validate default config
 		const defaultConfig: GlobalConfig = {
-			version: '2.2.0',
+			version: '2.2.1',
 			myPersonsName: GlobalConfigDefaults.myPersonsName,
 			myAssistantsName: GlobalConfigDefaults.myAssistantsName,
 			defaultModels: GlobalConfigDefaults.defaultModels,
@@ -345,6 +345,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 			api: {
 				...ApiConfigDefaults,
 				llmProviders: {},
+				dataSourceProviders: {},
 			},
 			bui: BuiConfigDefaults,
 			cli: CliConfigDefaults,
@@ -403,7 +404,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 		const globalConfig = await this.getGlobalConfig();
 		const config: ProjectConfig = {
 			projectId,
-			version: '2.2.0',
+			version: '2.2.1',
 			name: appConfigData.name,
 			myPersonsName: appConfigData.myPersonsName || globalConfig.myPersonsName,
 			myAssistantsName: appConfigData.myAssistantsName || globalConfig.myAssistantsName,
@@ -463,7 +464,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 				// Return empty overrides if config doesn't exist
 				return {
 					projectId,
-					version: '2.2.0',
+					version: '2.2.1',
 					name: '',
 				};
 			}
@@ -690,7 +691,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 			success: true, // Start with true, only set to false on error
 			version: {
 				from: this.determineConfigVersion(config),
-				to: '2.2.0',
+				to: '2.2.1',
 			},
 			changes: [],
 			errors: [],
@@ -698,7 +699,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 		};
 
 		//logger.info('ConfigManager: migrateConfig: ', result);
-		if (result.version.from === '2.2.0') {
+		if (result.version.from === '2.2.1') {
 			result.config = config as GlobalConfig;
 			return result;
 		}
@@ -799,7 +800,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 				// If validation fails, return default config
 				//logger.info('ConfigManager: Error: globalConfig is not valid; using default config: ', validation.errors);
 				return {
-					version: '2.2.0',
+					version: '2.2.1',
 					myPersonsName: GlobalConfigDefaults.myPersonsName,
 					myAssistantsName: GlobalConfigDefaults.myAssistantsName,
 					defaultModels: GlobalConfigDefaults.defaultModels,
@@ -810,6 +811,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 					api: {
 						...ApiConfigDefaults,
 						llmProviders: {},
+						dataSourceProviders: {},
 					},
 					bui: BuiConfigDefaults,
 					cli: CliConfigDefaults,
@@ -921,7 +923,10 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 		if (typeof config === 'object' && config !== null) {
 			if ('version' in config && typeof config.version === 'string') {
 				const version = config.version;
-				if (version === '1.0.0' || version === '2.0.0' || version === '2.1.0' || version === '2.2.0') {
+				if (
+					version === '1.0.0' || version === '2.0.0' || version === '2.1.0' || version === '2.2.0' ||
+					version === '2.2.1'
+				) {
 					return version;
 				}
 			}
@@ -972,29 +977,42 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 	): Promise<GlobalConfig | ProjectConfig> {
 		const version = this.determineConfigVersion(config);
 
-		if (version === '2.2.0') {
+		if (version === '2.2.1') {
 			return config as GlobalConfig | ProjectConfig; // Already at target version
+		}
+
+		if (version === '2.2.0') {
+			return type === 'global'
+				? await this.migrateGlobalConfigV22toV221(config as GlobalConfig)
+				: this.migrateProjectConfigV22toV221(config as ProjectConfig);
 		}
 
 		if (version === '2.1.0') {
 			return type === 'global'
-				? this.migrateGlobalConfigV21toV22(config as GlobalConfig)
-				: this.migrateProjectConfigV21toV22(config as ProjectConfig);
+				? await this.migrateGlobalConfigV21toV221(config as GlobalConfig)
+				: this.migrateProjectConfigV21toV221(config as ProjectConfig);
 		}
 
 		if (version === '2.0.0') {
 			return type === 'global'
-				? this.migrateGlobalConfigV20toV22(config as GlobalConfig)
-				: this.migrateProjectConfigV20toV22(config as ProjectConfig);
+				? await this.migrateGlobalConfigV20toV221(config as GlobalConfig)
+				: this.migrateProjectConfigV20toV221(config as ProjectConfig);
 		}
 
 		if (version === '1.0.0') {
 			return type === 'global'
-				? this.migrateGlobalConfigV1toV22(config as GlobalConfigV1)
-				: this.migrateProjectConfigV1toV22(config as ProjectConfigV1);
+				? await this.migrateGlobalConfigV1toV221(config as GlobalConfigV1)
+				: this.migrateProjectConfigV1toV221(config as ProjectConfigV1);
 		}
 
 		throw new Error(`Unsupported config version: ${version}`);
+	}
+
+	private async migrateGlobalConfigV1toV221(config: GlobalConfigV1): Promise<GlobalConfig> {
+		// First migrate to v2.2.0
+		const v22Config = this.migrateGlobalConfigV1toV22(config);
+		// Then migrate to v2.2.1
+		return await this.migrateGlobalConfigV22toV221(v22Config);
 	}
 
 	/**
@@ -1041,7 +1059,11 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 				logFileHydration: v1Config.api?.logFileHydration ?? ApiConfigDefaults.logFileHydration,
 				ignoreLLMRequestCache: v1Config.api?.ignoreLLMRequestCache ?? ApiConfigDefaults.ignoreLLMRequestCache,
 				usePromptCaching: v1Config.api?.usePromptCaching ?? ApiConfigDefaults.usePromptCaching,
-				userToolDirectories: v1Config.api?.userToolDirectories || ApiConfigDefaults.userToolDirectories,
+				userPluginDirectories: (v1Config.api as any)?.userToolDirectories
+					? (v1Config.api as any).userToolDirectories.map((dir: string) =>
+						dir === './tools' ? './plugins' : dir.replace(/\/tools$/, '/plugins')
+					)
+					: ApiConfigDefaults.userPluginDirectories,
 				toolConfigs: v1Config.api?.toolConfigs || ApiConfigDefaults.toolConfigs,
 				llmProviders: {
 					anthropic: v1Config.api?.anthropicApiKey ? { apiKey: v1Config.api.anthropicApiKey } : undefined,
@@ -1077,6 +1099,13 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 		};
 	}
 
+	private async migrateGlobalConfigV20toV221(config: GlobalConfig): Promise<GlobalConfig> {
+		// First migrate to v2.2.0
+		const v22Config = this.migrateGlobalConfigV20toV22(config);
+		// Then migrate to v2.2.1
+		return await this.migrateGlobalConfigV22toV221(v22Config);
+	}
+
 	private migrateGlobalConfigV20toV22(config: GlobalConfig): GlobalConfig {
 		const v20Config = { ...config };
 
@@ -1103,6 +1132,77 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 		v20Config.version = '2.2.0';
 
 		return v20Config;
+	}
+
+	private async migrateGlobalConfigV22toV221(config: GlobalConfig): Promise<GlobalConfig> {
+		const v22Config = { ...config };
+		logger.warn(`ConfigManager: Migration to 2.2.1`);
+
+		// Rename api.userToolDirectories to api.userPluginDirectories
+		const apiConfig = v22Config.api as any;
+		if (apiConfig.userToolDirectories) {
+			v22Config.api.userPluginDirectories = apiConfig.userToolDirectories.map((dir: string) =>
+				dir === './tools' ? './plugins' : dir.replace(/\/tools$/, '/plugins')
+			);
+			delete apiConfig.userToolDirectories;
+		}
+
+		// Migrate actual directories on filesystem
+		await this.migrateToolsToPluginsDirectories(v22Config.api.userPluginDirectories || ['./plugins']);
+
+		// Update version
+		v22Config.version = '2.2.1';
+
+		return v22Config;
+	}
+
+	private async migrateToolsToPluginsDirectories(pluginDirectories: string[]): Promise<void> {
+		const globalConfigDir = await getGlobalConfigDir();
+		logger.warn(`ConfigManager: Migration - rename plugins directories`, pluginDirectories);
+
+		for (const pluginDir of pluginDirectories) {
+			// Check if this directory corresponds to the default tools directory
+			if (pluginDir === './plugins') {
+				const oldToolsPath = join(globalConfigDir, 'tools');
+				const newPluginsPath = join(globalConfigDir, 'plugins');
+
+				try {
+					// Check if old tools directory exists
+					const toolsStats = await Deno.stat(oldToolsPath);
+					if (toolsStats.isDirectory) {
+						try {
+							// Check if plugins directory already exists
+							await Deno.stat(newPluginsPath);
+							// If plugins dir exists, log warning but don't overwrite
+							logger.warn(
+								`ConfigManager: Migration - plugins directory already exists at ${newPluginsPath}, skipping migration of tools directory`,
+							);
+						} catch {
+							// plugins directory doesn't exist, safe to rename
+							await Deno.rename(oldToolsPath, newPluginsPath);
+							logger.info(
+								`ConfigManager: Migration - renamed tools directory from ${oldToolsPath} to ${newPluginsPath}`,
+							);
+						}
+					}
+				} catch (error) {
+					if (!(error instanceof Deno.errors.NotFound)) {
+						// Log error but don't fail the migration
+						logger.error(
+							`ConfigManager: Migration - failed to migrate tools directory: ${(error as Error).message}`,
+						);
+					}
+					// If tools directory doesn't exist, that's fine - nothing to migrate
+				}
+			}
+		}
+	}
+
+	private async migrateGlobalConfigV21toV221(config: GlobalConfig): Promise<GlobalConfig> {
+		// First migrate to v2.2.0
+		const v22Config = this.migrateGlobalConfigV21toV22(config);
+		// Then migrate to v2.2.1
+		return await this.migrateGlobalConfigV22toV221(v22Config);
 	}
 
 	private migrateGlobalConfigV21toV22(config: GlobalConfig): GlobalConfig {
@@ -1149,7 +1249,11 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 					ignoreLLMRequestCache: v1Config.api.ignoreLLMRequestCache ??
 						ApiConfigDefaults.ignoreLLMRequestCache,
 					usePromptCaching: v1Config.api.usePromptCaching ?? ApiConfigDefaults.usePromptCaching,
-					userToolDirectories: v1Config.api.userToolDirectories || ApiConfigDefaults.userToolDirectories,
+					userPluginDirectories: (v1Config.api as any).userToolDirectories
+						? (v1Config.api as any).userToolDirectories.map((dir: string) =>
+							dir === './tools' ? './plugins' : dir.replace(/\/tools$/, '/plugins')
+						)
+						: ApiConfigDefaults.userPluginDirectories,
 					toolConfigs: v1Config.api.toolConfigs || ApiConfigDefaults.toolConfigs,
 					hostname: v1Config.api.apiHostname || ApiConfigDefaults.hostname,
 					port: v1Config.api.apiPort || ApiConfigDefaults.port,
@@ -1187,6 +1291,47 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 			cli: v1Config.cli ? { ...v1Config.cli } : undefined,
 			dui: undefined, // No DUI settings in v1
 		};
+	}
+
+	private migrateProjectConfigV22toV221(config: ProjectConfig): ProjectConfig {
+		const v22Config = { ...config };
+
+		// Rename api.userToolDirectories to api.userPluginDirectories
+		if (v22Config.api) {
+			const apiConfig = v22Config.api as any;
+			if (apiConfig.userToolDirectories) {
+				v22Config.api.userPluginDirectories = apiConfig.userToolDirectories.map((dir: string) =>
+					dir === './tools' ? './plugins' : dir.replace(/\/tools$/, '/plugins')
+				);
+				delete apiConfig.userToolDirectories;
+			}
+		}
+
+		// Update version
+		v22Config.version = '2.2.1';
+
+		return v22Config;
+	}
+
+	private migrateProjectConfigV21toV221(config: ProjectConfig): ProjectConfig {
+		// First migrate to v2.2.0
+		const v22Config = this.migrateProjectConfigV21toV22(config);
+		// Then migrate to v2.2.1
+		return this.migrateProjectConfigV22toV221(v22Config);
+	}
+
+	private migrateProjectConfigV20toV221(config: ProjectConfig): ProjectConfig {
+		// First migrate to v2.2.0
+		const v22Config = this.migrateProjectConfigV20toV22(config);
+		// Then migrate to v2.2.1
+		return this.migrateProjectConfigV22toV221(v22Config);
+	}
+
+	private migrateProjectConfigV1toV221(config: ProjectConfigV1): ProjectConfig {
+		// First migrate to v2.2.0
+		const v22Config = this.migrateProjectConfigV1toV22(config);
+		// Then migrate to v2.2.1
+		return this.migrateProjectConfigV22toV221(v22Config);
 	}
 
 	private migrateProjectConfigV21toV22(config: ProjectConfig): ProjectConfig {
@@ -1271,7 +1416,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 		) return true;
 
 		// For v2 configs, check for required components
-		return (c.version === '2.0.0' || c.version === '2.1.0' || c.version === '2.2.0') &&
+		return (c.version === '2.0.0' || c.version === '2.1.0' || c.version === '2.2.0' || c.version === '2.2.1') &&
 			!('projectId' in c) &&
 			('api' in c || 'bui' in c || 'cli' in c || 'dui' in c);
 	}
@@ -1284,7 +1429,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 		if ('project' in c && typeof c.project === 'object' && c.project !== null) return true;
 
 		// For v2 configs, check for required fields
-		return (c.version === '2.0.0' || c.version === '2.1.0' || c.version === '2.2.0') &&
+		return (c.version === '2.0.0' || c.version === '2.1.0' || c.version === '2.2.0' || c.version === '2.2.1') &&
 			'projectId' in c &&
 			'name' in c;
 	}
@@ -1345,6 +1490,18 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 							path: ['api', 'llmProviders', provider, 'apiKey'],
 							message: 'API key must be a non-empty string',
 							value: providerConfig?.apiKey,
+						});
+					}
+				}
+			}
+			if (config.api.dataSourceProviders) {
+				const validProviders = ['filesystem', 'notion', 'googledocs'];
+				for (const [provider, providerConfig] of Object.entries(config.api.dataSourceProviders)) {
+					if (!validProviders.includes(provider)) {
+						result.errors.push({
+							path: ['api', 'dataSourceProviders', provider],
+							message: `Invalid datasource provider: ${provider}`,
+							value: provider,
 						});
 					}
 				}
@@ -1529,6 +1686,18 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 							path: ['api', 'llmProviders', provider, 'apiKey'],
 							message: 'API key must be a non-empty string',
 							value: providerConfig?.apiKey,
+						});
+					}
+				}
+			}
+			if (config.api.dataSourceProviders) {
+				const validProviders = ['filesystem', 'notion', 'googledocs'];
+				for (const [provider, providerConfig] of Object.entries(config.api.dataSourceProviders)) {
+					if (!validProviders.includes(provider)) {
+						result.errors.push({
+							path: ['api', 'dataSourceProviders', provider],
+							message: `Invalid datasource provider: ${provider}`,
+							value: provider,
 						});
 					}
 				}

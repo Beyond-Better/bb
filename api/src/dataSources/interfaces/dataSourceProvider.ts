@@ -10,6 +10,11 @@ import type {
 	DataSourceAuthMethod,
 	DataSourceCapability,
 } from 'shared/types/dataSource.ts';
+import type {
+	AcceptedContentType,
+	AcceptedEditType,
+	ContentTypeGuidance,
+} from 'shared/types/dataSource.ts';
 
 /**
  * DataSourceProvider interface
@@ -86,4 +91,26 @@ export interface DataSourceProvider {
 	 * @returns True if the capability is supported
 	 */
 	hasCapability(capability: DataSourceCapability): boolean;
+
+	/**
+	 * Array of content types this provider accepts for write/edit operations
+	 */
+	readonly acceptedContentTypes: AcceptedContentType[];
+
+	/**
+	 * Array of edit approaches this provider supports
+	 */
+	readonly acceptedEditTypes: AcceptedEditType[];
+
+	/**
+	 * Preferred content type for this provider
+	 */
+	readonly preferredContentType: AcceptedContentType;
+
+	/**
+	 * Get content type guidance for LLM tool usage
+	 * Provides examples and usage information for proper tool calls
+	 * @returns ContentTypeGuidance object with usage examples and constraints
+	 */
+	getContentTypeGuidance(): ContentTypeGuidance;
 }

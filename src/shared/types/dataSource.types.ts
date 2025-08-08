@@ -5,7 +5,8 @@ export type DataSourceProviderType =
 	| 'filesystem' // Local file system
 	| 'database' // Database connections
 	| 'notion' // Notion workspaces
-	| 'gdrive' // Google Drive
+	| 'googledocs' // Google Drive
+	//| 'supabase' // Supabase projects
 	| 'mcp' // Model Context Protocol servers
 	| string; // Future extensions and MCP types
 
@@ -22,53 +23,163 @@ export interface DataSourceProviderInfo {
 	configFields?: string[]; // For future use
 }
 
+// not used directly; can be composed from capabilities: DataSourceCapability[]
+export interface DataSourceProviderCapabilities {
+	// Edit operation support
+	supportsSearchReplace: boolean;
+	supportsRangeOperations: boolean;
+	supportsBlockOperations: boolean;
+
+	// Rich content support
+	supportsTextFormatting: boolean;
+	supportsParagraphFormatting: boolean;
+	supportsTables: boolean;
+	supportsColors: boolean;
+	supportsFonts: boolean;
+
+	supportsTextSearch: boolean;
+	supportsRegexSearch: boolean;
+	supportsStructuredQuerySearch: boolean;
+}
+export interface DataSourceProviderStructuredQuerySchema {
+	description: string;
+	examples: Array<Record<string, any>>;
+	schema: Record<string, any>;
+}
+
+// =============================================================================
+// CONTENT TYPE GUIDANCE TYPES
+// =============================================================================
+
+/**
+ * Content type that a data source can accept
+ */
+export type AcceptedContentType = 'plainTextContent' | 'structuredContent' | 'binaryContent';
+
+/**
+ * Edit approach that a data source supports
+ */
+export type AcceptedEditType = 'searchReplace' | 'blocks' | 'raqnge' | 'structuredData';
+
+/**
+ * Primary content type classification for data sources
+ */
+export type PrimaryContentType = 'plain-text' | 'structured' | 'binary' | 'database';
+
+/**
+ * Example tool call for content type guidance
+ */
+export interface ContentTypeExample {
+	/** Description of what this example demonstrates */
+	description: string;
+	/** Example tool call object */
+	toolCall: {
+		/** Name of the tool */
+		tool: string;
+		/** Example input parameters */
+		input: Record<string, any>;
+	};
+}
+
+/**
+ * Content type guidance provided by data source providers
+ * Helps LLMs understand what content types and operations are supported
+ */
+export interface ContentTypeGuidance {
+	/** Primary content type classification */
+	primaryContentType: PrimaryContentType;
+	/** Array of content types this data source accepts */
+	acceptedContentTypes: AcceptedContentType[];
+	/** Array of edit approaches this data source supports */
+	acceptedEditTypes: AcceptedEditType[];
+	/** Preferred content type for this data source */
+	preferredContentType: AcceptedContentType;
+	/** Array of usage examples showing proper tool calls */
+	examples: ContentTypeExample[];
+	/** Additional notes or constraints specific to this data source */
+	notes?: string[];
+
+	capabilities?: DataSourceCapability[];
+	editCapabilities?: DataSourceEditCapability[];
+	searchCapabilities?: DataSourceSearchCapability[];
+	loadCapabilities?: DataSourceLoadCapability[];
+
+	structuredQuerySchema?: DataSourceProviderStructuredQuerySchema;
+}
+
+// =============================================================================
+// DATASOURCE METADATA
+// =============================================================================
+
+
 export interface DataSourceMetadata {
 	totalResources: number;
 	resourceTypes: Record<string, number>;
 	lastScanned: string;
-	filesystem?: {
-		totalDirectories: number;
-		totalFiles: number;
-		largestFileSize?: number;
-		deepestPathDepth?: number;
-		fileExtensions?: Record<string, number>;
-		oldestFileDate?: string;
-		newestFileDate?: string;
-		capabilities?: {
-			canRead: boolean; // We can scan, so we can read
-			canWrite: boolean; // Will test below
-			canDelete: boolean; // Will test below
-			canMove: boolean; // Will test below
-			hasRestrictedAreas: boolean; // Will detect below
-		};
-		contentVisibility?: {
-			includesHiddenFiles: boolean; // Based on our exclude patterns
-			includesDotDirectories: boolean; // We skip .git, .bb, etc.
-			followsSymlinks: boolean; // walk options set includeSymlinks: false
-			brokenSymlinkCount: number;
-			filteredByGitignore: boolean; // We use getExcludeOptions
-			filteredByBBIgnore: boolean;
-		};
-		practicalLimits?: {
-			maxFileSize: number; // 10MB reasonable limit for text processing
-			recommendedPageSize: number; // Good balance for filesystem
-			hasVeryLargeFiles: boolean; // Will detect below
-		};
-		contentAnalysis?: {
-			textFileCount: number;
-			binaryFileCount: number;
-			likelyEncodingIssues: number;
-			emptyFileCount: number;
-		};
+	filesystem?: DataSourceMetadataFilesystem;
+	notion?: DataSourceMetadataNotion;
+	googledocs?: DataSourceMetadataGoogleDocs;
+}
+
+// Filesystem-specific metadata
+export interface DataSourceMetadataFilesystem {
+	totalDirectories: number;
+	totalFiles: number;
+	largestFileSize?: number;
+	deepestPathDepth?: number;
+	fileExtensions?: Record<string, number>; // e.g., { '.ts': 50, '.md': 10, '.json': 5 }
+	oldestFileDate?: string; // ISO 8601 string
+	newestFileDate?: string; // ISO 8601 string
+	// LLM-critical operational metadata
+	capabilities?: {
+		canRead: boolean; // We can scan, so we can read
+		canWrite: boolean; // Will test below
+		canDelete: boolean; // Will test below
+		canMove: boolean; // Will test below
+		hasRestrictedAreas: boolean; // Will detect below - Some areas may be inaccessible
 	};
-	notion?: {
-		totalPages: number;
-		totalDatabases: number;
-		pageTypes: Record<string, number>;
-		workspaceInfo?: {
-			name: string;
-			id: string;
-		};
+	contentVisibility?: {
+		includesHiddenFiles: boolean; // Based on our exclude patterns - Files starting with .
+		includesDotDirectories: boolean; // We skip .git, .bb, etc.
+		followsSymlinks: boolean; // walk options set includeSymlinks: false
+		brokenSymlinkCount: number;
+		filteredByGitignore: boolean; // We use getExcludeOptions
+		filteredByBBIgnore: boolean;
+	};
+	practicalLimits?: {
+		maxFileSize: number; // Largest file that can be processed - 10MB reasonable limit for text processing
+		recommendedPageSize: number; // Optimal pageSize for this datasource - Good balance for filesystem
+		hasVeryLargeFiles: boolean; // Files that might timeout/fail to load - Will detect below
+	};
+	contentAnalysis?: {
+		textFileCount: number;
+		binaryFileCount: number;
+		likelyEncodingIssues: number; // Files that might have encoding problems
+		emptyFileCount: number;
+	};
+}
+
+// Notion-specific metadata
+export interface DataSourceMetadataNotion {
+	totalPages: number;
+	totalDatabases: number;
+	pageTypes: Record<string, number>; // e.g., { 'database': 5, 'page': 25 }
+	workspaceInfo?: {
+		name: string;
+		id: string;
+	};
+}
+
+// GoogleDocs-specific metadata
+export interface DataSourceMetadataGoogleDocs {
+	totalDocuments: number;
+	folderId?: string;
+	driveId?: string;
+
+	documentTypes?: Record<string, number>; // e.g., { 'text': 5, 'spreadsheet': 25 }
+	workspaceInfo?: {
+		name: string;
+		id: string;
 	};
 }
 
@@ -83,8 +194,24 @@ export type DataSourceAccessMethod =
 /**
  * Capabilities for data sources
  */
-export type DataSourceCapability = 'read' | 'write' | 'list' | 'search' | 'move' | 'delete'; // Delegated to MCP server
-
+export type DataSourceCapability = 'read' | 'write' | 'list' | 'search' | 'move' | 'delete' | 'read' | 'edit'; // Delegated to MCP server
+export type DataSourceEditCapability =
+	| 'searchReplaceOperations'
+	| 'rangeOperations'
+	| 'blockOperations'
+	| 'textFormatting'
+	| 'paragraphFormatting'
+	| 'tables'
+	| 'colors'
+	| 'fonts';
+export type DataSourceSearchCapability =
+	| 'textSearch'
+	| 'regexSearch'
+	| 'structuredQuerySearch';
+export type DataSourceLoadCapability =
+	| 'plainText' //  'Returns markdown for reading',
+	| 'structured' //'Returns native Google Docs JSON for range operations'
+	| 'both';
 /**
  * Available authentication methods
  */
@@ -106,29 +233,26 @@ export interface DataSourceAuthBasic {
 export interface DataSourceAuthBearer {
 	tokenRef: string;
 }
+export interface DataSourceAuthOauth2 {
+	tokenType?: string;
+	accessToken: string;
+	refreshToken?: string;
+	expiresAt?: number;
+	scopes?: string;
+}
+
 export interface DataSourceAuth {
 	method: DataSourceAuthMethod; // Authentication method
 	apiKey?: string; // For apiKey auth (simple implementation)
 
-	// References to future secure credential storage
-	// These would be keys to look up in a secure storage mechanism
-	credentialRefs?: string[];
-
 	basic?: DataSourceAuthBasic;
 	bearer?: DataSourceAuthBearer;
 
-	// Placeholder fields for future auth methods
-	// These would be implemented later with proper secure storage
-	/*
-	oauth2?: {
-		clientId: string;
-		tokenData?: {
-			expiresAt: number;
-			scope: string;
-			tokenType: string;
-		};
-	};
-	 */
+	oauth2?: DataSourceAuthOauth2;
+
+	// References to future secure credential storage
+	// These would be keys to look up in a secure storage mechanism
+	credentialRefs?: string[];
 }
 
 /**

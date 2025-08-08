@@ -1,6 +1,6 @@
 import type { CollaborationId, CollaborationType, InteractionId, ProjectId } from 'shared/types.ts';
 import type { CollaborationParams } from 'shared/types/collaboration.ts';
-import Collaboration from './collaboration.ts';
+import Collaboration from 'api/collaborations/collaboration.ts';
 import type LLMInteraction from 'api/llms/baseInteraction.ts';
 import { logger } from 'shared/logger.ts';
 
@@ -16,11 +16,11 @@ class CollaborationManager {
 		collaborationParams?: CollaborationParams,
 	): Promise<Collaboration> {
 		//const collaborationId = shortenCollaborationId(generateCollaborationId());
-		let collaboration: Collaboration;
+		//let collaboration: Collaboration;
 
 		logger.info('CollaborationManager: Creating collaboration of type: ', type);
 
-		collaboration = await new Collaboration(
+		const collaboration = await new Collaboration(
 			collaborationId,
 			projectId,
 			{

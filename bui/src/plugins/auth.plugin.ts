@@ -1,7 +1,9 @@
 import type { FreshContext, Plugin } from '$fresh/server.ts';
 import type { BuiConfig } from 'shared/config/types.ts';
+import 'bui/types/state.types.ts'; // Augment Fresh context state types
 import { initializeAuthState, useAuthState } from '../hooks/useAuthState.ts';
 //import { IS_BROWSER } from '$fresh/runtime.ts';
+import { FreshAppState } from 'bui/types/state.ts'; // Augment Fresh context state types
 
 export const authPlugin = (buiConfig: BuiConfig): Plugin => {
 	try {
@@ -34,7 +36,7 @@ export const authPlugin = (buiConfig: BuiConfig): Plugin => {
 	};
 };
 
-async function setSessionState(req: Request, ctx: FreshContext) {
+async function setSessionState(req: Request, ctx: FreshContext<FreshAppState>) {
 	if (ctx.destination !== 'route') return await ctx.next();
 
 	//console.log('setSessionState: IS_BROWSER: ', IS_BROWSER);

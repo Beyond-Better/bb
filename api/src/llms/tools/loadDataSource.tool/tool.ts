@@ -10,6 +10,7 @@ import {
 } from './formatter.console.ts';
 //import type { PaginationInfo, ResourceMetadata } from 'shared/types/dataSourceResource.ts';
 import type { LLMToolLoadDatasourceInput } from './types.ts';
+import type { ContentTypeGuidance } from 'shared/types/dataSource.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type { CollaborationLogEntryContentToolResult } from 'shared/types.ts';
 import type { LLMAnswerToolUse, LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
@@ -75,6 +76,48 @@ export default class LLMToolLoadDatasource extends LLMTool {
 			: formatLogEntryToolResultBrowser(resultContent);
 	}
 
+	/**
+	 * Format content type guidance for display in tool results
+	 * @param guidance ContentTypeGuidance object from provider
+	 * @returns Formatted string for display
+	 */
+	private formatContentTypeGuidance(guidance: any): string {
+		const { primaryContentType, acceptedContentTypes, acceptedEditTypes, preferredContentType, examples, notes } = guidance;
+		
+		let formatted = `\nContent Type Guidance:\n`;
+		formatted += `Primary Type: ${primaryContentType}\n`;
+		formatted += `Accepted Content Types: ${acceptedContentTypes.join(', ')}\n`;
+		formatted += `Accepted Edit Types: ${acceptedEditTypes.join(', ')}\n`;
+		formatted += `Preferred Content Type: ${preferredContentType}\n`;
+		
+		if (examples && examples.length > 0) {
+			formatted += `\nUsage Examples:\n`;
+			examples.forEach((example: any, index: number) => {
+				formatted += `${index + 1}. ${example.description}\n`;
+				formatted += `   Tool: ${example.toolCall.tool}\n`;
+				const inputKeys = Object.keys(example.toolCall.input);
+				if (inputKeys.length > 0) {
+					formatted += `   Key Parameters:\n`;
+					inputKeys.forEach(key => {
+						if (key !== 'resourcePath') {
+							formatted += `     ${key}: ${typeof example.toolCall.input[key]}\n`;
+						}
+					});
+				}
+				formatted += `\n`;
+			});
+		}
+		
+		if (notes && notes.length > 0) {
+			formatted += `Important Notes:\n`;
+			notes.forEach((note: string, index: number) => {
+				formatted += `• ${note}\n`;
+			});
+		}
+		
+		return formatted;
+	}
+
 	async runTool(
 		_interaction: LLMConversationInteraction,
 		toolUse: LLMAnswerToolUse,
@@ -90,6 +133,14 @@ export default class LLMToolLoadDatasource extends LLMTool {
 			pageSize,
 			pageToken,
 		} = toolInput as LLMToolLoadDatasourceInput;
+
+		//logger.error(`LLMToolLoadDatasource: Tool Input: ${dataSourceId}`, {
+		//	returnType,
+		//	path,
+		//	depth,
+		//	pageSize,
+		//	pageToken,
+		//});
 
 		const { primaryDsConnection, dsConnections, notFound } = this.getDsConnectionsById(
 			projectEditor,
@@ -110,13 +161,15 @@ export default class LLMToolLoadDatasource extends LLMTool {
 				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
 			} as DataSourceHandlingErrorOptions);
 		}
-
 		try {
 			// Handle metadata return type
 			if (returnType === 'metadata' || returnType === 'both') {
 				// Get the resource accessor to call getMetadata on it
 				const resourceAccessor = await dsConnectionToLoad.getResourceAccessor();
 				const metadata = await resourceAccessor.getMetadata();
+
+				// Get content type guidance from the provider
+				const contentTypeGuidance = dsConnectionToLoad.provider.getContentTypeGuidance();
 
 				// For 'both' mode, also get a sample of resources
 				let sampleResources;
@@ -150,6 +203,12 @@ export default class LLMToolLoadDatasource extends LLMTool {
 				toolResultContentParts.push({
 					'type': 'text',
 					'text': `\nMetadata:\n${metadataText}`,
+				});
+
+				// Add content type guidance
+				toolResultContentParts.push({
+					'type': 'text',
+					'text': this.formatContentTypeGuidance(contentTypeGuidance),
 				});
 
 				// Add sample resources if in 'both' mode
@@ -204,6 +263,7 @@ export default class LLMToolLoadDatasource extends LLMTool {
 				const bbResponse = {
 					data: {
 						metadata,
+						contentTypeGuidance,
 						...(sampleResources && {
 							resources: sampleResources.resources,
 							uriTemplate: sampleResources.uriTemplate,

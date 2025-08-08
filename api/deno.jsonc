@@ -1,6 +1,6 @@
 {
 	"name": "bb-api",
-	"version": "0.8.15",
+	"version": "0.8.16",
 	"license": "AGPL-3.0-or-later",
 	"copyright": "2025 - Beyond Better <charlie@beyondbetter.app>",
 	"exports": "./src/main.ts",
@@ -16,6 +16,7 @@
 		"dev": "DENO_TLS_CA_STORE=system deno run --watch --allow-read --allow-write --allow-run --allow-net --allow-env src/main.ts",
 		"debug": "DENO_TLS_CA_STORE=system LOG_LEVEL=debug deno run --allow-read --allow-write --allow-run --allow-net --allow-env src/main.ts",
 		"test": "DENO_TLS_CA_STORE=system deno test --allow-read --allow-write --allow-run --allow-net --allow-env --allow-import  tests/  tests/t/llms/tools/index.ts",
+		"test-single": "DENO_TLS_CA_STORE=system deno test --allow-read --allow-write --allow-run --allow-net --allow-env --allow-import ",
 		"generate-tools-manifest": "deno run --allow-read --allow-write scripts/generate_core_tools_manifest.ts && deno fmt ./src/llms/tools_manifest.ts",
 		"update-model-capabilities": "deno run --allow-net --allow-read --allow-write --allow-env scripts/update_model_capabilities.ts",
 		"sync-models-to-llm_proxy": "deno run --allow-net --allow-read --allow-write --allow-env scripts/sync_models_to_llm_proxy.ts",

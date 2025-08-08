@@ -49,7 +49,7 @@ BB uses a straightforward process to discover and load tools:
 
 ```mermaid
 graph TD
-    A[Start Tool Loading] --> B[Scan userToolDirectories]
+    A[Start Tool Loading] --> B[Scan userPluginDirectories]
     B --> C{For Each Directory}
     C --> D[Check for .tool Extension]
     D --> E{Required Files?}
@@ -68,13 +68,13 @@ graph TD
     end
 ```
 
-Tools that fail validation are silently skipped. The `userToolDirectories` setting in BB's config specifies where to look for tools:
+Tools that fail validation are silently skipped. The `userPluginDirectories` setting in BB's config specifies where to look for tools:
 
 ```yaml
 api:
-  userToolDirectories:
-    - ./tools     # Relative to config file
-    - /abs/path/to/tools  # Absolute path
+  userPluginDirectories:
+    - ./plugins     # Relative to config file
+    - /abs/path/to/plugins  # Absolute path
   toolConfigs:    # Tool-specific configurations
     run_command:
       allowedCommands:
@@ -410,7 +410,7 @@ Tools are integrated by adding their directory to BB's configuration:
 
 ```yaml
 api:
-  userToolDirectories:
+  userPluginDirectories:
     - ./tools     # Relative to config file
     - /abs/path/to/tools  # Absolute path
   toolConfigs:    # Tool-specific configurations

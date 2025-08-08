@@ -1,6 +1,3 @@
-import { dirname, join } from '@std/path';
-import { exists } from '@std/fs';
-
 import LLMTool from 'api/llms/llmTool.ts';
 import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult, LLMToolRunResult } from 'api/llms/llmTool.ts';
 import type { LLMToolRenameResourcesInput, LLMToolRenameResourcesResult } from './types.ts';
@@ -17,7 +14,8 @@ import type ProjectEditor from 'api/editor/projectEditor.ts';
 import type { CollaborationLogEntryContentToolResult } from 'shared/types.ts';
 import type { LLMAnswerToolUse, LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
-import type { DataSourceHandlingErrorOptions } from 'api/errors/error.ts';
+import type { DataSourceHandlingErrorOptions, ToolHandlingErrorOptions } from 'api/errors/error.ts';
+import { isResourceNotFoundError } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
 
 export default class LLMToolRenameResources extends LLMTool {
@@ -144,14 +142,15 @@ export default class LLMToolRenameResources extends LLMTool {
 			} as DataSourceHandlingErrorOptions);
 		}
 
-		const dataSourceRoot = dsConnectionToUse.getDataSourceRoot();
-		if (!dataSourceRoot) {
-			throw createError(ErrorType.DataSourceHandling, `No data source root`, {
-				name: 'data-source',
-				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
-			} as DataSourceHandlingErrorOptions);
-		}
 		// [TODO] check that dsConnectionToUse is type filesystem
+
+		const resourceAccessor = await dsConnectionToUse.getResourceAccessor();
+		if (!resourceAccessor.renameResource) {
+			throw createError(ErrorType.ToolHandling, `No renameResource method on resourceAccessor`, {
+				toolName: 'rename_resources',
+				operation: 'tool-run',
+			} as ToolHandlingErrorOptions);
+		}
 
 		try {
 			const toolResultContentParts: LLMMessageContentPartTextBlock[] = [];
@@ -164,7 +163,7 @@ export default class LLMToolRenameResources extends LLMTool {
 				const destinationResourceUri = dsConnectionToUse.getUriForResource(`file:./${destination}`);
 				if (
 					!await dsConnectionToUse.isResourceWithinDataSource(sourceResourceUri) ||
-					!await dsConnectionToUse.isResourceWithinDataSource(sourceResourceUri)
+					!await dsConnectionToUse.isResourceWithinDataSource(destinationResourceUri)
 				) {
 					toolResultContentParts.push({
 						type: 'text',
@@ -178,31 +177,16 @@ export default class LLMToolRenameResources extends LLMTool {
 					});
 					continue;
 				}
-				const fullSourcePath = join(dataSourceRoot, source);
-				const fullDestPath = join(dataSourceRoot, destination);
 
 				try {
-					// Check if destination exists
-					if ((await exists(fullDestPath)) && !overwrite) {
-						toolResultContentParts.push({
-							type: 'text',
-							text: `Destination ${destination} already exists and overwrite is false`,
-						} as LLMMessageContentPartTextBlock);
-						renamedError.push({
-							source,
-							destination,
-							error: `Destination ${destination} already exists and overwrite is false.`,
-						});
-						continue;
+					// Use resource accessor to move/rename resource
+					const results = await resourceAccessor.renameResource(sourceResourceUri, destinationResourceUri, {
+						overwrite,
+						createMissingDirectories,
+					});
+					if (!results.success) {
+						throw new Error(`Move operation failed for ${source}`);
 					}
-
-					// Create missing directories if needed
-					if (createMissingDirectories) {
-						await Deno.mkdir(dirname(fullDestPath), { recursive: true });
-					}
-
-					// Perform the rename
-					await Deno.rename(fullSourcePath, fullDestPath);
 
 					toolResultContentParts.push({
 						type: 'text',
@@ -227,7 +211,7 @@ export default class LLMToolRenameResources extends LLMTool {
 			}
 			await projectEditor.orchestratorController.logChangeAndCommit(
 				interaction,
-				dataSourceRoot,
+				dsConnectionToUse.getDataSourceRoot(),
 				renamedResources,
 				renamedContent,
 			);

@@ -2,6 +2,7 @@ import LLMTool from 'api/llms/llmTool.ts';
 import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult } from 'api/llms/llmTool.ts';
 import type { CollaborationLogEntryContentToolResult } from 'shared/types.ts';
 import type { LLMToolLoadDatasourceInput, LLMToolLoadDatasourceResponseData } from './types.ts';
+import type { ContentTypeExample } from 'shared/types/dataSource.ts';
 import { logger } from 'shared/logger.ts';
 import { stripIndents } from 'common-tags';
 
@@ -165,6 +166,52 @@ export const formatLogEntryToolResult = (
 						  Use returnType='resources' with pageToken: ${data.pagination.nextPageToken}
 					`);
 				}
+			}
+
+			// Content Type Guidance
+			if (data.contentTypeGuidance) {
+				const guidance = data.contentTypeGuidance;
+				const guidanceParts = [];
+
+				// Header
+				guidanceParts.push(LLMTool.TOOL_STYLES_CONSOLE.content.status.completed('🛠️ Content Type Guidance'));
+
+				// Basic info
+				guidanceParts.push(stripIndents`
+					${LLMTool.TOOL_STYLES_CONSOLE.base.label('Primary Type:')} ${guidance.primaryContentType}
+					${LLMTool.TOOL_STYLES_CONSOLE.base.label('Preferred:')} ${guidance.preferredContentType}
+				`);
+
+				// Accepted types
+				guidanceParts.push(stripIndents`
+					${LLMTool.TOOL_STYLES_CONSOLE.base.label('Accepted Content Types:')}
+					  ${guidance.acceptedContentTypes.join(', ')}
+					${LLMTool.TOOL_STYLES_CONSOLE.base.label('Accepted Edit Types:')}
+					  ${guidance.acceptedEditTypes.join(', ')}
+				`);
+
+				// Examples
+				if (guidance.examples && guidance.examples.length > 0) {
+					guidanceParts.push(LLMTool.TOOL_STYLES_CONSOLE.base.label('Usage Examples:'));
+					guidance.examples.slice(0, 2).forEach((example: ContentTypeExample, idx: number) => {
+						guidanceParts.push(`  ${idx + 1}. ${example.description}`);
+						guidanceParts.push(`     Tool: ${example.toolCall.tool}`);
+						const inputKeys = Object.keys(example.toolCall.input).filter((k) => k !== 'resourcePath');
+						if (inputKeys.length > 0) {
+							guidanceParts.push(`     Content: ${inputKeys.join(', ')}`);
+						}
+					});
+				}
+
+				// Important notes
+				if (guidance.notes && guidance.notes.length > 0) {
+					guidanceParts.push(LLMTool.TOOL_STYLES_CONSOLE.base.label('Important Notes:'));
+					guidance.notes.slice(0, 3).forEach((note: string) => {
+						guidanceParts.push(`  • ${note}`);
+					});
+				}
+
+				contentParts.push(guidanceParts.join('\n'));
 			}
 
 			// Last scanned

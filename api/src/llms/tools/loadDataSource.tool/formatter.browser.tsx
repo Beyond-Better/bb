@@ -3,6 +3,7 @@ import LLMTool from 'api/llms/llmTool.ts';
 import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult } from 'api/llms/llmTool.ts';
 import type { CollaborationLogEntryContentToolResult } from 'shared/types.ts';
 import type { LLMToolLoadDatasourceInput, LLMToolLoadDatasourceResponseData } from './types.ts';
+import type { ContentTypeExample } from 'shared/types/dataSource.ts';
 import { logger } from 'shared/logger.ts';
 
 export const formatLogEntryToolUse = (
@@ -157,6 +158,88 @@ export const formatLogEntryToolResult = (
 										<div>🗃️ Databases: {metadata.notion.totalDatabases}</div>
 									)}
 								</div>
+							</div>
+						)}
+
+						{/* Content Type Guidance */}
+						{data.contentTypeGuidance && (
+							<div className='content-type-guidance'>
+								{LLMTool.TOOL_TAGS_BROWSER.content.status('completed', '🛠️ Content Type Guidance')}
+								<div className='guidance-overview'>
+									<div className='guidance-stat'>
+										{LLMTool.TOOL_TAGS_BROWSER.base.label('Primary Type:')}
+										<span className='stat-value'>
+											{data.contentTypeGuidance.primaryContentType}
+										</span>
+									</div>
+									<div className='guidance-stat'>
+										{LLMTool.TOOL_TAGS_BROWSER.base.label('Preferred:')}
+										<span className='stat-value'>
+											{data.contentTypeGuidance.preferredContentType}
+										</span>
+									</div>
+								</div>
+
+								{/* Accepted types */}
+								<div className='accepted-types'>
+									<div className='content-types'>
+										{LLMTool.TOOL_TAGS_BROWSER.base.label('Accepted Content Types:')}
+										{LLMTool.TOOL_TAGS_BROWSER.base.list(
+											data.contentTypeGuidance.acceptedContentTypes.map((type: string) => (
+												<code key={type} className='content-type'>{type}</code>
+											)),
+										)}
+									</div>
+									<div className='edit-types'>
+										{LLMTool.TOOL_TAGS_BROWSER.base.label('Accepted Edit Types:')}
+										{LLMTool.TOOL_TAGS_BROWSER.base.list(
+											data.contentTypeGuidance.acceptedEditTypes.map((type: string) => (
+												<code key={type} className='edit-type'>{type}</code>
+											)),
+										)}
+									</div>
+								</div>
+
+								{/* Usage Examples */}
+								{data.contentTypeGuidance.examples && data.contentTypeGuidance.examples.length > 0 && (
+									<div className='usage-examples'>
+										{LLMTool.TOOL_TAGS_BROWSER.base.label('Usage Examples:')}
+										{LLMTool.TOOL_TAGS_BROWSER.base.list(
+											data.contentTypeGuidance.examples.slice(0, 2).map((
+												example: ContentTypeExample,
+												idx: number,
+											) => (
+												<div key={idx} className='example-item'>
+													<div className='example-description'>{example.description}</div>
+													<div className='example-details'>
+														<code className='tool-name'>{example.toolCall.tool}</code>
+														{Object.keys(example.toolCall.input).filter((k) =>
+																	k !== 'resourcePath'
+																).length > 0 && (
+															<span className='content-types'>
+																{Object.keys(example.toolCall.input).filter((k) =>
+																	k !== 'resourcePath'
+																).join(', ')}
+															</span>
+														)}
+													</div>
+												</div>
+											)),
+										)}
+									</div>
+								)}
+
+								{/* Important Notes */}
+								{data.contentTypeGuidance.notes && data.contentTypeGuidance.notes.length > 0 && (
+									<div className='guidance-notes'>
+										{LLMTool.TOOL_TAGS_BROWSER.base.label('Important Notes:')}
+										{LLMTool.TOOL_TAGS_BROWSER.base.list(
+											data.contentTypeGuidance.notes.slice(0, 3).map((note: string, idx: number) => (
+												<div key={idx} className='guidance-note'>• {note}</div>
+											)),
+										)}
+									</div>
+								)}
 							</div>
 						)}
 

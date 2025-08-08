@@ -21,7 +21,7 @@ export interface ApiConfigSchema {
 	logFile?: string;
 	logLevel: 'debug' | 'info' | 'warn' | 'error';
 	logFileHydration?: boolean;
-	userToolDirectories: string[];
+	userPluginDirectories: string[];
 	toolConfigs: Record<string, unknown>;
 }
 export interface BuiConfigSchema {
@@ -90,7 +90,7 @@ export const defaultGlobalConfig: GlobalConfigSchema = {
 		logLevel: 'info',
 		logFileHydration: false,
 		toolConfigs: {},
-		userToolDirectories: ['./tools'], // This will be resolved to an absolute path by ConfigManager
+		userPluginDirectories: ['./plugins'], // This will be resolved to an absolute path by ConfigManager
 		maxTurns: 25, // Maximum number of turns in a conversation
 	},
 	bui: {
@@ -128,7 +128,7 @@ export const defaultProjectConfig: ProjectConfigSchema = {
 		logLevel: 'info',
 		logFileHydration: false,
 		toolConfigs: {},
-		userToolDirectories: ['./tools'], // This will be resolved to an absolute path by ConfigManager
+		userPluginDirectories: ['./plugins'], // This will be resolved to an absolute path by ConfigManager
 	},
 	bui: {
 		environment: 'local',

@@ -6,6 +6,7 @@ import type { DataSourceProvider } from 'api/dataSources/interfaces/dataSourcePr
 import type { DataSourceAccessMethod, DataSourceCapability, DataSourceProviderType } from 'shared/types/dataSource.ts';
 import type { AuthConfig } from 'api/dataSources/interfaces/authentication.ts';
 import type { ResourceAccessor } from 'api/dataSources/interfaces/resourceAccessor.ts';
+import type { ProjectConfig } from 'shared/config/types.ts';
 
 /**
  * DataSourceConnection interface
@@ -50,6 +51,8 @@ export interface DataSourceConnection {
 	uriPrefix?: string;
 	uriTemplate?: string;
 
+	projectConfig?: ProjectConfig;
+
 	/**
 	 * Provider-specific configuration
 	 */
@@ -74,6 +77,11 @@ export interface DataSourceConnection {
 	 * Priority for ordering (higher = more important)
 	 */
 	priority: number;
+
+	/**
+	 * Update values for datasource
+	 */
+	update(updates: Partial<DataSourceConnectionValues>): void;
 
 	/**
 	 * Get a ResourceAccessor for a data source connection

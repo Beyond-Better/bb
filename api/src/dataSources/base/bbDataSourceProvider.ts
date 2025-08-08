@@ -33,10 +33,9 @@ export abstract class BBDataSourceProvider extends BaseDataSourceProvider {
 		providerType: DataSourceProviderType,
 		name: string,
 		description: string,
-		capabilities: DataSourceCapability[],
 		requiredConfigFields: string[],
 		authType: DataSourceAuthMethod = 'none',
 	) {
-		super(providerType, name, description, capabilities, requiredConfigFields, authType);
+		super(providerType, name, description, requiredConfigFields, authType);
 	}
 }

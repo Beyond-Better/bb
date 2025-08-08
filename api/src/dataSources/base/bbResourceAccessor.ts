@@ -7,8 +7,12 @@ import { BaseResourceAccessor } from './baseResourceAccessor.ts';
 import type { DataSourceConnection } from 'api/dataSources/interfaces/dataSourceConnection.ts';
 import type { DataSourceCapability } from 'shared/types/dataSource.ts';
 import type {
+	FindResourceParams,
+	FindResourceResult,
 	ResourceDeleteOptions,
 	ResourceDeleteResult,
+	ResourceEditOperation,
+	ResourceEditResult,
 	// ResourceListOptions,
 	// ResourceListResult,
 	// ResourceLoadOptions,
@@ -20,6 +24,7 @@ import type {
 	ResourceWriteOptions,
 	ResourceWriteResult,
 } from 'shared/types/dataSourceResource.ts';
+import type { PortableTextBlock } from 'api/types/portableText.ts';
 
 /**
  * Abstract base class for BB-managed resource accessors
@@ -56,13 +61,34 @@ export abstract class BBResourceAccessor extends BaseResourceAccessor {
 	//abstract listResources(options?: ResourceListOptions): Promise<ResourceListResult>;
 
 	/**
-	 * Search for resources based on a query
-	 * Optional capability - implement in subclasses if supported
+	 * Find resources using unified operations architecture (primary interface)
+	 * Subclasses should implement this method for enhanced search capabilities
+	 * @param params Search parameters with content/resource patterns and structured queries
+	 * @returns Enhanced search results with polymorphic matches and pagination
+	 */
+	findResources?(params: FindResourceParams): Promise<FindResourceResult>;
+
+	/**
+	 * Search for resources based on a query (legacy interface)
+	 * Default implementation delegates to findResources if available, otherwise optional
 	 * @param query Search query
 	 * @param options Options for searching
 	 * @returns Search results
 	 */
 	searchResources?(query: string, options?: ResourceSearchOptions): Promise<ResourceSearchResult>;
+
+	/**
+	 * Edit a resource using the unified operations interface
+	 * Delegates to appropriate operation handlers based on operation type
+	 * @param resourcePath Path of the resource to edit relative to data source root
+	 * @param operations Array of edit operations to apply
+	 * @returns Result containing operation outcomes and resource metadata
+	 */
+	editResource?(
+		resourcePath: string,
+		operations: ResourceEditOperation[],
+		options: { createIfMissing: boolean },
+	): Promise<ResourceEditResult>;
 
 	/**
 	 * Write content to a resource
@@ -74,7 +100,7 @@ export abstract class BBResourceAccessor extends BaseResourceAccessor {
 	 */
 	writeResource?(
 		resourceUri: string,
-		content: string | Uint8Array,
+		content: string | Uint8Array | PortableTextBlock[],
 		options?: ResourceWriteOptions,
 	): Promise<ResourceWriteResult>;
 
@@ -87,6 +113,20 @@ export abstract class BBResourceAccessor extends BaseResourceAccessor {
 	 * @returns Result of the move operation
 	 */
 	moveResource?(
+		sourceUri: string,
+		destinationUri: string,
+		options?: ResourceMoveOptions,
+	): Promise<ResourceMoveResult>;
+
+	/**
+	 * Rename a resource - potentially to a new location
+	 * Optional capability - implement in subclasses if supported
+	 * @param sourceUri Source resource URI
+	 * @param destinationUri Destination resource URI
+	 * @param options Options for moving
+	 * @returns Result of the move operation
+	 */
+	renameResource?(
 		sourceUri: string,
 		destinationUri: string,
 		options?: ResourceMoveOptions,

@@ -28,10 +28,14 @@ import type {
 import { DEFAULT_TOKEN_USAGE } from 'shared/types.ts';
 import type {
 	LLMMessageContentPart,
+	LLMMessageContentPartAudioBlock,
 	LLMMessageContentPartImageBlock,
 	LLMMessageContentParts,
+	LLMMessageContentPartRedactedThinkingBlock,
 	LLMMessageContentPartTextBlock,
+	LLMMessageContentPartThinkingBlock,
 	LLMMessageContentPartToolResultBlock,
+	LLMMessageContentPartToolUseBlock,
 	LLMMessageProviderResponse,
 } from 'api/llms/llmMessage.ts';
 import { getLLMModelToProvider, type LLMProviderMessageResponseRole } from 'api/types/llms.ts';
@@ -609,27 +613,102 @@ class LLMInteraction {
 		}
 	}
 
+	private validateContentPart(part: LLMMessageContentPart): boolean {
+		switch (part.type) {
+			case 'text':
+				return typeof (part as LLMMessageContentPartTextBlock).text === 'string' && 
+				       (part as LLMMessageContentPartTextBlock).text.trim().length > 0;
+			case 'thinking':
+				return typeof (part as LLMMessageContentPartThinkingBlock).thinking === 'string' && 
+				       (part as LLMMessageContentPartThinkingBlock).thinking.trim().length > 0;
+			case 'redacted_thinking':
+				return typeof (part as LLMMessageContentPartRedactedThinkingBlock).data === 'string' && 
+				       (part as LLMMessageContentPartRedactedThinkingBlock).data.trim().length > 0;
+			case 'tool_use':
+				const toolUsePart = part as LLMMessageContentPartToolUseBlock;
+				return !!(toolUsePart.id && toolUsePart.name && toolUsePart.input);
+			case 'tool_result':
+				const toolResultPart = part as LLMMessageContentPartToolResultBlock;
+				return !!(toolResultPart.tool_use_id && (toolResultPart.content || toolResultPart.is_error !== undefined));
+			case 'image':
+				const imagePart = part as LLMMessageContentPartImageBlock;
+				return !!(imagePart.source?.data && imagePart.source?.media_type);
+			case 'audio':
+				const audioPart = part as LLMMessageContentPartAudioBlock;
+				return !!(audioPart.id);
+			default:
+				return false;
+		}
+	}
+
+	private filterValidContent(content: LLMMessageContentParts): LLMMessageContentParts {
+		return content.filter((part) => this.validateContentPart(part));
+	}
+
+	private createFallbackContent(originalContent: LLMMessageContentParts): LLMMessageContentParts {
+		// Create a fallback text content when all original content is invalid
+		const fallbackText = 'Error: LLM response contained invalid content parts';
+		logger.error('LLMInteraction: Creating fallback content due to all invalid parts', {
+			originalContentTypes: originalContent.map((part) => part.type),
+			interactionId: this.id,
+		});
+		return [{
+			type: 'text',
+			text: fallbackText,
+		}];
+	}
+
+	private shouldLogValidationDetails(): boolean {
+		// Enhanced logging for development environments
+		return this.projectConfig?.api?.environment === 'localdev';
+	}
+
 	public addMessageForAssistantRole(
 		content: LLMMessageContentPart | LLMMessageContentParts,
 		tool_call_id?: string,
 		providerResponse?: LLMMessageProviderResponse,
 	): string {
+		const contentArray = Array.isArray(content) ? content : [content];
+		const validContent = this.filterValidContent(contentArray);
+		let finalContent: LLMMessageContentParts;
+
+		// Handle case where all content parts are invalid
+		if (validContent.length === 0) {
+			logger.warn('LLMInteraction: All content parts invalid, creating fallback content', {
+				originalContent: contentArray.map((part) => ({
+					type: part.type,
+					hasText: 'text' in part && !!part.text,
+				})),
+				interactionId: this.id,
+			});
+			finalContent = this.createFallbackContent(contentArray);
+		} else if (validContent.length < contentArray.length) {
+			// Some content was filtered out - log for debugging
+			const invalidParts = contentArray.filter((part) => !this.validateContentPart(part));
+			const logLevel = this.shouldLogValidationDetails() ? 'warn' : 'debug';
+			logger[logLevel]('LLMInteraction: Filtered out invalid content parts', {
+				invalidParts: invalidParts.map((part) => ({ type: part.type, hasText: 'text' in part && !!part.text })),
+				validPartsCount: validContent.length,
+				totalPartsCount: contentArray.length,
+				interactionId: this.id,
+			});
+			finalContent = validContent;
+		} else {
+			finalContent = validContent;
+		}
+
 		const lastMessage = this.getLastMessage();
 
 		if (lastMessage && lastMessage.role === 'assistant') {
-			logger.error('LLMInteraction: Why are we adding another assistant message - SOMETHING IS WRONG!');
+			logger.error('LLMInteraction: Consecutive assistant messages detected - appending to existing message');
 			// Append content to the content array of the last assistant message
-			if (Array.isArray(content)) {
-				lastMessage.content.push(...content);
-			} else {
-				lastMessage.content.push(content);
-			}
+			lastMessage.content.push(...finalContent);
 			return lastMessage.id;
 		} else {
 			// Add a new assistant message
 			const newMessage = new LLMMessage(
 				'assistant',
-				Array.isArray(content) ? content : [content],
+				finalContent,
 				this.interactionStats,
 				tool_call_id,
 				providerResponse,

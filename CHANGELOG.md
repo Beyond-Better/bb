@@ -17,6 +17,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.8.16] - 2025-08-08
+
+### Added
+
+- read/write support for editing Notion documents (saas only)
+- read/write support for editing GoogleDocs documents (saas only)
+- dynamic loading for third-party datasources
+- integration tests for datasources
+
+### Changed
+
+- remaining tools updated to use datasource accessors
+- deprecated searchAndReplace and rewriteResource tools in favour of editResource and writeResource
+- support for contentFormat and editTypes to all resource tools
+
+### Fixed
+
+- save in-progess prompt when navigating within app
+- validate content parts returned from LLM
+
+
 ## [0.8.15] - 2025-07-27
 
 ### Added

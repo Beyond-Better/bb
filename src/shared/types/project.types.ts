@@ -8,6 +8,7 @@ import {
 } from 'shared/config/types.ts';
 import type {
 	DataSourceAccessMethod,
+	DataSourceAuth,
 	DataSourceCapability,
 	DataSourceProviderInfo,
 	DataSourceProviderType,
@@ -95,6 +96,7 @@ export interface ClientDataSourceConnection {
 	capabilities: DataSourceCapability[];
 	description: string;
 	config: Record<string, unknown>;
+	auth: DataSourceAuth;
 	// Add any other properties needed by UI
 }
 

@@ -314,11 +314,15 @@ export interface ResourceHandlingErrorOptions extends ErrorOptions {
 		| 'write'
 		| 'delete'
 		| 'move'
-		| 'change'
+		| 'rename'
+		| 'change' // deprecated - use 'edit' instead
+		| 'edit'
 		| 'search-resources'
 		| 'apply-patch'
 		| 'search-replace'
 		| 'rewrite-resource'
+		| 'block-edit'
+		| 'access-check'
 		//| 'move-resource'
 		| 'create-dir'
 		// these are not really resourceHandling (datasource) - they only affect files in the conversation
@@ -412,7 +416,7 @@ export const isVectorSearchError = (value: unknown): value is VectorSearchError 
 
 export interface ToolHandlingErrorOptions extends ErrorOptions {
 	toolName: string;
-	operation: 'tool-run' | 'tool-input' | 'formatting';
+	operation: 'tool-run' | 'tool-input' | 'formatting' | 'capability-check' | 'interface-check';
 	toolInput?: Record<string, unknown>;
 }
 

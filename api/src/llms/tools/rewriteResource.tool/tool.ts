@@ -15,11 +15,13 @@ import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
-import type { DataSourceHandlingErrorOptions, ResourceHandlingErrorOptions } from 'api/errors/error.ts';
+import type {
+	DataSourceHandlingErrorOptions,
+	ResourceHandlingErrorOptions,
+	ToolHandlingErrorOptions,
+} from 'api/errors/error.ts';
+import { isResourceNotFoundError } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
-
-import { ensureDir } from '@std/fs';
-import { dirname, join } from '@std/path';
 
 //const ACKNOWLEDGMENT_STRING = 'I confirm this is the complete resource content with no omissions or placeholders';
 const ACKNOWLEDGMENT_STRING =
@@ -178,14 +180,15 @@ export default class LLMToolRewriteResource extends LLMTool {
 				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
 			} as DataSourceHandlingErrorOptions);
 		}
-		const dataSourceRoot = dsConnectionToUse.getDataSourceRoot();
-		//if (!dataSourceRoot) {
-		//	throw createError(ErrorType.DataSourceHandling, `No data source root`, {
-		//		name: 'data-source',
-		//		dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
-		//	} as DataSourceHandlingErrorOptions);
-		//}
 		// [TODO] check that dsConnectionToUse is type filesystem
+
+		const resourceAccessor = await dsConnectionToUse.getResourceAccessor();
+		if (!resourceAccessor.writeResource) {
+			throw createError(ErrorType.ToolHandling, `No writeResource method on resourceAccessor`, {
+				toolName: 'rewrite_resource',
+				operation: 'tool-run',
+			} as ToolHandlingErrorOptions);
+		}
 
 		// Validate acknowledgment string
 		if (!validateAcknowledgment(acknowledgement)) {
@@ -246,22 +249,23 @@ export default class LLMToolRewriteResource extends LLMTool {
 			);
 		}
 
-		const fullResourcePath = join(dataSourceRoot, resourcePath);
-		logger.info(`LLMToolRewriteResource: Handling rewrite for resource: ${fullResourcePath}`);
+		logger.info(`LLMToolRewriteResource: Handling rewrite for resource: ${resourceUri}`);
 
 		try {
 			let isNewResource = false;
+
+			// Check if resource exists using accessor
 			try {
-				await Deno.stat(fullResourcePath);
+				await resourceAccessor.loadResource(resourceUri);
 			} catch (error) {
-				if (error instanceof Deno.errors.NotFound && createIfMissing) {
+				if (isResourceNotFoundError(error) && createIfMissing) {
 					isNewResource = true;
 					logger.info(
-						`LLMToolRewriteResource: Resource ${fullResourcePath} not found. Creating new resource.`,
+						`LLMToolRewriteResource: Resource ${resourceUri} not found. Creating new resource.`,
 					);
 					// Create missing directories
-					await ensureDir(dirname(fullResourcePath));
-					logger.info(`LLMToolRewriteResource: Created directory structure for ${fullResourcePath}`);
+					await resourceAccessor.ensureResourcePathExists(resourceUri);
+					logger.info(`LLMToolRewriteResource: Created directory structure for ${resourceUri}`);
 				} else {
 					throw error;
 				}
@@ -279,12 +283,30 @@ export default class LLMToolRewriteResource extends LLMTool {
 				} as ResourceHandlingErrorOptions);
 			}
 
-			await Deno.writeTextFile(fullResourcePath, content);
+			// Write using resource accessor
+			const results = await resourceAccessor.writeResource(resourceUri, content, {
+				overwrite: true,
+				createMissingDirectories: true,
+			});
+			if (!results.success) {
+				throw createError(
+					ErrorType.ResourceHandling,
+					`Writing resource failed for ${resourcePath}`,
+					{
+						name: 'rewrite-resource',
+						filePath: resourcePath,
+						operation: 'write',
+					} as ResourceHandlingErrorOptions,
+				);
+			}
+			logger.info(
+				`LLMToolRewriteResource: Wrote ${results.bytesWritten} bytes for: ${results.uri}`,
+			);
 
 			logger.info(`LLMToolRewriteResource: Saving conversation rewrite resource: ${interaction.id}`);
 			await projectEditor.orchestratorController.logChangeAndCommit(
 				interaction,
-				dataSourceRoot,
+				dsConnectionToUse.getDataSourceRoot(),
 				resourcePath,
 				content,
 			);

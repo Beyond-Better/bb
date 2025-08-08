@@ -46,7 +46,7 @@ describe('ConfigManagerV2', () => {
 	describe('Global Configuration', () => {
 		it('should load default global config when none exists', async () => {
 			const config = await configManager.getGlobalConfig();
-			assertEquals(config.version, '2.2.0');
+			assertEquals(config.version, '2.2.1');
 			assertEquals(config.api.hostname, 'localhost');
 			assertEquals(config.api.port, 3162);
 		});
@@ -61,7 +61,7 @@ describe('ConfigManagerV2', () => {
 					logFileHydration: false,
 					ignoreLLMRequestCache: false,
 					usePromptCaching: true,
-					userToolDirectories: ['./tools'],
+					userPluginDirectories: ['./plugins'],
 					toolConfigs: {},
 					tls: {
 						useTls: true,
@@ -85,7 +85,7 @@ describe('ConfigManagerV2', () => {
 					logFileHydration: false,
 					ignoreLLMRequestCache: false,
 					usePromptCaching: true,
-					userToolDirectories: ['./tools'],
+					userPluginDirectories: ['./plugins'],
 					toolConfigs: {},
 					tls: { useTls: true },
 					hostname: 'localhost',
@@ -111,6 +111,7 @@ describe('ConfigManagerV2', () => {
 				{
 					id: 'ds-fs-primary',
 					isPrimary: true,
+					//projectConfig: projectConfig,
 				},
 			);
 
@@ -144,6 +145,7 @@ describe('ConfigManagerV2', () => {
 				{
 					id: 'ds-fs-primary',
 					isPrimary: true,
+					//projectConfig: projectConfig,
 				},
 			);
 			const projectPersistenceManager = await getProjectPersistenceManager();
@@ -159,7 +161,7 @@ describe('ConfigManagerV2', () => {
 			const config = await configManager.getProjectConfig(projectId);
 
 			assertEquals(config.name, 'Test Project');
-			assertEquals(config.version, '2.2.0');
+			assertEquals(config.version, '2.2.1');
 
 			//projectData.delete();
 		});
@@ -214,6 +216,7 @@ describe('ConfigManagerV2', () => {
 						{
 							id: 'ds-fs-primary',
 							isPrimary: true,
+							//projectConfig: projectConfig,
 						},
 					);
 					const projectPersistenceManager = await getProjectPersistenceManager();
@@ -263,7 +266,7 @@ describe('ConfigManagerV2', () => {
 
 			assertEquals(result.success, true);
 			assertEquals(result.version.from, '1.0.0');
-			assertEquals(result.version.to, '2.2.0');
+			assertEquals(result.version.to, '2.2.1');
 			assertExists(result.backupPath);
 
 			// Verify changes tracked
@@ -292,7 +295,7 @@ describe('ConfigManagerV2', () => {
 			// assertEquals(hostnameChange.to, 'localhost');
 		});
 
-		it('should migrate v1 project config to v22', async () => {
+		it('should migrate v1 project config to v221', async () => {
 			const v1Config = {
 				version: '1.0.0',
 				project: {
@@ -326,7 +329,7 @@ describe('ConfigManagerV2', () => {
 
 			assertEquals(result.success, true);
 			assertEquals(result.version.from, '1.0.0');
-			assertEquals(result.version.to, '2.2.0');
+			assertEquals(result.version.to, '2.2.1');
 
 			// Verify structure converted to settings
 			// Check version change

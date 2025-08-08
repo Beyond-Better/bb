@@ -10,11 +10,12 @@ import { LLMProvider } from 'api/types/llms.ts';
 import type { ProjectId } from 'shared/types.ts';
 import type { CreateProjectData } from 'shared/types/project.ts';
 import { DefaultModelsConfigDefaults } from 'shared/types/models.ts';
+import type { DataSourceProviderType } from 'shared/types/dataSource.ts';
 import type { DefaultModels, DefaultModelsPartial } from 'shared/types/models.ts';
 export type { DefaultModels, DefaultModelsPartial };
 
 // Version Management
-const CONFIG_VERSIONS = ['1.0.0', '2.0.0', '2.1.0', '2.2.0'] as const;
+const CONFIG_VERSIONS = ['1.0.0', '2.0.0', '2.1.0', '2.2.0', '2.2.1'] as const;
 /** Supported configuration versions */
 export type ConfigVersion = typeof CONFIG_VERSIONS[number];
 
@@ -104,6 +105,12 @@ export interface LLMProviderConfig {
 	config?: Record<string, string | number | boolean>;
 }
 
+export interface GoogleOauth {
+	redirectUri: string;
+	clientId: string | null;
+	clientSecret: string | null;
+}
+
 /**
  * API server configuration.
  * Extends base server config with API-specific settings.
@@ -115,7 +122,7 @@ export interface ApiConfig extends ServerConfig {
 	logFileHydration: boolean;
 	ignoreLLMRequestCache: boolean;
 	usePromptCaching: boolean;
-	userToolDirectories: string[];
+	userPluginDirectories: string[];
 	toolConfigs: Record<string, unknown>;
 	localMode?: boolean;
 	supabaseConfigUrl?: string;
@@ -130,6 +137,8 @@ export interface ApiConfig extends ServerConfig {
 		enabled: boolean;
 		budgetTokens: number;
 	};
+
+	dataSourceProviders?: Partial<Record<DataSourceProviderType, Record<string, unknown>>>;
 
 	/**
 	 * Provider-specific LLM configurations.
@@ -164,6 +173,7 @@ export interface BuiConfig extends ServerConfig {
 	logFile?: string;
 	localMode?: boolean;
 	kvSessionPath?: string;
+	googleOauth: GoogleOauth;
 }
 
 /**
@@ -345,7 +355,7 @@ export interface IConfigManagerV2 {
 // IMPORTANT: When updating these defaults, also update the corresponding Rust defaults in:
 // dui/src-tauri/src/config.rs (impl Default for each config struct)
 // When updating these defaults, update impl Default for ApiConfig in dui/src-tauri/src/config.rs
-export const ApiConfigDefaults: Readonly<Omit<ApiConfig, 'llmProviders'>> = {
+export const ApiConfigDefaults: Readonly<Omit<ApiConfig, 'llmProviders' | 'dataSourceProviders'>> = {
 	hostname: 'localhost',
 	port: 3162,
 	tls: {
@@ -358,12 +368,13 @@ export const ApiConfigDefaults: Readonly<Omit<ApiConfig, 'llmProviders'>> = {
 	supabaseConfigUrl: 'https://www.beyondbetter.app/api/v1/config/supabase',
 	ignoreLLMRequestCache: false,
 	usePromptCaching: true,
-	userToolDirectories: ['./tools'],
+	userPluginDirectories: ['./plugins'],
 	toolConfigs: {},
 	extendedThinking: {
 		enabled: true,
 		budgetTokens: 4000,
 	},
+	//dataSourceProviders: {},
 	//llmProviders: {},
 };
 
@@ -377,6 +388,11 @@ export const BuiConfigDefaults: Readonly<BuiConfig> = {
 	logLevel: 'info',
 	localMode: false,
 	kvSessionPath: 'auth.kv',
+	googleOauth: {
+		redirectUri: 'https://chat.beyondbetter.app/oauth/google/callback',
+		clientId: null,
+		clientSecret: null,
+	},
 };
 
 // When updating these defaults, update impl Default for CliConfig in dui/src-tauri/src/config.rs
@@ -393,7 +409,7 @@ export const DuiConfigDefaults: Readonly<DuiConfig> = {
 
 //export const ProjectConfigDefaults: Readonly<Omit<ProjectConfig, 'version' | 'projectId' | 'name'>> = {
 export const ProjectConfigDefaults: Readonly<ProjectConfig> = {
-	version: '2.2.0',
+	version: '2.2.1',
 	projectId: '',
 	//name: '',
 	//type: 'local',
@@ -408,7 +424,7 @@ export const ProjectConfigDefaults: Readonly<ProjectConfig> = {
 // When updating these defaults, update impl Default for GlobalConfig in dui/src-tauri/src/config.rs
 //export const GlobalConfigDefaults: Readonly<Omit<GlobalConfig, 'version' | 'bbExeName' | 'bbApiExeName'>> = {
 export const GlobalConfigDefaults: Readonly<GlobalConfig> = {
-	version: '2.2.0',
+	version: '2.2.1',
 	bbExeName: 'bb',
 	bbApiExeName: 'bb-api',
 	bbBuiExeName: 'bb-bui',

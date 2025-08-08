@@ -20,6 +20,15 @@ export abstract class MCPDataSourceProvider extends BaseDataSourceProvider {
 	 */
 	public readonly accessMethod: DataSourceAccessMethod = 'mcp';
 
+	public capabilities: DataSourceCapability[] = [
+		'read',
+		//'write',
+		//'list',
+		//'search',
+		//'move',
+		//'delete',
+	];
+
 	/**
 	 * The ID of the MCP server that manages this data source
 	 */
@@ -40,11 +49,12 @@ export abstract class MCPDataSourceProvider extends BaseDataSourceProvider {
 		serverId: string,
 		name: string,
 		description: string,
-		capabilities: DataSourceCapability[],
 		requiredConfigFields: string[],
 		authType: DataSourceAuthMethod = 'none',
+		capabilities: DataSourceCapability[],
 	) {
-		super(providerType, name, description, capabilities, requiredConfigFields, authType);
+		super(providerType, name, description, requiredConfigFields, authType);
+		this.capabilities = [...capabilities];
 		this.serverId = serverId;
 	}
 }

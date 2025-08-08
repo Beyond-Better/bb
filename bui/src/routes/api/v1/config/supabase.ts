@@ -1,15 +1,32 @@
-import { Handlers } from '$fresh/server.ts';
-import { getConfigManager } from 'shared/config/configManager.ts';
+import { FreshContext, Handlers } from '$fresh/server.ts';
+import type { FreshAppState } from 'bui/types/state.types.ts';
 
 export const handler: Handlers = {
-	async GET(req, _ctx) {
-		const configManager = await getConfigManager();
-		const globalConfig = await configManager.getGlobalConfig();
+	async GET(req, ctx: FreshContext<FreshAppState>) {
+		const supabaseUrl = ctx.state.buiConfig.supabaseUrl;
+		const supabaseAnonKey = ctx.state.buiConfig.supabaseAnonKey;
+		if (!supabaseUrl || !supabaseAnonKey) {
+			console.error('ConfigSupabase: Missing Supabase configuration');
+			return new Response(
+				JSON.stringify({
+					error: {
+						code: 'MISSING_CONFIG',
+						message: 'Supabase configuration incomplete',
+						reason: 'missing_supabase_config',
+					},
+				}),
+				{
+					status: 500,
+					headers: { 'Content-Type': 'application/json' },
+				},
+			);
+		}
+		//console.error('ConfigSupabase: ', { supabaseUrl, supabaseAnonKey });
 
 		return new Response(
 			JSON.stringify({
-				url: globalConfig.bui.supabaseUrl,
-				anonKey: globalConfig.bui.supabaseAnonKey,
+				url: supabaseUrl,
+				anonKey: supabaseAnonKey,
 				verifyUrl: new URL('/auth/verify', `${req.url}`).toString(),
 			}),
 			{

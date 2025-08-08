@@ -84,7 +84,7 @@ export function enhanceProjectWithSources(
 
 	// Return separated data and config
 	return {
-		data: storedProject,
+		data: storedProject as ClientProjectData,
 		config: enhancedConfig,
 	};
 }

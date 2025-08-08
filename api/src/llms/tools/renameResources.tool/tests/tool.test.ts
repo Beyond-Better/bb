@@ -244,9 +244,9 @@ Deno.test({
 				};
 
 				const result = await tool.runTool(interaction, toolUse, projectEditor);
-				console.log('Fail to create missing directories - bbResponse:', result.bbResponse);
-				console.log('Fail to create missing directories - toolResponse:', result.toolResponse);
-				console.log('Fail to create missing directories - toolResults:', result.toolResults);
+				// console.log('Fail to create missing directories - bbResponse:', result.bbResponse);
+				// console.log('Fail to create missing directories - toolResponse:', result.toolResponse);
+				// console.log('Fail to create missing directories - toolResults:', result.toolResults);
 
 				assert(
 					result.bbResponse && typeof result.bbResponse === 'object',
@@ -525,6 +525,7 @@ Deno.test({
 				await ensureFile(destResource);
 				await Deno.writeTextFile(sourceResource, 'new content');
 				await Deno.writeTextFile(destResource, 'old content');
+				// console.log('Rename single resource - Resources:', {sourceResource, destResource});
 
 				const toolManager = await getToolManager(projectEditor);
 				const tool = await toolManager.getTool('rename_resources');
@@ -574,7 +575,7 @@ Deno.test({
 					);
 					assertStringIncludes(
 						renameResult1.error,
-						'Destination existing.txt already exists and overwrite is false',
+						'Destination file already exists and overwrite is false: existing.txt',
 						'Result1 response should have error',
 					);
 
@@ -670,7 +671,7 @@ Deno.test({
 					);
 					assertStringIncludes(
 						renameResult1.error,
-						'No such file or directory',
+						'Source file not found: non_existent.txt',
 						'Result1 response should have error',
 					);
 

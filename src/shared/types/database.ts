@@ -173,10 +173,13 @@ export type Database = {
 			user_profiles: {
 				Row: {
 					created_at: string;
+					email: string | null;
 					email_verified: boolean | null;
 					name_first: string | null;
 					name_last: string | null;
-					phone_number: string | null;
+					name_prefix: string | null;
+					phone: string | null;
+					phone_verified: boolean | null;
 					preferences: Json | null;
 					stripe_customer_id: string | null;
 					timezone: string | null;
@@ -185,10 +188,13 @@ export type Database = {
 				};
 				Insert: {
 					created_at?: string;
+					email?: string | null;
 					email_verified?: boolean | null;
 					name_first?: string | null;
 					name_last?: string | null;
-					phone_number?: string | null;
+					name_prefix?: string | null;
+					phone?: string | null;
+					phone_verified?: boolean | null;
 					preferences?: Json | null;
 					stripe_customer_id?: string | null;
 					timezone?: string | null;
@@ -197,10 +203,13 @@ export type Database = {
 				};
 				Update: {
 					created_at?: string;
+					email?: string | null;
 					email_verified?: boolean | null;
 					name_first?: string | null;
 					name_last?: string | null;
-					phone_number?: string | null;
+					name_prefix?: string | null;
+					phone?: string | null;
+					phone_verified?: boolean | null;
 					preferences?: Json | null;
 					stripe_customer_id?: string | null;
 					timezone?: string | null;
@@ -219,7 +228,7 @@ export type Database = {
 				Returns: boolean;
 			};
 			check_min_team_role: {
-				Args: { t_id: string; min_role: string };
+				Args: { min_role: string; t_id: string };
 				Returns: boolean;
 			};
 			check_organization_role: {
@@ -227,7 +236,7 @@ export type Database = {
 				Returns: boolean;
 			};
 			check_organization_roles: {
-				Args: { required_roles: string[]; org_id: string };
+				Args: { org_id: string; required_roles: string[] };
 				Returns: boolean;
 			};
 			check_team_role: {
@@ -1595,6 +1604,7 @@ export type Database = {
 					has_active_subscription: boolean | null;
 					live_balance_micro_usd: number | null;
 					live_balance_usd: number | null;
+					phone: string | null;
 					plan_name: string | null;
 					status_summary: string | null;
 					subscription_cancel_at: string | null;
@@ -1812,6 +1822,7 @@ export type Database = {
 					last_batch_at: string | null;
 					live_balance_micro_usd: number | null;
 					live_balance_usd: number | null;
+					phone: string | null;
 					plan_name: string | null;
 					subscription_cancel_at: string | null;
 					subscription_cancelling: boolean | null;
@@ -1841,6 +1852,8 @@ export type Database = {
 					marketing_consent: string | null;
 					name_first: string | null;
 					name_last: string | null;
+					phone: string | null;
+					phone_verified: boolean | null;
 					signup_date: string | null;
 					subscription_period_end: string | null;
 					subscription_period_start: string | null;
@@ -1898,6 +1911,7 @@ export type Database = {
 					last_usage_at: string | null;
 					max_cost_micro_usd: number | null;
 					min_cost_micro_usd: number | null;
+					phone: string | null;
 					total_cost_micro_usd: number | null;
 					total_cost_usd: number | null;
 					total_usage_count: number | null;
@@ -1913,39 +1927,39 @@ export type Database = {
 		Functions: {
 			activate_immediate_subscription: {
 				Args: {
-					p_stripe_subscription_id: string;
 					p_effective_date?: string;
+					p_stripe_subscription_id: string;
 					p_user_id: string;
 				};
 				Returns: {
-					canceled_subscription_id: string;
 					transition_successful: boolean;
+					canceled_subscription_id: string;
 					activated_subscription_id: string;
 				}[];
 			};
 			activate_scheduled_subscription: {
 				Args: {
+					p_effective_date?: string;
 					p_user_id: string;
 					p_stripe_subscription_id: string;
-					p_effective_date?: string;
 				};
 				Returns: {
-					canceled_subscription_id: string;
 					activated_subscription_id: string;
 					transition_successful: boolean;
+					canceled_subscription_id: string;
 				}[];
 			};
 			add_ledger_entry: {
 				Args: {
+					p_effective_date?: string;
+					p_reference_type?: string;
+					p_metadata?: Json;
+					p_expires_at?: string;
+					p_user_id: string;
 					p_team_id: string;
+					p_entry_type: Database['abi_billing']['Enums']['ledger_entry_type'];
 					p_amount_micro_usd: number;
 					p_reference_id?: string;
-					p_reference_type?: string;
-					p_effective_date?: string;
-					p_expires_at?: string;
-					p_metadata?: Json;
-					p_user_id: string;
-					p_entry_type: Database['abi_billing']['Enums']['ledger_entry_type'];
 				};
 				Returns: number;
 			};
@@ -1955,9 +1969,9 @@ export type Database = {
 			};
 			apply_coupon: {
 				Args: {
-					p_user_id: string;
 					p_effective_date?: string;
 					p_base_amount_micro?: number;
+					p_user_id: string;
 					p_coupon_code: string;
 					p_subscription_id: string;
 				};
@@ -1966,8 +1980,8 @@ export type Database = {
 			batch_daily_usage: {
 				Args: Record<PropertyKey, never>;
 				Returns: {
-					users_processed: number;
 					batches_created: number;
+					users_processed: number;
 				}[];
 			};
 			batch_heavy_usage: {
@@ -1978,15 +1992,15 @@ export type Database = {
 				}[];
 			};
 			batch_user_usage: {
-				Args: { p_team_id?: string; p_force?: boolean; p_user_id: string };
+				Args: { p_user_id: string; p_team_id?: string; p_force?: boolean };
 				Returns: undefined;
 			};
 			calculate_discount: {
 				Args: {
 					p_maximum_discount_micro?: number;
-					p_base_amount_micro: number;
-					p_discount_type: Database['abi_billing']['Enums']['discount_type'];
 					p_discount_value: number;
+					p_discount_type: Database['abi_billing']['Enums']['discount_type'];
+					p_base_amount_micro: number;
 				};
 				Returns: number;
 			};
@@ -1997,10 +2011,10 @@ export type Database = {
 					p_effective_date?: string;
 				};
 				Returns: {
-					days_in_month: number;
-					prorated_amount_micro_usd: number;
 					cost_difference_cents_usd: number;
+					prorated_amount_micro_usd: number;
 					days_remaining: number;
+					days_in_month: number;
 					proration_factor: number;
 					calculation_metadata: Json;
 				}[];
@@ -2014,7 +2028,7 @@ export type Database = {
 				Returns: Json;
 			};
 			cancel_subscription: {
-				Args: { p_effective_date?: string; p_user_id: string };
+				Args: { p_user_id: string; p_effective_date?: string };
 				Returns: Database['abi_billing']['CompositeTypes']['subscription_result'];
 			};
 			categorize_auto_topup_failure: {
@@ -2031,13 +2045,13 @@ export type Database = {
 			};
 			change_subscription: {
 				Args: {
-					p_user_id: string;
-					p_coupon_code?: string;
-					p_grant_tokens?: boolean;
-					p_activate_immediately?: boolean;
 					p_effective_date?: string;
-					p_change_type: string;
+					p_user_id: string;
 					p_new_plan_id: string;
+					p_change_type: string;
+					p_activate_immediately?: boolean;
+					p_grant_tokens?: boolean;
+					p_coupon_code?: string;
 				};
 				Returns: Database['abi_billing']['CompositeTypes']['subscription_result'];
 			};
@@ -2048,32 +2062,32 @@ export type Database = {
 			check_auto_topup_eligibility: {
 				Args: { p_user_id: string; p_current_balance_micro_usd: number };
 				Returns: {
-					min_balance_cents: number;
 					payment_method_available: boolean;
-					failure_count: number;
-					daily_limit_remaining_cents: number;
-					purchase_amount_cents: number;
 					eligible: boolean;
 					reason: string;
+					min_balance_cents: number;
+					purchase_amount_cents: number;
+					failure_count: number;
+					daily_limit_remaining_cents: number;
 				}[];
 			};
 			check_balance: {
-				Args: { p_user_id: string; p_team_id?: string };
+				Args: { p_team_id?: string; p_user_id: string };
 				Returns: {
-					team_id: string;
-					balance_micro_usd: number;
-					last_updated: string;
 					usage_since_update: number;
+					last_updated: string;
+					balance_micro_usd: number;
+					team_id: string;
 				}[];
 			};
 			check_month_end_job_status: {
 				Args: Record<PropertyKey, never>;
 				Returns: {
 					next_run: string;
-					last_success: boolean;
 					period_processed: string;
 					job_name: string;
 					last_run: string;
+					last_success: boolean;
 				}[];
 			};
 			count_recent_payment_failures: {
@@ -2103,7 +2117,7 @@ export type Database = {
 				Returns: undefined;
 			};
 			divide_micro: {
-				Args: { divisor: number; micro: number };
+				Args: { micro: number; divisor: number };
 				Returns: number;
 			};
 			dollars_to_cents: {
@@ -2129,27 +2143,26 @@ export type Database = {
 			get_subscription_coupon_discounts: {
 				Args: { p_effective_date?: string; p_subscription_id: string };
 				Returns: {
-					expires_at: string;
-					discount_applied_cents_usd: number;
 					coupon_name: string;
 					discount_type: Database['abi_billing']['Enums']['discount_type'];
-					usage_id: string;
-					coupon_code: string;
+					discount_applied_cents_usd: number;
 					discount_months_remaining: number;
+					expires_at: string;
+					coupon_code: string;
+					usage_id: string;
 				}[];
 			};
 			get_transaction_history: {
 				Args: {
-					p_user_id: string;
-					p_transaction_type?: string;
-					p_status?: string;
 					p_date_start?: string;
-					p_date_end?: string;
 					p_page?: number;
 					p_per_page?: number;
+					p_transaction_type?: string;
+					p_user_id: string;
+					p_status?: string;
+					p_date_end?: string;
 				};
 				Returns: {
-					subscription_details: Json;
 					transaction_id: string;
 					transaction_type: string;
 					amount_usd: number;
@@ -2158,6 +2171,7 @@ export type Database = {
 					created_at: string;
 					payment_method: Json;
 					credit_details: Json;
+					subscription_details: Json;
 					total_items: number;
 					current_page: number;
 					total_pages: number;
@@ -2166,22 +2180,22 @@ export type Database = {
 			};
 			get_usage_analytics: {
 				Args: {
-					p_period_end?: string;
-					p_include_trends?: boolean;
-					p_month_filter?: string;
 					p_model_filter?: string[];
-					p_period_start?: string;
+					p_month_filter?: string;
+					p_include_trends?: boolean;
 					p_user_id: string;
+					p_period_end?: string;
+					p_period_start?: string;
 				};
 				Returns: {
-					total_cost_micro_usd: number;
-					total_requests: number;
-					total_tokens: number;
+					filtered_by: Json;
+					usage_trends: Json;
+					model_breakdown: Json;
 					period_end: string;
 					period_start: string;
-					model_breakdown: Json;
-					usage_trends: Json;
-					filtered_by: Json;
+					total_tokens: number;
+					total_requests: number;
+					total_cost_micro_usd: number;
 				}[];
 			};
 			has_active_subscription: {
@@ -2206,10 +2220,10 @@ export type Database = {
 			};
 			notify_auto_topup_event: {
 				Args: {
-					p_user_id: string;
 					p_event_type: string;
 					p_amount_cents?: number;
 					p_error_message?: string;
+					p_user_id: string;
 				};
 				Returns: undefined;
 			};
@@ -2223,12 +2237,12 @@ export type Database = {
 			};
 			purchase_tokens: {
 				Args: {
-					p_auto_triggered?: boolean;
-					p_apply_grant?: boolean;
 					p_purchase_date?: string;
-					p_amount_cents_usd: number;
-					p_team_id: string;
+					p_apply_grant?: boolean;
+					p_auto_triggered?: boolean;
 					p_user_id: string;
+					p_team_id: string;
+					p_amount_cents_usd: number;
 				};
 				Returns: Database['abi_billing']['CompositeTypes']['token_purchase_result'];
 			};
@@ -2243,23 +2257,23 @@ export type Database = {
 			};
 			start_subscription: {
 				Args: {
-					p_period_end?: string;
 					p_coupon_code?: string;
+					p_activate_immediately?: boolean;
+					p_period_end?: string;
 					p_period_start?: string;
 					p_plan_id: string;
 					p_user_id: string;
-					p_activate_immediately?: boolean;
 				};
 				Returns: Database['abi_billing']['CompositeTypes']['subscription_result'];
 			};
 			trigger_auto_topup: {
 				Args: { p_user_id: string; p_current_balance_micro_usd?: number };
 				Returns: {
-					retry_after_seconds: number;
-					message: string;
 					amount_cents: number;
-					success: boolean;
+					message: string;
+					retry_after_seconds: number;
 					purchase_id: string;
+					success: boolean;
 				}[];
 			};
 			update_auto_topup_rate_limits: {
@@ -2268,26 +2282,26 @@ export type Database = {
 			};
 			validate_balance_cache: {
 				Args: {
-					p_include_details?: boolean;
-					p_team_id?: string;
 					p_user_id?: string;
+					p_team_id?: string;
+					p_include_details?: boolean;
 				};
 				Returns: {
+					user_id: string;
+					team_id: string;
+					cache_balance_micro_usd: number;
+					calculated_balance_micro_usd: number;
+					variance_micro_usd: number;
 					validation_status: string;
 					details: Json;
-					variance_micro_usd: number;
-					calculated_balance_micro_usd: number;
-					cache_balance_micro_usd: number;
-					team_id: string;
-					user_id: string;
 				}[];
 			};
 			validate_coupon: {
 				Args: {
-					p_user_id: string;
 					p_effective_date?: string;
 					p_plan_id?: string;
 					p_coupon_code: string;
+					p_user_id: string;
 				};
 				Returns: Json;
 			};
@@ -2711,34 +2725,34 @@ export type Database = {
 				Returns: Json;
 			};
 			check_feature_access: {
-				Args: { p_user_id: string; p_feature_key: string };
+				Args: { p_feature_key: string; p_user_id: string };
 				Returns: {
-					access_reason: string;
 					inheritance_chain: string[];
 					access_granted: boolean;
+					access_reason: string;
 					feature_value: Json;
 				}[];
 			};
 			check_feature_access_cached: {
 				Args: { p_user_id: string; p_feature_key: string };
 				Returns: {
-					access_reason: string;
-					from_cache: boolean;
 					access_granted: boolean;
+					access_reason: string;
 					feature_value: Json;
+					from_cache: boolean;
 				}[];
 			};
 			check_rate_limit: {
 				Args: {
-					request_ip: string;
 					request_endpoint: string;
-					limit_count: number;
+					request_ip: string;
 					window_seconds: number;
+					limit_count: number;
 				};
 				Returns: Json;
 			};
 			check_storage_limits: {
-				Args: { bucket_id: string; file_size: number; user_id: string };
+				Args: { file_size: number; user_id: string; bucket_id: string };
 				Returns: boolean;
 			};
 			check_team_resource_access: {
@@ -2767,12 +2781,12 @@ export type Database = {
 			};
 			create_feature_override: {
 				Args: {
-					p_expires_at?: string;
-					p_created_by?: string;
-					p_user_id: string;
 					p_feature_key: string;
+					p_user_id: string;
 					p_override_value: Json;
 					p_override_reason?: string;
+					p_expires_at?: string;
+					p_created_by?: string;
 				};
 				Returns: string;
 			};
@@ -2781,17 +2795,17 @@ export type Database = {
 				Returns: {
 					denied_requests: number;
 					feature_key: string;
-					total_requests: number;
-					granted_requests: number;
 					grant_rate: number;
+					granted_requests: number;
+					total_requests: number;
 				}[];
 			};
 			get_rate_limit: {
-				Args: { p_user_id: string; p_limit_type: string };
+				Args: { p_limit_type: string; p_user_id: string };
 				Returns: number;
 			};
 			get_secret: {
-				Args: { p_key: string; p_default?: string };
+				Args: { p_default?: string; p_key: string };
 				Returns: string;
 			};
 			get_setting: {
@@ -2801,48 +2815,48 @@ export type Database = {
 			get_user_features: {
 				Args: { p_user_id: string };
 				Returns: {
-					feature_value: Json;
+					access_reason: string;
 					feature_key: string;
 					feature_name: string;
 					feature_description: string;
 					feature_type: string;
 					feature_category: string;
 					access_granted: boolean;
-					access_reason: string;
+					feature_value: Json;
 				}[];
 			};
 			has_datasource_access: {
 				Args: {
-					p_user_id: string;
 					p_datasource_key: string;
 					p_access_type?: string;
+					p_user_id: string;
 				};
 				Returns: boolean;
 			};
 			has_model_access: {
-				Args: { p_model_key: string; p_user_id: string };
+				Args: { p_user_id: string; p_model_key: string };
 				Returns: boolean;
 			};
 			log_feature_access: {
 				Args: {
-					p_access_granted: boolean;
-					p_request_context?: Json;
-					p_user_id: string;
-					p_feature_key: string;
 					p_access_reason: string;
+					p_request_context?: Json;
+					p_feature_key: string;
+					p_user_id: string;
+					p_access_granted: boolean;
 				};
 				Returns: undefined;
 			};
 			notify_admin: {
-				Args: { p_severity: string; p_metadata: Json; p_type: string };
+				Args: { p_type: string; p_severity: string; p_metadata: Json };
 				Returns: undefined;
 			};
 			record_performance_metric: {
 				Args: {
-					p_metadata?: Json;
 					p_duration_ms: number;
-					p_record_count?: number;
 					p_metric_type: string;
+					p_metadata?: Json;
+					p_record_count?: number;
 				};
 				Returns: string;
 			};
@@ -2851,15 +2865,15 @@ export type Database = {
 				Returns: number;
 			};
 			remove_feature_override: {
-				Args: { p_user_id: string; p_feature_key: string };
+				Args: { p_feature_key: string; p_user_id: string };
 				Returns: boolean;
 			};
 			set_secret: {
-				Args: { p_description?: string; p_key: string; p_value: string };
+				Args: { p_key: string; p_description?: string; p_value: string };
 				Returns: string;
 			};
 			set_setting: {
-				Args: { p_key: string; p_value: string; p_description?: string };
+				Args: { p_key: string; p_description?: string; p_value: string };
 				Returns: undefined;
 			};
 			update_statistics: {
@@ -3509,6 +3523,18 @@ export type Database = {
 				};
 				Relationships: [];
 			};
+			error_rates: {
+				Row: {
+					avg_duration: number | null;
+					error_count: number | null;
+					error_rate: number | null;
+					p95_duration: number | null;
+					period: string | null;
+					provider_name: string | null;
+					total_requests: number | null;
+				};
+				Relationships: [];
+			};
 			model_pricing_pivot: {
 				Row: {
 					anthropic_cache_read_per_million_tokens_cents_usd: number | null;
@@ -3550,37 +3576,25 @@ export type Database = {
 				};
 				Relationships: [];
 			};
-			vw_error_rates: {
-				Row: {
-					avg_duration: number | null;
-					error_count: number | null;
-					error_rate: number | null;
-					p95_duration: number | null;
-					period: string | null;
-					provider_name: string | null;
-					total_requests: number | null;
-				};
-				Relationships: [];
-			};
 		};
 		Functions: {
 			calculate_token_cost: {
 				Args: {
+					p_token_count: number;
 					p_model_id: string;
 					p_token_type: Database['abi_llm']['Enums']['token_type'];
-					p_token_count: number;
 				};
 				Returns: number;
 			};
 			check_usage_alerts: {
-				Args: { p_subscription_id: string; p_user_id: string };
+				Args: { p_user_id: string };
 				Returns: undefined;
 			};
 			get_cache_cost: {
 				Args: {
+					p_provider: string;
 					p_cache_duration: unknown;
 					p_tokens: number;
-					p_provider: string;
 				};
 				Returns: number;
 			};
@@ -3605,6 +3619,59 @@ export type Database = {
 	};
 	abi_marketing: {
 		Tables: {
+			bulk_email_sends: {
+				Row: {
+					campaign_id: string;
+					created_at: string;
+					error_code: string | null;
+					error_message: string | null;
+					failed_at: string | null;
+					recipient_email: string;
+					resend_email_id: string | null;
+					send_id: string;
+					send_status: Database['abi_marketing']['Enums']['send_status'];
+					sent_at: string | null;
+					subject: string;
+					user_id: string;
+				};
+				Insert: {
+					campaign_id: string;
+					created_at?: string;
+					error_code?: string | null;
+					error_message?: string | null;
+					failed_at?: string | null;
+					recipient_email: string;
+					resend_email_id?: string | null;
+					send_id?: string;
+					send_status?: Database['abi_marketing']['Enums']['send_status'];
+					sent_at?: string | null;
+					subject: string;
+					user_id: string;
+				};
+				Update: {
+					campaign_id?: string;
+					created_at?: string;
+					error_code?: string | null;
+					error_message?: string | null;
+					failed_at?: string | null;
+					recipient_email?: string;
+					resend_email_id?: string | null;
+					send_id?: string;
+					send_status?: Database['abi_marketing']['Enums']['send_status'];
+					sent_at?: string | null;
+					subject?: string;
+					user_id?: string;
+				};
+				Relationships: [
+					{
+						foreignKeyName: 'bulk_email_sends_campaign_id_fkey';
+						columns: ['campaign_id'];
+						isOneToOne: false;
+						referencedRelation: 'email_campaigns';
+						referencedColumns: ['campaign_id'];
+					},
+				];
+			};
 			email_campaigns: {
 				Row: {
 					campaign_description: string | null;
@@ -3673,127 +3740,235 @@ export type Database = {
 					},
 				];
 			};
-			email_sends: {
+			email_templates: {
 				Row: {
-					campaign_id: string;
+					available_variables: Json | null;
 					created_at: string;
+					created_by: string | null;
+					email_type_id: string | null;
+					html_template: string;
+					is_active: boolean | null;
+					metadata: Json | null;
+					subject_template: string;
+					template_description: string | null;
+					template_id: string;
+					template_name: string;
+					updated_at: string;
+					version: number;
+				};
+				Insert: {
+					available_variables?: Json | null;
+					created_at?: string;
+					created_by?: string | null;
+					email_type_id?: string | null;
+					html_template: string;
+					is_active?: boolean | null;
+					metadata?: Json | null;
+					subject_template: string;
+					template_description?: string | null;
+					template_id?: string;
+					template_name: string;
+					updated_at?: string;
+					version?: number;
+				};
+				Update: {
+					available_variables?: Json | null;
+					created_at?: string;
+					created_by?: string | null;
+					email_type_id?: string | null;
+					html_template?: string;
+					is_active?: boolean | null;
+					metadata?: Json | null;
+					subject_template?: string;
+					template_description?: string | null;
+					template_id?: string;
+					template_name?: string;
+					updated_at?: string;
+					version?: number;
+				};
+				Relationships: [
+					{
+						foreignKeyName: 'email_templates_email_type_id_fkey';
+						columns: ['email_type_id'];
+						isOneToOne: false;
+						referencedRelation: 'email_types';
+						referencedColumns: ['type_id'];
+					},
+				];
+			};
+			email_types: {
+				Row: {
+					category: string;
+					created_at: string;
+					default_from_email: string;
+					default_from_name: string;
+					description: string | null;
+					display_name: string;
+					is_active: boolean;
+					standard_variables: string[];
+					type_id: string;
+					type_name: string;
+					updated_at: string;
+				};
+				Insert: {
+					category: string;
+					created_at?: string;
+					default_from_email: string;
+					default_from_name: string;
+					description?: string | null;
+					display_name: string;
+					is_active?: boolean;
+					standard_variables?: string[];
+					type_id?: string;
+					type_name: string;
+					updated_at?: string;
+				};
+				Update: {
+					category?: string;
+					created_at?: string;
+					default_from_email?: string;
+					default_from_name?: string;
+					description?: string | null;
+					display_name?: string;
+					is_active?: boolean;
+					standard_variables?: string[];
+					type_id?: string;
+					type_name?: string;
+					updated_at?: string;
+				};
+				Relationships: [];
+			};
+			transactional_email_sends: {
+				Row: {
+					created_at: string;
+					email_type_id: string;
 					error_code: string | null;
 					error_message: string | null;
 					failed_at: string | null;
 					recipient_email: string;
 					resend_email_id: string | null;
 					send_id: string;
-					send_status: string;
+					send_status: Database['abi_marketing']['Enums']['send_status'];
 					sent_at: string | null;
 					subject: string;
-					user_id: string;
+					template_id: string;
+					user_id: string | null;
 				};
 				Insert: {
-					campaign_id: string;
 					created_at?: string;
+					email_type_id: string;
 					error_code?: string | null;
 					error_message?: string | null;
 					failed_at?: string | null;
 					recipient_email: string;
 					resend_email_id?: string | null;
 					send_id?: string;
-					send_status?: string;
+					send_status?: Database['abi_marketing']['Enums']['send_status'];
 					sent_at?: string | null;
 					subject: string;
-					user_id: string;
+					template_id: string;
+					user_id?: string | null;
 				};
 				Update: {
-					campaign_id?: string;
 					created_at?: string;
+					email_type_id?: string;
 					error_code?: string | null;
 					error_message?: string | null;
 					failed_at?: string | null;
 					recipient_email?: string;
 					resend_email_id?: string | null;
 					send_id?: string;
-					send_status?: string;
+					send_status?: Database['abi_marketing']['Enums']['send_status'];
 					sent_at?: string | null;
 					subject?: string;
-					user_id?: string;
+					template_id?: string;
+					user_id?: string | null;
 				};
 				Relationships: [
 					{
-						foreignKeyName: 'email_sends_campaign_id_fkey';
-						columns: ['campaign_id'];
+						foreignKeyName: 'transactional_email_sends_email_type_id_fkey';
+						columns: ['email_type_id'];
 						isOneToOne: false;
-						referencedRelation: 'email_campaigns';
-						referencedColumns: ['campaign_id'];
+						referencedRelation: 'email_types';
+						referencedColumns: ['type_id'];
+					},
+					{
+						foreignKeyName: 'transactional_email_sends_template_id_fkey';
+						columns: ['template_id'];
+						isOneToOne: false;
+						referencedRelation: 'email_templates';
+						referencedColumns: ['template_id'];
 					},
 				];
-			};
-			email_templates: {
-				Row: {
-					available_variables: Json | null;
-					created_at: string;
-					created_by: string | null;
-					html_template: string;
-					is_active: boolean | null;
-					subject_template: string;
-					template_description: string | null;
-					template_id: string;
-					template_name: string;
-					template_type: string;
-					updated_at: string;
-				};
-				Insert: {
-					available_variables?: Json | null;
-					created_at?: string;
-					created_by?: string | null;
-					html_template: string;
-					is_active?: boolean | null;
-					subject_template: string;
-					template_description?: string | null;
-					template_id?: string;
-					template_name: string;
-					template_type: string;
-					updated_at?: string;
-				};
-				Update: {
-					available_variables?: Json | null;
-					created_at?: string;
-					created_by?: string | null;
-					html_template?: string;
-					is_active?: boolean | null;
-					subject_template?: string;
-					template_description?: string | null;
-					template_id?: string;
-					template_name?: string;
-					template_type?: string;
-					updated_at?: string;
-				};
-				Relationships: [];
 			};
 		};
 		Views: {
 			[_ in never]: never;
 		};
 		Functions: {
+			get_all_active_templates: {
+				Args: Record<PropertyKey, never>;
+				Returns: {
+					email_type_id: string;
+					template_id: string;
+					template_name: string;
+					html_template: string;
+					subject_template: string;
+				}[];
+			};
 			get_campaign_recipients: {
 				Args: { campaign_uuid: string };
 				Returns: {
-					user_id: string;
 					email: string;
 					name_first: string;
 					name_last: string;
 					preferences: Json;
 					signup_date: string;
+					user_id: string;
+				}[];
+			};
+			get_email_template_data: {
+				Args: { template_name_param: string };
+				Returns: {
+					default_from_email: string;
+					template_id: string;
+					template_name: string;
+					subject_template: string;
+					html_template: string;
+					email_type_id: string;
+					type_name: string;
+					category: string;
+					default_from_name: string;
+					standard_variables: string[];
 				}[];
 			};
 			render_email_template: {
-				Args: { variables: Json; template_uuid: string };
+				Args: { template_uuid: string; variables: Json };
 				Returns: {
-					html_content: string;
 					subject: string;
+					html_content: string;
 				}[];
+			};
+			send_transactional_email: {
+				Args: {
+					p_template_name: string;
+					p_to_email: string;
+					p_variables?: Json;
+					p_user_id?: string;
+				};
+				Returns: Json;
 			};
 		};
 		Enums: {
-			[_ in never]: never;
+			send_status:
+				| 'pending'
+				| 'sent'
+				| 'failed'
+				| 'bounced'
+				| 'spam'
+				| 'delivered'
+				| 'opened'
+				| 'clicked';
 		};
 		CompositeTypes: {
 			[_ in never]: never;
@@ -3957,6 +4132,17 @@ export const Constants = {
 		},
 	},
 	abi_marketing: {
-		Enums: {},
+		Enums: {
+			send_status: [
+				'pending',
+				'sent',
+				'failed',
+				'bounced',
+				'spam',
+				'delivered',
+				'opened',
+				'clicked',
+			],
+		},
 	},
 } as const;

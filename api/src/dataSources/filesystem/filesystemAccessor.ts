@@ -8,6 +8,7 @@ import {
 	//expandGlob,
 	walk,
 } from '@std/fs';
+import type { WalkOptions } from '@std/fs';
 
 import { logger } from 'shared/logger.ts';
 import { BBResourceAccessor } from '../base/bbResourceAccessor.ts';
@@ -17,6 +18,7 @@ import {
 } from 'shared/dataSource.ts';
 import {
 	//absolutePathToResource,
+	applySearchAndReplaceToContent,
 	createExcludeRegexPatterns,
 	ensureParentDirectories,
 	getExcludeOptions,
@@ -27,20 +29,29 @@ import {
 	searchFilesContent,
 	searchFilesMetadata,
 } from 'api/utils/fileHandling.ts';
-import type { WalkOptions } from '@std/fs';
 import { errorMessage } from 'shared/error.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
 import { isResourceHandlingError } from 'api/errors/error.ts';
 import type { ResourceHandlingErrorOptions } from 'api/errors/error.ts';
 import type { DataSourceConnection } from 'api/dataSources/interfaces/dataSourceConnection.ts';
 import type {
+	DataSourceInfo,
+	EditType,
+	FindResourceParams,
+	FindResourceResult,
+	Match,
+	OperationResult,
 	PaginationInfo,
+	PaginationResult,
 	ResourceDeleteOptions,
 	ResourceDeleteResult,
+	ResourceEditOperation,
+	ResourceEditResult,
 	ResourceListOptions,
 	ResourceListResult,
 	ResourceLoadOptions,
 	ResourceLoadResult,
+	ResourceMatch,
 	ResourceMetadata,
 	ResourceMoveOptions,
 	ResourceMoveResult,
@@ -48,6 +59,11 @@ import type {
 	ResourceSearchResult,
 	ResourceWriteOptions,
 	ResourceWriteResult,
+	ResultLevel,
+	SearchCriteria,
+	SearchReplaceContentResult,
+	SearchReplaceOperation,
+	TextMatch,
 } from 'shared/types/dataSourceResource.ts';
 import type { DataSourceCapability, DataSourceMetadata } from 'shared/types/dataSource.ts';
 
@@ -71,7 +87,7 @@ export class FilesystemAccessor extends BBResourceAccessor {
 	constructor(connection: DataSourceConnection) {
 		super(connection);
 
-		logger.info(`FilesystemAccessor: constructor `, { config: connection.config });
+		//logger.info(`FilesystemAccessor: constructor `, { config: connection.config });
 		// Extract and validate the root path from the connection config
 		const rootPath = connection.config.dataSourceRoot as string;
 		if (!rootPath || typeof rootPath !== 'string') {
@@ -240,7 +256,7 @@ export class FilesystemAccessor extends BBResourceAccessor {
 				isPartial,
 			};
 		} catch (error) {
-			logger.error(`FilesystemAccessor: Error loading resource ${resourceUri}`, error);
+			logger.error(`FilesystemAccessor: Error loading resource ${resourceUri}`, errorMessage(error));
 			if (isResourceHandlingError(error)) {
 				throw error; // Re-throw our custom errors
 			}
@@ -390,7 +406,10 @@ export class FilesystemAccessor extends BBResourceAccessor {
 				pagination,
 			};
 		} catch (error) {
-			logger.error(`FilesystemAccessor: Error listing resources at ${this.rootPath}/${path}`, error);
+			logger.error(
+				`FilesystemAccessor: Error listing resources at ${this.rootPath}/${path}`,
+				errorMessage(error),
+			);
 			if (isResourceHandlingError(error)) {
 				throw error; // Re-throw our custom errors
 			}
@@ -406,29 +425,43 @@ export class FilesystemAccessor extends BBResourceAccessor {
 	}
 
 	/**
-	 * Search for resources based on a query
-	 * @param query Search query
-	 * @param options Options for searching
-	 * @returns Search results
+	 * Find resources using unified operations architecture (primary interface)
+	 * Supports all result levels with polymorphic matches and pagination
+	 * @param params Search parameters with content/resource patterns and structured queries
+	 * @returns Enhanced search results with polymorphic matches and pagination
 	 */
-	override async searchResources(query: string, options: ResourceSearchOptions = {}): Promise<ResourceSearchResult> {
+	override async findResources(params: FindResourceParams): Promise<FindResourceResult> {
 		try {
-			// Determine search mode based on options
-			const isContentSearch = !!options.contentPattern;
-			const searchPattern = options.contentPattern || query;
-			const caseSensitive = options.caseSensitive ?? false;
+			const { contentPattern, resourcePattern, structuredQuery, regexPattern = false, options } = params;
+			const {
+				caseSensitive = false,
+				resultLevel = 'fragment',
+				maxMatchesPerResource = 5,
+				pageSize = 20,
+				pageToken,
+				filters = {},
+			} = options;
 
-			// Prepare search options for utility functions
+			// Determine search mode
+			const isContentSearch = !!contentPattern;
+			const searchPattern = contentPattern || '';
+
+			// Convert to legacy search options for now (will refactor searchFiles* utilities later)
 			const searchFileOptions = {
-				resourcePattern: options.resourcePattern,
-				dateAfter: options.dateAfter,
-				dateBefore: options.dateBefore,
-				sizeMin: options.sizeMin,
-				sizeMax: options.sizeMax,
-				contextLines: options.contextLines ?? 2,
-				maxMatchesPerFile: options.maxMatchesPerFile ?? 5,
-				includeContent: options.includeContent ?? isContentSearch,
+				resourcePattern,
+				dateAfter: filters.dateAfter,
+				dateBefore: filters.dateBefore,
+				sizeMin: filters.sizeMin,
+				sizeMax: filters.sizeMax,
+				contextLines: options.contextLines ??
+					(resultLevel === 'detailed' ? 5 : (resultLevel === 'fragment' ? 2 : 0)),
+				maxMatchesPerFile: maxMatchesPerResource,
+				includeContent: isContentSearch,
 			};
+
+			let matches: ResourceMatch[] = [];
+			let totalMatches = 0;
+			let findErrorMessage: string | null = null;
 
 			if (isContentSearch) {
 				// Use enhanced content search
@@ -439,8 +472,7 @@ export class FilesystemAccessor extends BBResourceAccessor {
 					searchFileOptions,
 				);
 
-				// Convert utility results to accessor format
-				const matches: ResourceSearchResult['matches'] = [];
+				// Convert to new ResourceMatch format
 				for (const match of result.matches) {
 					try {
 						// Get resource metadata
@@ -449,10 +481,25 @@ export class FilesystemAccessor extends BBResourceAccessor {
 							match.resourcePath,
 						);
 
-						// Create enhanced match
+						// Process matches based on result level
+						const processedMatches = this.processMatchesByLevel(
+							match.contentMatches || [],
+							resultLevel,
+							resourceMetadata.uri,
+						);
+
 						matches.push({
-							resource: resourceMetadata,
-							contentMatches: match.contentMatches,
+							resourceUri: resourceMetadata.uri,
+							resourcePath: match.resourcePath,
+							resourceType: 'file',
+							resourceMetadata: {
+								title: resourceMetadata.name,
+								lastModified: resourceMetadata.lastModified.toISOString(),
+								size: resourceMetadata.size,
+								mimeType: resourceMetadata.mimeType,
+							},
+							matches: processedMatches,
+							contentMatches: match.contentMatches, // Legacy compatibility
 							score: 1.0,
 						});
 					} catch (error) {
@@ -464,11 +511,38 @@ export class FilesystemAccessor extends BBResourceAccessor {
 					}
 				}
 
-				return {
-					matches,
-					totalMatches: matches.length,
-					errorMessage: result.errorMessage,
-				};
+				totalMatches = matches.length;
+				findErrorMessage = result.errorMessage;
+
+				// If there's an error message, we should include it in the result even if no matches
+				if (result.errorMessage && matches.length === 0) {
+					// Return the error immediately for invalid patterns
+					return {
+						dataSource: {
+							dsConnectionId: this.connection.id,
+							dsConnectionName: this.connection.name,
+							dsProviderType: this.connection.providerType,
+						},
+						searchCriteria: {
+							pattern: contentPattern || resourcePattern,
+							contentPattern,
+							resourcePattern,
+							structuredQuery,
+							caseSensitive,
+							regexPattern,
+							filters,
+						},
+						totalMatches: 0,
+						resources: [],
+						pagination: {
+							pageSize,
+							pageToken: undefined,
+							hasMore: false,
+							totalEstimate: 0,
+						},
+						errorMessage: result.errorMessage,
+					};
+				}
 			} else {
 				// Use metadata-only search
 				const result = await searchFilesMetadata(
@@ -476,8 +550,7 @@ export class FilesystemAccessor extends BBResourceAccessor {
 					searchFileOptions,
 				);
 
-				// Convert utility results to accessor format
-				const matches: ResourceSearchResult['matches'] = [];
+				// Convert to new ResourceMatch format
 				for (const filePath of result.files) {
 					try {
 						// Get resource metadata
@@ -486,9 +559,17 @@ export class FilesystemAccessor extends BBResourceAccessor {
 							filePath,
 						);
 
-						// Create basic match
 						matches.push({
-							resource: resourceMetadata,
+							resourceUri: resourceMetadata.uri,
+							resourcePath: filePath,
+							resourceType: resourceMetadata.isDirectory ? 'directory' : 'file',
+							resourceMetadata: {
+								title: resourceMetadata.name,
+								lastModified: resourceMetadata.lastModified.toISOString(),
+								size: resourceMetadata.size,
+								mimeType: resourceMetadata.mimeType,
+							},
+							matches: [], // No content matches for resource-only results
 							score: 1.0,
 						});
 					} catch (error) {
@@ -498,27 +579,108 @@ export class FilesystemAccessor extends BBResourceAccessor {
 					}
 				}
 
-				return {
-					matches,
-					totalMatches: matches.length,
-					errorMessage: result.errorMessage,
-				};
+				totalMatches = matches.length;
+				findErrorMessage = result.errorMessage;
 			}
+
+			// Apply pagination
+			const { paginatedMatches, pagination } = this.paginateResults(matches, pageSize, pageToken);
+
+			// Build search criteria
+			const searchCriteria: SearchCriteria = {
+				pattern: contentPattern || resourcePattern,
+				contentPattern,
+				resourcePattern,
+				structuredQuery,
+				caseSensitive,
+				regexPattern,
+				filters,
+			};
+
+			// Build data source info
+			const dataSource: DataSourceInfo = {
+				dsConnectionId: this.connection.id,
+				dsConnectionName: this.connection.name,
+				dsProviderType: this.connection.providerType,
+			};
+
+			return {
+				dataSource,
+				searchCriteria,
+				totalMatches,
+				resources: paginatedMatches,
+				pagination,
+			};
 		} catch (error) {
-			logger.error(`FilesystemAccessor: Error searching resources`, error);
+			logger.error(`FilesystemAccessor: Error in findResources`, errorMessage(error));
 			if (isResourceHandlingError(error)) {
-				throw error; // Re-throw our custom errors
+				throw error;
 			}
 			throw createError(
 				ErrorType.ResourceHandling,
-				`Failed to search resources: ${errorMessage(error)}`,
+				`Failed to find resources: ${errorMessage(error) || 'Unknown error'}`,
 				{
-					name: 'search-resources',
-					filePath: options.path || '.',
+					name: 'find-resources',
+					filePath: '.',
 					operation: 'search-resources',
 				} as ResourceHandlingErrorOptions,
 			);
 		}
+	}
+
+	/**
+	 * Search for resources based on a query (legacy interface)
+	 * Delegates to findResources for consistency
+	 * @param query Search query
+	 * @param options Options for searching
+	 * @returns Search results
+	 */
+	override async searchResources(query: string, options: ResourceSearchOptions = {}): Promise<ResourceSearchResult> {
+		// Delegate to findResources for consistency
+		const findParams: FindResourceParams = {
+			contentPattern: options.contentPattern || query,
+			resourcePattern: options.resourcePattern,
+			regexPattern: options.regexPattern,
+			options: {
+				caseSensitive: options.caseSensitive,
+				resultLevel: options.resultLevel || 'fragment',
+				maxMatchesPerResource: options.maxMatchesPerFile,
+				pageSize: options.pageSize,
+				pageToken: options.pageToken,
+				filters: {
+					dateAfter: options.dateAfter,
+					dateBefore: options.dateBefore,
+					sizeMin: options.sizeMin,
+					sizeMax: options.sizeMax,
+				},
+			},
+		};
+
+		const findResult = await this.findResources(findParams);
+
+		// Convert findResources result to legacy searchResources format
+		return {
+			matches: findResult.resources.map((resource) => {
+				// Create a legacy ResourceMatch format with 'resource' property
+				const legacyMatch: any = {
+					resource: {
+						uri: resource.resourceUri,
+						name: resource.resourceMetadata.title,
+						type: resource.resourceType as any,
+						mimeType: resource.resourceMetadata.mimeType || 'application/octet-stream',
+						contentType: 'text' as const,
+						lastModified: new Date(resource.resourceMetadata.lastModified || Date.now()),
+						size: resource.resourceMetadata.size,
+						extraType: resource.resourceType === 'directory' ? 'directory' : 'file',
+						accessMethod: 'bb' as const,
+					},
+					contentMatches: resource.contentMatches,
+					score: resource.score,
+				};
+				return legacyMatch;
+			}),
+			totalMatches: findResult.totalMatches,
+		};
 	}
 
 	/**
@@ -590,7 +752,7 @@ export class FilesystemAccessor extends BBResourceAccessor {
 				bytesWritten: typeof content === 'string' ? new TextEncoder().encode(content).length : content.length,
 			};
 		} catch (error) {
-			logger.error(`FilesystemAccessor: Error writing resource ${resourceUri}`, error);
+			logger.error(`FilesystemAccessor: Error writing resource ${resourceUri}`, errorMessage(error));
 			if (isResourceHandlingError(error)) {
 				throw error; // Re-throw our custom errors
 			}
@@ -600,6 +762,382 @@ export class FilesystemAccessor extends BBResourceAccessor {
 				{
 					filePath: resourceUri,
 					operation: 'write',
+				} as ResourceHandlingErrorOptions,
+			);
+		}
+	}
+
+	/**
+	 * Edit a resource using the unified operations interface
+	 * Delegates to appropriate operation handlers based on operation type
+	 * @param resourcePath Path of the resource to edit relative to data source root
+	 * @param operations Array of edit operations to apply
+	 * @returns Result containing operation outcomes and resource metadata
+	 */
+	override async editResource(
+		resourceUri: string,
+		operations: ResourceEditOperation[],
+		options: { createIfMissing: boolean },
+	): Promise<ResourceEditResult> {
+		try {
+			// Extract the resource path from the URI
+			const resourcePath = extractResourcePath(resourceUri);
+			if (!resourcePath) {
+				throw new Error(`Invalid resource URI: ${resourceUri}`);
+			}
+
+			// Group operations by editType for efficient processing
+			const operationsByType = new Map<string, ResourceEditOperation[]>();
+			for (const operation of operations) {
+				const editType = operation.editType;
+				if (!operationsByType.has(editType)) {
+					operationsByType.set(editType, []);
+				}
+				operationsByType.get(editType)!.push(operation);
+			}
+
+			const allOperationResults: OperationResult[] = [];
+			let resourceMetadata: ResourceMetadata;
+			let totalBytesWritten = 0;
+			let isNewResource = false;
+
+			let i = 0;
+			while (i < operations.length) {
+				const currentType = operations[i].editType;
+				const batch: ResourceEditOperation[] = [];
+				const batchStartIndex = i;
+
+				// Collect consecutive operations of same type
+				while (i < operations.length && operations[i].editType === currentType) {
+					batch.push(operations[i]);
+					i++;
+				}
+
+				// Process batch
+				const batchResults = await this.processBatch(resourceUri, currentType, options, batch, batchStartIndex);
+
+				allOperationResults.push(...batchResults.operationResults);
+				if (batchResults.metadata) resourceMetadata = batchResults.metadata;
+				totalBytesWritten += batchResults.bytesWritten;
+				if (batchResults.isNewResource) isNewResource = true;
+			}
+
+			// If no resource metadata was set (e.g., only unsupported operations), get it
+			if (!resourceMetadata!) {
+				try {
+					const resourceResult = await this.loadResource(resourceUri);
+					resourceMetadata = resourceResult.metadata;
+				} catch (error) {
+					// Resource might not exist, create basic metadata
+					resourceMetadata = {
+						name: basename(resourcePath),
+						uri: resourceUri,
+						accessMethod: 'bb',
+						type: 'file',
+						extraType: 'file',
+						mimeType: 'text/plain',
+						contentType: 'text',
+						lastModified: new Date(),
+						size: 0,
+					};
+				}
+			}
+
+			// Calculate success metrics
+			const successfulOperations = allOperationResults.filter((r) => r.status === 'success');
+			const skippedOperations = allOperationResults.filter((r) => r.status === 'skipped');
+			const failedOperations = allOperationResults.filter((r) => r.status === 'failed');
+			const allOperationsSucceeded = failedOperations.length === 0 && skippedOperations.length === 0;
+			const allOperationsFailed = successfulOperations.length === 0 && skippedOperations.length === 0;
+
+			return {
+				//success: successfulOperations.length > 0,
+				operationResults: allOperationResults,
+				successfulOperations,
+				skippedOperations,
+				failedOperations,
+				allOperationsSucceeded,
+				allOperationsFailed,
+				metadata: resourceMetadata,
+				// metadata: {
+				// 	...resourceMetadata,
+				// 	//revision: resourceMetadata.lastModified?.toISOString() || new Date().toISOString(),
+				// 	//bytesWritten: totalBytesWritten || 0,
+				// },
+				isNewResource,
+				bytesWritten: totalBytesWritten,
+			};
+		} catch (error) {
+			logger.error(
+				`FilesystemAccessor: Error in editResource for ${resourceUri}`,
+				errorMessage(error),
+			);
+			if (isResourceHandlingError(error)) {
+				throw error;
+			}
+			throw createError(
+				ErrorType.ResourceHandling,
+				`Failed to edit resource: ${errorMessage(error)}`,
+				{
+					name: 'edit-resource',
+					filePath: resourceUri,
+					operation: 'edit',
+				} as ResourceHandlingErrorOptions,
+			);
+		}
+	}
+
+	private async processBatch(
+		resourceUri: string,
+		editType: EditType,
+		options: { createIfMissing: boolean },
+		batch: ResourceEditOperation[],
+		startIndex: number,
+	) {
+		const operationResults: OperationResult[] = [];
+		let metadata: ResourceMetadata | undefined;
+		let bytesWritten = 0;
+		let isNewResource = false;
+
+		switch (editType) {
+			case 'searchReplace':
+				const searchReplaceOps: SearchReplaceOperation[] = batch.map((op) => ({
+					editType: 'searchReplace',
+					search: op.searchReplace_search!,
+					replace: op.searchReplace_replace!,
+					caseSensitive: op.searchReplace_caseSensitive ?? true,
+					regexPattern: op.searchReplace_regexPattern ?? false,
+					replaceAll: op.searchReplace_replaceAll ?? false,
+				}));
+
+				const searchReplaceResult = await this.applySearchReplaceOperations(
+					resourceUri,
+					searchReplaceOps,
+					{}, // defaults
+					options.createIfMissing,
+				);
+
+				for (let i = 0; i < batch.length; i++) {
+					operationResults.push({
+						operationIndex: startIndex + i,
+						editType: 'searchReplace',
+						status: searchReplaceResult.contentResult.operationResults[i]?.status as
+							| 'success'
+							| 'failed'
+							| 'skipped' || 'failed',
+						message: searchReplaceResult.contentResult.operationResults[i]?.message || 'No result',
+						details: {
+							matchCount: 1,
+						},
+					});
+
+					// const legacyResult = searchReplaceResult.contentResult.operationResults[i];
+					// if (legacyResult) {
+					// 	allOperationResults[originalIndex] = {
+					// 		operationIndex: originalIndex,
+					// 		editType: 'searchReplace',
+					// 		status: legacyResult.status as 'success' | 'failed' | 'skipped',
+					// 		message: legacyResult.message,
+					// 		details: {
+					// 			matchCount: 1 // Legacy format doesn't track match count per operation
+					// 		}
+					// 	};
+					// }
+				}
+
+				metadata = searchReplaceResult.metadata;
+				bytesWritten = searchReplaceResult.bytesWritten;
+				isNewResource = searchReplaceResult.isNewResource;
+				break;
+
+			case 'range':
+				for (let i = 0; i < batch.length; i++) {
+					operationResults.push({
+						operationIndex: startIndex + i,
+						editType: 'range',
+						status: 'skipped',
+						message: 'Filesystem does not support range operations',
+					});
+				}
+				break;
+
+			case 'blocks':
+				for (let i = 0; i < batch.length; i++) {
+					operationResults.push({
+						operationIndex: startIndex + i,
+						editType: 'blocks',
+						status: 'skipped',
+						message: 'Filesystem does not support block operations',
+					});
+				}
+				break;
+
+			case 'structuredData':
+				for (let i = 0; i < batch.length; i++) {
+					operationResults.push({
+						operationIndex: startIndex + i,
+						editType: 'structuredData',
+						status: 'skipped',
+						message: 'Filesystem does not support structured data operations',
+					});
+				}
+				break;
+
+			default:
+				for (let i = 0; i < batch.length; i++) {
+					operationResults.push({
+						operationIndex: startIndex + i,
+						editType: editType,
+						status: 'failed',
+						message: `Unknown operation type: ${editType}`,
+					});
+				}
+				break;
+		}
+
+		return { operationResults, metadata, bytesWritten, isNewResource };
+	}
+
+	/**
+	 * Apply search and replace operations to a filesystem resource
+	 * @param resourceUri URI of the resource to modify
+	 * @param operations Array of search and replace operations
+	 * @param defaults Default values for operation properties
+	 * @param createIfMissing Whether to create the resource if it doesn't exist
+	 * @returns Result of the search and replace operations with content and metadata
+	 */
+	async applySearchReplaceOperations(
+		resourceUri: string,
+		operations: SearchReplaceOperation[],
+		defaults: {
+			caseSensitive?: boolean;
+			regexPattern?: boolean;
+			replaceAll?: boolean;
+		} = {},
+		createIfMissing: boolean = false,
+	): Promise<{
+		contentResult: SearchReplaceContentResult;
+		metadata: ResourceMetadata;
+		bytesWritten: number;
+		isNewResource: boolean;
+	}> {
+		try {
+			// Extract the resource path from the URI
+			const resourcePath = extractResourcePath(resourceUri);
+			if (!resourcePath) {
+				throw new Error(`Invalid resource URI: ${resourceUri}`);
+			}
+
+			// Convert to absolute path
+			const absolutePath = resourcePathToAbsolute(this.rootPath, resourcePath);
+
+			let content: string | Uint8Array;
+			let isNewResource = false;
+
+			try {
+				const resource = await this.loadResource(resourceUri);
+				content = resource.content;
+				// Validate that content is actually text
+				if (typeof content !== 'string') {
+					if (content instanceof Uint8Array) {
+						const byteLength = content.byteLength;
+						throw createError(
+							ErrorType.ResourceHandling,
+							`Cannot perform search and replace on binary content: ${resourcePath}. The resource appears to be binary data (${byteLength} bytes).`,
+							{
+								filePath: resourcePath,
+								operation: 'search-replace',
+							} as ResourceHandlingErrorOptions,
+						);
+					} else {
+						throw createError(
+							ErrorType.ResourceHandling,
+							`Cannot perform search and replace on non-string content: ${resourcePath}. Content type: ${typeof content}`,
+							{
+								filePath: resourcePath,
+								operation: 'search-replace',
+							} as ResourceHandlingErrorOptions,
+						);
+					}
+				}
+			} catch (error) {
+				if (isResourceHandlingError(error) && createIfMissing) {
+					content = '';
+					isNewResource = true;
+					logger.info(`FilesystemAccessor: Resource ${resourceUri} not found. Creating new resource.`);
+					// Create missing directories
+					await this.ensureResourcePathExists(resourceUri);
+					logger.info(`FilesystemAccessor: Created directory structure for ${resourceUri}`);
+				} else {
+					throw error;
+				}
+			}
+
+			// Apply search and replace operations to content
+			const contentResult = applySearchAndReplaceToContent(
+				content as string,
+				operations,
+				defaults,
+				isNewResource,
+			);
+
+			// Check if any operations were successful or if it's a new resource
+			if (contentResult.successfulOperations.length === 0 && !isNewResource) {
+				const noChangesMessage = `No changes were made to the resource: ${resourcePath}. Results: ${
+					JSON.stringify(contentResult.operationResults)
+				}`;
+				logger.info(`FilesystemAccessor: ${noChangesMessage}`);
+				throw createError(
+					ErrorType.ResourceHandling,
+					noChangesMessage,
+					{
+						filePath: resourcePath,
+						operation: 'search-replace',
+					} as ResourceHandlingErrorOptions,
+				);
+			}
+
+			// Write the modified content back to the file
+			const writeResult = await this.writeResource(resourceUri, contentResult.processedContent, {
+				overwrite: true,
+				createMissingDirectories: true,
+			});
+
+			if (!writeResult.success) {
+				throw createError(
+					ErrorType.ResourceHandling,
+					`Writing resource failed for ${resourcePath}`,
+					{
+						filePath: resourcePath,
+						operation: 'search-replace',
+					} as ResourceHandlingErrorOptions,
+				);
+			}
+
+			logger.info(
+				`FilesystemAccessor: Applied ${contentResult.successfulOperations.length} search and replace operations. Wrote ${writeResult.bytesWritten} bytes for: ${writeResult.uri}`,
+			);
+
+			return {
+				contentResult,
+				metadata: writeResult.metadata!,
+				bytesWritten: writeResult.bytesWritten || 0,
+				isNewResource,
+			};
+		} catch (error) {
+			logger.error(
+				`FilesystemAccessor: Error applying search and replace operations to ${resourceUri}`,
+				errorMessage(error),
+			);
+			if (isResourceHandlingError(error)) {
+				throw error; // Re-throw our custom errors
+			}
+			throw createError(
+				ErrorType.ResourceHandling,
+				`Failed to apply search and replace operations: ${errorMessage(error)}`,
+				{
+					filePath: resourceUri,
+					operation: 'search-replace',
 				} as ResourceHandlingErrorOptions,
 			);
 		}
@@ -680,7 +1218,10 @@ export class FilesystemAccessor extends BBResourceAccessor {
 				metadata: resourceMetadata,
 			};
 		} catch (error) {
-			logger.error(`FilesystemAccessor: Error moving resource ${sourceUri} to ${destinationUri}`, error);
+			logger.error(
+				`FilesystemAccessor: Error moving resource ${sourceUri} to ${destinationUri}`,
+				errorMessage(error),
+			);
 			if (isResourceHandlingError(error)) {
 				throw error; // Re-throw our custom errors
 			}
@@ -690,6 +1231,96 @@ export class FilesystemAccessor extends BBResourceAccessor {
 				{
 					filePath: sourceUri,
 					operation: 'move',
+				} as ResourceHandlingErrorOptions,
+			);
+		}
+	}
+
+	/**
+	 * Rename a resource - potentially moving to a new location
+	 * @param sourceUri Source resource URI
+	 * @param destinationUri Destination resource URI
+	 * @param options Options for moving
+	 * @returns Result of the move operation
+	 */
+	override async renameResource(
+		sourceUri: string,
+		destinationUri: string,
+		options: ResourceMoveOptions = {},
+	): Promise<ResourceMoveResult> {
+		try {
+			// Extract resource paths from URIs
+			const sourcePath = extractResourcePath(sourceUri);
+			const destPath = extractResourcePath(destinationUri);
+
+			if (!sourcePath || !destPath) {
+				throw new Error(`Invalid resource URI: ${!sourcePath ? sourceUri : destinationUri}`);
+			}
+
+			// Convert to absolute paths
+			const sourceAbsPath = resourcePathToAbsolute(this.rootPath, sourcePath);
+			const destAbsPath = resourcePathToAbsolute(this.rootPath, destPath);
+
+			// Check if source exists
+			if (!await safeExists(sourceAbsPath)) {
+				throw createError(
+					ErrorType.ResourceHandling,
+					`Source file not found: ${sourcePath}`,
+					{
+						filePath: sourcePath,
+						operation: 'rename',
+					} as ResourceHandlingErrorOptions,
+				);
+			}
+
+			// Check if destination file exists
+			const destExists = await safeExists(destAbsPath);
+
+			// Check overwrite option
+			if (destExists && options.overwrite === false) {
+				throw createError(
+					ErrorType.ResourceHandling,
+					`Destination file already exists and overwrite is false: ${destPath}`,
+					{
+						filePath: destPath,
+						operation: 'rename',
+					} as ResourceHandlingErrorOptions,
+				);
+			}
+
+			// Create parent directories if needed
+			if (options.createMissingDirectories) {
+				await ensureParentDirectories(destAbsPath);
+			}
+
+			// Move the file
+			await Deno.rename(sourceAbsPath, destAbsPath);
+
+			const resourceMetadata = await getFileMetadata(
+				this.rootPath,
+				destPath,
+			);
+
+			return {
+				success: true,
+				sourceUri,
+				destinationUri,
+				metadata: resourceMetadata,
+			};
+		} catch (error) {
+			logger.error(
+				`FilesystemAccessor: Error renaming resource ${sourceUri} to ${destinationUri}`,
+				errorMessage(error),
+			);
+			if (isResourceHandlingError(error)) {
+				throw error; // Re-throw our custom errors
+			}
+			throw createError(
+				ErrorType.ResourceHandling,
+				`Failed to rename resource: ${errorMessage(error)}`,
+				{
+					filePath: sourceUri,
+					operation: 'rename',
 				} as ResourceHandlingErrorOptions,
 			);
 		}
@@ -753,7 +1384,7 @@ export class FilesystemAccessor extends BBResourceAccessor {
 				type: isDirectory ? 'directory' : 'file',
 			};
 		} catch (error) {
-			logger.error(`FilesystemAccessor: Error deleting resource ${resourceUri}`, error);
+			logger.error(`FilesystemAccessor: Error deleting resource ${resourceUri}`, errorMessage(error));
 			if (isResourceHandlingError(error)) {
 				throw error; // Re-throw our custom errors
 			}
@@ -953,9 +1584,7 @@ export class FilesystemAccessor extends BBResourceAccessor {
 				fileExtensionCount: Object.keys(metadata.filesystem?.fileExtensions || {}).length,
 			});
 		} catch (error) {
-			logger.error(
-				`FilesystemAccessor: Error collecting metadata: ${(error as Error).message}`,
-			);
+			logger.error(`FilesystemAccessor: Error collecting metadata:`, errorMessage(error));
 			// Return basic metadata even if scan failed
 			metadata.totalResources = 0;
 			metadata.resourceTypes = { file: 0, directory: 0 };
@@ -1154,5 +1783,77 @@ export class FilesystemAccessor extends BBResourceAccessor {
 	override hasCapability(capability: DataSourceCapability): boolean {
 		// Filesystem supports all standard operations
 		return ['read', 'write', 'list', 'search', 'move', 'delete'].includes(capability);
+	}
+
+	/**
+	 * Process content matches based on result level
+	 * @param contentMatches Original content matches
+	 * @param resultLevel Desired result level
+	 * @param resourceUri URI of the resource
+	 * @returns Processed matches array
+	 */
+	private processMatchesByLevel(
+		contentMatches: any[],
+		resultLevel: ResultLevel,
+		resourceUri: string,
+	): Match[] {
+		if (resultLevel === 'resource') {
+			return []; // No matches for resource-only results
+		}
+
+		// Convert ContentMatch objects to TextMatch format
+		return contentMatches.map((contentMatch, index) => {
+			const textMatch: TextMatch = {
+				type: 'text',
+				resourceUri,
+				lineNumber: contentMatch.lineNumber,
+				characterRange: {
+					start: contentMatch.matchStart || 0,
+					end: contentMatch.matchEnd || contentMatch.content?.length || 0,
+				},
+				text: contentMatch.content || '',
+			};
+
+			// Add context based on result level
+			if (resultLevel === 'fragment' || resultLevel === 'detailed') {
+				const contextBefore = contentMatch.contextBefore || [];
+				const contextAfter = contentMatch.contextAfter || [];
+
+				textMatch.context = {
+					before: contextBefore.join('\n'),
+					after: contextAfter.join('\n'),
+				};
+			}
+
+			return textMatch;
+		});
+	}
+
+	/**
+	 * Apply pagination to search results
+	 * @param matches All matches
+	 * @param pageSize Maximum number of results per page
+	 * @param pageToken Optional page token for continuation
+	 * @returns Paginated results and pagination info
+	 */
+	private paginateResults(
+		matches: ResourceMatch[],
+		pageSize: number,
+		pageToken?: string,
+	): { paginatedMatches: ResourceMatch[]; pagination: PaginationResult } {
+		const startIndex = pageToken ? parseInt(pageToken, 10) || 0 : 0;
+		const endIndex = Math.min(startIndex + pageSize, matches.length);
+		const paginatedMatches = matches.slice(startIndex, endIndex);
+		const hasMore = endIndex < matches.length;
+		const nextPageToken = hasMore ? endIndex.toString() : undefined;
+
+		const pagination: PaginationResult = {
+			pageSize,
+			pageToken: nextPageToken,
+			hasMore,
+			totalEstimate: matches.length,
+		};
+
+		return { paginatedMatches, pagination };
 	}
 }

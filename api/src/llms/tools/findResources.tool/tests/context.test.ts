@@ -1,8 +1,9 @@
 import { join } from '@std/path';
 
-import { assert, assertStringIncludes } from 'api/tests/deps.ts';
+import { assert, assertEquals, assertStringIncludes } from 'api/tests/deps.ts';
 import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 import { getProjectEditor, getToolManager, withTestProject } from 'api/tests/testSetup.ts';
+import { isFindResourcesResponse } from '../types.ts';
 
 // Helper function to create test files with predictable content for context testing
 async function createContextTestFiles(testProjectRoot: string) {
@@ -113,7 +114,7 @@ function hasEnhancedContent(toolResults: string): boolean {
 	return toolResults.includes('<enhanced-results>');
 }
 
-// Type guard to check if bbResponse is a string
+// Type guard to check if bbResponse is a string (legacy support)
 function isString(value: unknown): value is string {
 	return typeof value === 'string';
 }
@@ -145,13 +146,14 @@ Deno.test({
 			// console.log('Context extraction with default contextLines (2) - toolResponse:', result.toolResponse);
 			// console.log('Context extraction with default contextLines (2) - toolResults:', result.toolResults);
 
-			assert(isString(result.bbResponse), 'bbResponse should be a string');
+			assert(isFindResourcesResponse(result.bbResponse), 'bbResponse should have correct structure');
 
 			// Should find the file with matches
-			if (isString(result.bbResponse)) {
+			if (isFindResourcesResponse(result.bbResponse)) {
+				assertEquals(result.bbResponse.data.resources.length, 1, 'Should find 1 resource');
 				assertStringIncludes(
-					result.bbResponse,
-					'BB found 1 resources matching the search criteria',
+					result.bbResponse.data.searchCriteria,
+					`content pattern "searchPattern", case-insensitive, resource pattern "multi-match.txt"`,
 				);
 			}
 
@@ -228,7 +230,7 @@ Deno.test({
 			// console.log('Context extraction with contextLines=0 (no context) - toolResponse:', result.toolResponse);
 			// console.log('Context extraction with contextLines=0 (no context) - toolResults:', result.toolResults);
 
-			assert(isString(result.bbResponse), 'bbResponse should be a string');
+			assert(isFindResourcesResponse(result.bbResponse), 'bbResponse should have correct structure');
 
 			const toolResults = result.toolResults as string;
 			assertStringIncludes(toolResults, 'multi-match.txt');
@@ -283,7 +285,7 @@ Deno.test({
 			// console.log('Context extraction with contextLines=5 (extended context) - toolResponse:', result.toolResponse);
 			// console.log('Context extraction with contextLines=5 (extended context) - toolResults:', result.toolResults);
 
-			assert(isString(result.bbResponse), 'bbResponse should be a string');
+			assert(isFindResourcesResponse(result.bbResponse), 'bbResponse should have correct structure');
 
 			const toolResults = result.toolResults as string;
 			assertStringIncludes(toolResults, 'multi-match.txt');
@@ -347,7 +349,7 @@ Deno.test({
 			// console.log('maxMatchesPerFile=2 limits results - toolResponse:', result.toolResponse);
 			// console.log('maxMatchesPerFile=2 limits results - toolResults:', result.toolResults);
 
-			assert(isString(result.bbResponse), 'bbResponse should be a string');
+			assert(isFindResourcesResponse(result.bbResponse), 'bbResponse should have correct structure');
 
 			const toolResults = result.toolResults as string;
 			assertStringIncludes(toolResults, 'many-matches.txt');
@@ -404,7 +406,7 @@ Deno.test({
 			// console.log('maxMatchesPerFile=1 returns only first match - toolResponse:', result.toolResponse);
 			// console.log('maxMatchesPerFile=1 returns only first match - toolResults:', result.toolResults);
 
-			assert(isString(result.bbResponse), 'bbResponse should be a string');
+			assert(isFindResourcesResponse(result.bbResponse), 'bbResponse should have correct structure');
 
 			const toolResults = result.toolResults as string;
 			assertStringIncludes(toolResults, 'multi-match.txt');
@@ -460,7 +462,7 @@ Deno.test({
 			// console.log('Match at beginning of file (boundary case) - toolResponse:', result.toolResponse);
 			// console.log('Match at beginning of file (boundary case) - toolResults:', result.toolResults);
 
-			assert(isString(result.bbResponse), 'bbResponse should be a string');
+			assert(isFindResourcesResponse(result.bbResponse), 'bbResponse should have correct structure');
 
 			const toolResults = result.toolResults as string;
 			assertStringIncludes(toolResults, 'boundary-match.txt');
@@ -522,7 +524,7 @@ Deno.test({
 			// console.log('Match at end of file (boundary case) - toolResponse:', result.toolResponse);
 			// console.log('Match at end of file (boundary case) - toolResults:', result.toolResults);
 
-			assert(isString(result.bbResponse), 'bbResponse should be a string');
+			assert(isFindResourcesResponse(result.bbResponse), 'bbResponse should have correct structure');
 
 			const toolResults = result.toolResults as string;
 			assertStringIncludes(toolResults, 'boundary-match.txt');
@@ -584,7 +586,7 @@ Deno.test({
 			// console.log('Single line file with match - toolResponse:', result.toolResponse);
 			// console.log('Single line file with match - toolResults:', result.toolResults);
 
-			assert(isString(result.bbResponse), 'bbResponse should be a string');
+			assert(isFindResourcesResponse(result.bbResponse), 'bbResponse should have correct structure');
 
 			const toolResults = result.toolResults as string;
 			assertStringIncludes(toolResults, 'single-line.txt');
@@ -643,7 +645,7 @@ Deno.test({
 			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
-			assert(isString(result.bbResponse), 'bbResponse should be a string');
+			assert(isFindResourcesResponse(result.bbResponse), 'bbResponse should have correct structure');
 
 			const toolResults = result.toolResults as string;
 			assertStringIncludes(toolResults, 'close-matches.txt');
@@ -703,7 +705,7 @@ Deno.test({
 			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const resultMax = await tool.runTool(interaction, toolUseMax, projectEditor);
 
-			assert(isString(resultMax.bbResponse), 'bbResponse should be a string');
+			assert(isFindResourcesResponse(resultMax.bbResponse), 'bbResponse should have correct structure');
 
 			// Should accept maximum valid value and provide extensive context
 			assertStringIncludes(resultMax.toolResults as string, 'multi-match.txt');
@@ -753,7 +755,7 @@ Deno.test({
 			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const resultMax = await tool.runTool(interaction, toolUseMax, projectEditor);
 
-			assert(isString(resultMax.bbResponse), 'bbResponse should be a string');
+			assert(isFindResourcesResponse(resultMax.bbResponse), 'bbResponse should have correct structure');
 
 			// Should accept maximum valid value and include all matches
 			assertStringIncludes(resultMax.toolResults as string, 'many-matches.txt');
@@ -804,7 +806,7 @@ Deno.test({
 			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
-			assert(isString(result.bbResponse), 'bbResponse should be a string');
+			assert(isFindResourcesResponse(result.bbResponse), 'bbResponse should have correct structure');
 
 			const toolResults = result.toolResults as string;
 
@@ -916,7 +918,7 @@ Deno.test({
 			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
-			assert(isString(result.bbResponse), 'bbResponse should be a string');
+			assert(isFindResourcesResponse(result.bbResponse), 'bbResponse should have correct structure');
 
 			// Should handle empty files gracefully (no matches found)
 			if (isString(result.bbResponse)) {
@@ -958,7 +960,7 @@ Deno.test({
 			const interaction = await projectEditor.initInteraction('test-collaboration-id', 'test-interaction-id');
 			const result = await tool.runTool(interaction, toolUse, projectEditor);
 
-			assert(isString(result.bbResponse), 'bbResponse should be a string');
+			assert(isFindResourcesResponse(result.bbResponse), 'bbResponse should have correct structure');
 
 			const toolResults = result.toolResults as string;
 			assertStringIncludes(toolResults, 'multi-match.txt');
