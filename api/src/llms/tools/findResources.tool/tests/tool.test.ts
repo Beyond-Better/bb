@@ -1,7 +1,7 @@
 import { join } from '@std/path';
 //import { existsSync } from '@std/fs';
 
-import { assert, assertStringIncludes, assertEquals } from 'api/tests/deps.ts';
+import { assert, assertEquals, assertStringIncludes } from 'api/tests/deps.ts';
 //import type LLMToolFindResources from '../tool.ts';
 import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 import { getProjectEditor, getToolManager, withTestProject } from 'api/tests/testSetup.ts';
@@ -993,7 +993,8 @@ Deno.test({
 				assertEquals(result.bbResponse.data.resources.length, 1, 'Should find 1 resource');
 				assertStringIncludes(
 					result.bbResponse.data.searchCriteria,
-					String.raw`content pattern "currentInteraction\?\.title", case-insensitive, resource pattern "bui/src/islands/Chat.tsx"`,
+					String
+						.raw`content pattern "currentInteraction\?\.title", case-insensitive, resource pattern "bui/src/islands/Chat.tsx"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -1111,7 +1112,8 @@ Deno.test({
 				assertEquals(result.bbResponse.data.resources.length, 1, 'Should find 1 resource');
 				assertStringIncludes(
 					result.bbResponse.data.searchCriteria,
-					String.raw`content pattern "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", case-insensitive, resource pattern "regex_test*.txt"`,
+					String
+						.raw`content pattern "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", case-insensitive, resource pattern "regex_test*.txt"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -1155,7 +1157,8 @@ Deno.test({
 				assertEquals(result.bbResponse.data.resources.length, 1, 'Should find 1 resource');
 				assertStringIncludes(
 					result.bbResponse.data.searchCriteria,
-					String.raw`content pattern "https?://[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", case-insensitive, resource pattern "regex_test*.txt"`,
+					String
+						.raw`content pattern "https?://[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", case-insensitive, resource pattern "regex_test*.txt"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -1199,7 +1202,8 @@ Deno.test({
 				assertEquals(result.bbResponse.data.resources.length, 1, 'Should find 1 resource');
 				assertStringIncludes(
 					result.bbResponse.data.searchCriteria,
-					String.raw`content pattern "(\d{3}[-.]?\d{3}[-.]?\d{4}|\(\d{3}\)\s*\d{3}[-.]?\d{4})", case-insensitive, resource pattern "regex_test*.txt"`,
+					String
+						.raw`content pattern "(\d{3}[-.]?\d{3}[-.]?\d{4}|\(\d{3}\)\s*\d{3}[-.]?\d{4})", case-insensitive, resource pattern "regex_test*.txt"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -1243,7 +1247,8 @@ Deno.test({
 				assertEquals(result.bbResponse.data.resources.length, 1, 'Should find 1 resource');
 				assertStringIncludes(
 					result.bbResponse.data.searchCriteria,
-					String.raw`content pattern "\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b", case-insensitive, resource pattern "regex_test*.txt"`,
+					String
+						.raw`content pattern "\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b", case-insensitive, resource pattern "regex_test*.txt"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');
@@ -1383,7 +1388,8 @@ Deno.test({
 				assertEquals(result.bbResponse.data.resources.length, 1, 'Should find 1 resource');
 				assertStringIncludes(
 					result.bbResponse.data.searchCriteria,
-					String.raw`content pattern "[Tt]esting [0-9]+", case-insensitive, resource pattern "regex_test*.txt"`,
+					String
+						.raw`content pattern "[Tt]esting [0-9]+", case-insensitive, resource pattern "regex_test*.txt"`,
 				);
 			} else {
 				assert(false, 'bbResponse is not a string as expected');

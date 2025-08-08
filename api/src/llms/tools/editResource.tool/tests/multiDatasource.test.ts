@@ -1,12 +1,7 @@
 import { assert, assertEquals, assertRejects, assertStringIncludes } from 'api/tests/deps.ts';
 import type { LLMAnswerToolUse, LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
 import { makeOrchestratorControllerStub } from 'api/tests/stubs.ts';
-import {
-	createTestInteraction,
-	getProjectEditor,
-	getToolManager,
-	withTestProject,
-} from 'api/tests/testSetup.ts';
+import { createTestInteraction, getProjectEditor, getToolManager, withTestProject } from 'api/tests/testSetup.ts';
 import type { DataSourceProviderType } from 'shared/types/dataSource.ts';
 import { isEditResourceResponse } from '../types.ts';
 
@@ -60,7 +55,7 @@ Deno.test({
 
 				// Verify search and replace worked on filesystem
 				assertStringIncludes(result.toolResponse, 'All operations succeeded');
-				
+
 				// Verify structured bbResponse
 				assert(
 					result.bbResponse && typeof result.bbResponse === 'object',
@@ -122,8 +117,8 @@ Deno.test({
 								blocks_content: {
 									_type: 'block',
 									style: 'h1',
-									children: [{ _type: 'span', text: 'Multi-Datasource Notion Test', marks: [] }]
-								}
+									children: [{ _type: 'span', text: 'Multi-Datasource Notion Test', marks: [] }],
+								},
 							},
 							{
 								editType: 'blocks',
@@ -136,10 +131,10 @@ Deno.test({
 										{
 											_type: 'span',
 											text: 'This content should work across all structured datasources.',
-											marks: []
-										}
-									]
-								}
+											marks: [],
+										},
+									],
+								},
 							},
 						],
 					},
@@ -149,7 +144,7 @@ Deno.test({
 
 				// Verify block operations worked on Notion
 				assertStringIncludes(result.toolResponse, 'operations succeeded');
-				
+
 				// Verify structured bbResponse
 				assert(
 					result.bbResponse && typeof result.bbResponse === 'object',
@@ -170,7 +165,7 @@ Deno.test({
 				// Check toolResults structure
 				assert(Array.isArray(result.toolResults), 'toolResults should be an array');
 				assert(result.toolResults.length >= 1, 'toolResults should have at least 1 element');
-				
+
 				const firstResult = result.toolResults[0] as LLMMessageContentPartTextBlock;
 				assertStringIncludes(firstResult.text, 'test-notion-connection');
 			} finally {
@@ -214,7 +209,7 @@ Deno.test({
 								editType: 'range',
 								range_rangeType: 'insertText',
 								range_location: { index: 1 },
-								range_text: 'Google Docs Integration Test\n\n'
+								range_text: 'Google Docs Integration Test\n\n',
 							},
 							// Apply heading 2 style to the title
 							{
@@ -222,9 +217,9 @@ Deno.test({
 								range_rangeType: 'updateParagraphStyle',
 								range_range: { startIndex: 1, endIndex: 30 }, // Length of 'Google Docs Integration Test'
 								range_paragraphStyle: {
-									namedStyleType: 'HEADING_2'
+									namedStyleType: 'HEADING_2',
 								},
-								range_fields: 'namedStyleType'
+								range_fields: 'namedStyleType',
 							},
 							// Apply bold formatting to the title
 							{
@@ -232,16 +227,17 @@ Deno.test({
 								range_rangeType: 'updateTextStyle',
 								range_range: { startIndex: 1, endIndex: 30 },
 								range_textStyle: {
-									bold: true
+									bold: true,
 								},
-								range_fields: 'bold'
+								range_fields: 'bold',
 							},
 							// Insert body paragraph
 							{
 								editType: 'range',
 								range_rangeType: 'insertText',
 								range_location: { index: 32 }, // After the heading and newlines
-								range_text: 'Testing range-based content editing across multiple datasource providers using Google Docs API.'
+								range_text:
+									'Testing range-based content editing across multiple datasource providers using Google Docs API.',
 							},
 						],
 					},
@@ -251,7 +247,7 @@ Deno.test({
 
 				// Verify range operations worked on Google Docs
 				assertStringIncludes(result.toolResponse, 'operations succeeded');
-				
+
 				// Verify structured bbResponse
 				assert(
 					result.bbResponse && typeof result.bbResponse === 'object',
@@ -272,7 +268,7 @@ Deno.test({
 				// Check toolResults structure
 				assert(Array.isArray(result.toolResults), 'toolResults should be an array');
 				assert(result.toolResults.length >= 1, 'toolResults should have at least 1 element');
-				
+
 				const firstResult = result.toolResults[0] as LLMMessageContentPartTextBlock;
 				assertStringIncludes(firstResult.text, 'test-googledocs-connection');
 			} finally {
@@ -347,8 +343,8 @@ Deno.test({
 								blocks_block: {
 									_type: 'block',
 									style: 'normal',
-									children: [{ _type: 'span', text: 'Mixed operation workflow test', marks: [] }]
-								}
+									children: [{ _type: 'span', text: 'Mixed operation workflow test', marks: [] }],
+								},
 							},
 						],
 					},
@@ -356,7 +352,7 @@ Deno.test({
 
 				const notionResult = await tool.runTool(interaction, notionEdit, projectEditor);
 				assertStringIncludes(notionResult.toolResponse, 'operations succeeded');
-				
+
 				// Verify structured bbResponse for Notion
 				assert(
 					notionResult.bbResponse && typeof notionResult.bbResponse === 'object',

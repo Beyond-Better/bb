@@ -7,7 +7,7 @@ This directory contains the enhanced test scaffolding that supports testing with
 The test scaffolding consists of several key components:
 
 1. **Mock Clients** (`mockClients.ts`) - Mock implementations of `NotionClient` and `GoogleDocsClient` that store data in portable text format
-2. **Test Providers** (`testProviders.ts`) - Test-specific providers that inject mock clients instead of real API clients  
+2. **Test Providers** (`testProviders.ts`) - Test-specific providers that inject mock clients instead of real API clients
 3. **Test Data** (`testData.ts`) - Comprehensive predefined datasets covering common and edge cases
 4. **Enhanced Test Setup** (`testSetup.ts`) - Extended setup functions that support additional datasources
 
@@ -16,20 +16,19 @@ The test scaffolding consists of several key components:
 ### Basic Usage with Extra Datasources
 
 ```typescript
-import { withTestProject, getTestProvider } from 'api/tests/lib/testSetup.ts';
+import { getTestProvider, withTestProject } from 'api/tests/lib/testSetup.ts';
 
 Deno.test({
-  name: 'My tool test with Notion support',
-  async fn() {
-    const extraDatasources = ['notion'];
-    await withTestProject(async (testProjectId, testProjectRoot) => {
-      const projectEditor = await getProjectEditor(testProjectId);
-      
-      // Your test code here - Notion datasource is now available
-      // The mock client is pre-loaded with default test data
-      
-    }, extraDatasources);
-  },
+	name: 'My tool test with Notion support',
+	async fn() {
+		const extraDatasources = ['notion'];
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			const projectEditor = await getProjectEditor(testProjectId);
+
+			// Your test code here - Notion datasource is now available
+			// The mock client is pre-loaded with default test data
+		}, extraDatasources);
+	},
 });
 ```
 
@@ -39,21 +38,21 @@ Deno.test({
 // Get access to the test provider and mock client
 const notionProvider = await getTestProvider(projectEditor, 'notion');
 if (notionProvider) {
-  const mockClient = notionProvider.getMockClient();
-  
-  // Inspect what data was created/modified
-  const allPages = mockClient.getAllPagesData();
-  const specificPage = mockClient.getPageData('page-id-123');
-  
-  // Set up custom test data
-  mockClient.setPageData('custom-page', {
-    id: 'custom-page',
-    title: 'Custom Test Page',
-    blocks: [/* ... */],
-  });
-  
-  // Trigger errors for testing error handling
-  mockClient.triggerError('getPage');
+	const mockClient = notionProvider.getMockClient();
+
+	// Inspect what data was created/modified
+	const allPages = mockClient.getAllPagesData();
+	const specificPage = mockClient.getPageData('page-id-123');
+
+	// Set up custom test data
+	mockClient.setPageData('custom-page', {
+		id: 'custom-page',
+		title: 'Custom Test Page',
+		blocks: [/* ... */],
+	});
+
+	// Trigger errors for testing error handling
+	mockClient.triggerError('getPage');
 }
 ```
 
@@ -89,6 +88,7 @@ Test providers (`TestNotionProvider` and `TestGoogleDocsProvider`) replace the r
 The test data module provides extensive predefined datasets:
 
 #### Notion Test Data:
+
 - **Simple Page**: Basic content for straightforward testing
 - **Complex Page**: Various formatting and edge cases
 - **Empty Page**: Edge case testing
@@ -96,9 +96,10 @@ The test data module provides extensive predefined datasets:
 - **Structured Page**: Hierarchical content with headings
 
 #### Google Docs Test Data:
+
 - **Simple Document**: Basic content
 - **Complex Document**: Various formatting
-- **Empty Document**: Edge case testing  
+- **Empty Document**: Edge case testing
 - **Minimal Document**: Single paragraph
 - **Structured Document**: Hierarchical content
 
@@ -117,7 +118,7 @@ Provides access to Notion pages and blocks through the mock Notion API:
 
 Provides access to Google Docs documents through the mock Google API:
 
-- **Default Test Data**: 5 predefined documents covering various scenarios  
+- **Default Test Data**: 5 predefined documents covering various scenarios
 - **Capabilities**: `blockRead`, `blockEdit`, `list`, `search`, `delete`
 - **Authentication**: Mock OAuth2 authentication
 - **URI Format**: `bb+googledocs+test-googledocs-connection+googledocs://document/{documentId}`
@@ -128,37 +129,37 @@ Provides access to Google Docs documents through the mock Google API:
 
 ```typescript
 Deno.test({
-  name: 'Test write_resource with structured content',
-  async fn() {
-    const extraDatasources = ['notion', 'googledocs'];
-    await withTestProject(async (testProjectId, testProjectRoot) => {
-      // Setup
-      const projectEditor = await getProjectEditor(testProjectId);
-      const toolManager = await getToolManager(projectEditor);
-      const tool = await toolManager.getTool('write_resource');
-      
-      // Execute tool with structured content
-      const toolUse = {
-        toolInput: {
-          resourcePath: 'test-resource.json',
-          structuredContent: {
-            blocks: [/* portable text blocks */],
-            acknowledgement: 'I have checked...',
-          },
-        },
-      };
-      
-      const result = await tool.runTool(interaction, toolUse, projectEditor);
-      
-      // Verify in mock clients
-      const notionProvider = await getTestProvider(projectEditor, 'notion');
-      if (notionProvider) {
-        const mockClient = notionProvider.getMockClient();
-        const allPages = mockClient.getAllPagesData();
-        // Verify structured content was created correctly
-      }
-    }, extraDatasources);
-  },
+	name: 'Test write_resource with structured content',
+	async fn() {
+		const extraDatasources = ['notion', 'googledocs'];
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			// Setup
+			const projectEditor = await getProjectEditor(testProjectId);
+			const toolManager = await getToolManager(projectEditor);
+			const tool = await toolManager.getTool('write_resource');
+
+			// Execute tool with structured content
+			const toolUse = {
+				toolInput: {
+					resourcePath: 'test-resource.json',
+					structuredContent: {
+						blocks: [/* portable text blocks */],
+						acknowledgement: 'I have checked...',
+					},
+				},
+			};
+
+			const result = await tool.runTool(interaction, toolUse, projectEditor);
+
+			// Verify in mock clients
+			const notionProvider = await getTestProvider(projectEditor, 'notion');
+			if (notionProvider) {
+				const mockClient = notionProvider.getMockClient();
+				const allPages = mockClient.getAllPagesData();
+				// Verify structured content was created correctly
+			}
+		}, extraDatasources);
+	},
 });
 ```
 
@@ -168,29 +169,29 @@ Deno.test({
 // Setup error condition
 const notionProvider = await getTestProvider(projectEditor, 'notion');
 if (notionProvider) {
-  const mockClient = notionProvider.getMockClient();
-  mockClient.triggerError('getPage');
-  
-  // Test that your tool handles the error correctly
-  await assertRejects(
-    () => tool.runTool(interaction, toolUse, projectEditor),
-    Error,
-    'Expected error message'
-  );
+	const mockClient = notionProvider.getMockClient();
+	mockClient.triggerError('getPage');
+
+	// Test that your tool handles the error correctly
+	await assertRejects(
+		() => tool.runTool(interaction, toolUse, projectEditor),
+		Error,
+		'Expected error message',
+	);
 }
 ```
 
 ### Custom Test Data
 
 ```typescript
-import { createTestPage, createTestDocument } from 'api/tests/lib/testData.ts';
+import { createTestDocument, createTestPage } from 'api/tests/lib/testData.ts';
 
 // Create custom test page
 const customPage = createTestPage(
-  'custom-id',
-  'Custom Page Title',
-  ['Paragraph 1', 'Paragraph 2', 'Paragraph 3'],
-  ['normal', 'h1', 'normal']
+	'custom-id',
+	'Custom Page Title',
+	['Paragraph 1', 'Paragraph 2', 'Paragraph 3'],
+	['normal', 'h1', 'normal'],
 );
 
 // Set up mock client with custom data
@@ -203,13 +204,13 @@ mockClient.setPageData('custom-id', customPage);
 
 ```typescript
 Deno.test({
-  name: 'My test',
-  async fn() {
-    const extraDatasources = ['notion', 'googledocs']; // Clear and visible
-    await withTestProject(async (testProjectId, testProjectRoot) => {
-      // Test implementation
-    }, extraDatasources);
-  },
+	name: 'My test',
+	async fn() {
+		const extraDatasources = ['notion', 'googledocs']; // Clear and visible
+		await withTestProject(async (testProjectId, testProjectRoot) => {
+			// Test implementation
+		}, extraDatasources);
+	},
 });
 ```
 
@@ -252,22 +253,22 @@ Each test gets fresh mock clients with default data, so tests don't interfere wi
    ```typescript
    // Old
    import { withTestProject } from 'api/tests/testSetup.ts';
-   
-   // New  
-   import { withTestProject, getTestProvider } from 'api/tests/lib/testSetup.ts';
+
+   // New
+   import { getTestProvider, withTestProject } from 'api/tests/lib/testSetup.ts';
    ```
 
 2. **Add Extra Datasources**:
    ```typescript
    // Old
    await withTestProject(async (testProjectId, testProjectRoot) => {
-     // test code
+   	// test code
    });
-   
+
    // New
    const extraDatasources = ['notion'];
    await withTestProject(async (testProjectId, testProjectRoot) => {
-     // test code
+   	// test code
    }, extraDatasources);
    ```
 
@@ -302,14 +303,16 @@ This ensures that tools work with the same interfaces they would use in producti
 ## Troubleshooting
 
 ### Mock Client Not Found
+
 ```typescript
 const provider = await getTestProvider(projectEditor, 'notion');
 if (!provider) {
-  throw new Error('Notion provider not found - did you include it in extraDatasources?');
+	throw new Error('Notion provider not found - did you include it in extraDatasources?');
 }
 ```
 
 ### Test Data Not Found
+
 The mock clients are pre-loaded with default test data. If you need specific data, set it up explicitly:
 
 ```typescript
@@ -317,6 +320,7 @@ mockClient.setPageData('specific-id', customPageData);
 ```
 
 ### Type Errors
+
 Make sure to import types from the correct locations:
 
 ```typescript

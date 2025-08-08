@@ -2,7 +2,7 @@
  * Comprehensive test data for mock clients
  * Provides extensive predefined datasets covering common and edge cases
  */
-import type { PortableTextPage, PortableTextDocument } from './mockClients.ts';
+import type { PortableTextDocument, PortableTextPage } from './mockClients.ts';
 import type { PortableTextBlock } from 'api/types/portableText.ts';
 
 // ==================== Helper Functions ====================
@@ -398,9 +398,7 @@ export function createTestPage(
 	content: string[],
 	styles: string[] = [],
 ): PortableTextPage {
-	const blocks: PortableTextBlock[] = content.map((text, index) => 
-		createBlock(styles[index] || 'normal', text)
-	);
+	const blocks: PortableTextBlock[] = content.map((text, index) => createBlock(styles[index] || 'normal', text));
 
 	return {
 		id,
@@ -423,9 +421,7 @@ export function createTestDocument(
 	content: string[],
 	styles: string[] = [],
 ): PortableTextDocument {
-	const blocks: PortableTextBlock[] = content.map((text, index) => 
-		createBlock(styles[index] || 'normal', text)
-	);
+	const blocks: PortableTextBlock[] = content.map((text, index) => createBlock(styles[index] || 'normal', text));
 
 	return {
 		id,

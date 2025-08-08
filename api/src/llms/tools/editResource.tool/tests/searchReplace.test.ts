@@ -113,7 +113,10 @@ Deno.test({
 
 				const thirdResult = result.toolResults[2];
 				assert(thirdResult.type === 'text', 'Third result should be of type text');
-				assertStringIncludes(thirdResult.text, 'PASS Operation 1 (searchReplace): Operation 1 completed successfully');
+				assertStringIncludes(
+					thirdResult.text,
+					'PASS Operation 1 (searchReplace): Operation 1 completed successfully',
+				);
 
 				const updatedContent = await Deno.readTextFile(testResourcePath);
 				assertEquals(updatedContent, 'Hello, Deno!');
@@ -406,7 +409,10 @@ Deno.test({
 				for (let i = 1; i <= 3; i++) {
 					const operationResult = result.toolResults[i + 1];
 					assert(operationResult.type === 'text', `Result ${i} should be of type text`);
-					assertStringIncludes(operationResult.text, `PASS Operation ${i} (searchReplace): Operation ${i} completed successfully`);
+					assertStringIncludes(
+						operationResult.text,
+						`PASS Operation ${i} (searchReplace): Operation ${i} completed successfully`,
+					);
 				}
 
 				const updatedContent = await Deno.readTextFile(testResourcePath);
@@ -487,7 +493,10 @@ Deno.test({
 				for (let i = 1; i <= 3; i++) {
 					const operationResult = result.toolResults[i + 1];
 					assert(operationResult.type === 'text', `Result ${i} should be of type text`);
-					assertStringIncludes(operationResult.text, `PASS Operation ${i} (searchReplace): Operation ${i} completed successfully`);
+					assertStringIncludes(
+						operationResult.text,
+						`PASS Operation ${i} (searchReplace): Operation ${i} completed successfully`,
+					);
 				}
 
 				const updatedContent = await Deno.readTextFile(testResourcePath);
@@ -575,7 +584,10 @@ Deno.test({
 				for (let i = 1; i <= 3; i++) {
 					const operationResult = result.toolResults[i + 1];
 					assert(operationResult.type === 'text', `Result ${i} should be of type text`);
-					assertStringIncludes(operationResult.text, `PASS Operation ${i} (searchReplace): Operation ${i} completed successfully`);
+					assertStringIncludes(
+						operationResult.text,
+						`PASS Operation ${i} (searchReplace): Operation ${i} completed successfully`,
+					);
 				}
 
 				const updatedContent = await Deno.readTextFile(testResourcePath);
@@ -1178,7 +1190,10 @@ Deno.test({
 				for (let i = 1; i <= 3; i++) {
 					const operationResult = result.toolResults[i + 1];
 					assert(operationResult.type === 'text', `Result ${i} should be of type text`);
-					assertStringIncludes(operationResult.text, `PASS Operation ${i} (searchReplace): Operation ${i} completed successfully`);
+					assertStringIncludes(
+						operationResult.text,
+						`PASS Operation ${i} (searchReplace): Operation ${i} completed successfully`,
+					);
 				}
 
 				const resourceContent = await Deno.readTextFile(newResourcePath);

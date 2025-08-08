@@ -99,7 +99,7 @@ class LLMToolManager {
 		for (const coreTool of CORE_TOOLS) {
 			// Don't load mcp tool as an bb tool
 			if (coreTool.metadata.name === 'mcp') continue;
-			
+
 			// Check if tool is in the requested tool set
 			if (!this.isToolInSet(coreTool.metadata)) {
 				logger.warn(
@@ -109,7 +109,7 @@ class LLMToolManager {
 				);
 				continue;
 			}
-			
+
 			//if (!this.isToolEnabled(coreTool.metadata)) continue;
 			const toolNamePath = join('tools', coreTool.toolNamePath);
 			coreTool.metadata.path = toolNamePath;
@@ -273,7 +273,9 @@ class LLMToolManager {
 	private shouldReplaceExistingTool(existing: ToolMetadata, newMetadata: ToolMetadata): boolean {
 		// Prefer user-supplied tools
 		if (
-			(this.projectConfig.api?.userPluginDirectories || []).some((dir: string) => newMetadata.path!.startsWith(dir))
+			(this.projectConfig.api?.userPluginDirectories || []).some((dir: string) =>
+				newMetadata.path!.startsWith(dir)
+			)
 		) {
 			if (compareVersions(parseVersion(existing.version), parseVersion(newMetadata.version)) > 0) {
 				logger.warn(

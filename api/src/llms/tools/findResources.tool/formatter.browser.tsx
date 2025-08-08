@@ -204,7 +204,7 @@ function formatSimpleSearchResults(content: string, bbResponse: any) {
 						<span className='font-medium text-red-800 dark:text-red-300'>Error:</span>
 						<span className='ml-2 text-red-700 dark:text-red-400 font-mono'>{errorMatch[1]}</span>
 					</div>
-				</div>
+				</div>,
 			),
 			preview: 'Search failed due to invalid pattern',
 		};
@@ -253,7 +253,7 @@ function formatStructuredSearchResults(bbResponse: any, toolContent: string) {
 						<span className='font-medium text-red-800 dark:text-red-300'>Error:</span>
 						<span className='ml-2 text-red-700 dark:text-red-400'>{errorMessage}</span>
 					</div>
-				</div>
+				</div>,
 			),
 			preview: 'Search failed due to error',
 		};
@@ -265,7 +265,9 @@ function formatStructuredSearchResults(bbResponse: any, toolContent: string) {
 	if (hasContentMatches) {
 		return {
 			title: LLMTool.TOOL_TAGS_BROWSER.content.title('Tool Result', 'Find Resources'),
-			subtitle: LLMTool.TOOL_TAGS_BROWSER.content.subtitle(`Found ${resources.length} resources with ${totalMatches} matches`),
+			subtitle: LLMTool.TOOL_TAGS_BROWSER.content.subtitle(
+				`Found ${resources.length} resources with ${totalMatches} matches`,
+			),
 			content: LLMTool.TOOL_TAGS_BROWSER.base.container(
 				<>
 					{LLMTool.TOOL_TAGS_BROWSER.content.status('completed', 'Enhanced Search Results')}
@@ -337,7 +339,7 @@ function formatStructuredSearchResults(bbResponse: any, toolContent: string) {
 							</div>
 						)}
 					</div>
-				</>
+				</>,
 			),
 			preview: `Found ${resources.length} files with ${totalMatches} matches`,
 		};
@@ -365,7 +367,7 @@ function formatStructuredSearchResults(bbResponse: any, toolContent: string) {
 							</span>
 						</div>
 					)}
-				</>
+				</>,
 			),
 			preview: `Found ${resources.length} resources`,
 		};

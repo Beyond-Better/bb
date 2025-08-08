@@ -1,21 +1,21 @@
 import type {
-	PlainTextContent,
-	StructuredContent,
 	BinaryContent,
 	DataSourceInfo,
+	PlainTextContent,
+	StructuredContent,
 } from 'shared/types/dataSourceResource.ts';
 import type { LLMToolRunResultContent } from 'api/llms/llmTool.ts';
 
 // Re-export shared types for backward compatibility and tool-specific usage
 export type {
-	PlainTextContent,
-	StructuredContent,
 	BinaryContent,
 	DataSourceInfo,
-	ResourceUpdateInfo,
-	isPlainTextContent,
 	isBinaryContent,
+	isPlainTextContent,
 	isStructuredContent,
+	PlainTextContent,
+	ResourceUpdateInfo,
+	StructuredContent,
 } from 'shared/types/dataSourceResource.ts';
 
 // =============================================================================
@@ -31,7 +31,7 @@ export interface LLMToolWriteResourceInput {
 	resourceName?: string; // Optional name/title for new documents
 	overwriteExisting?: boolean; // Default: false
 	createMissingDirectories?: boolean; // Default: true
-	
+
 	// Content type options (exactly one required)
 	plainTextContent?: PlainTextContent;
 	structuredContent?: StructuredContent;

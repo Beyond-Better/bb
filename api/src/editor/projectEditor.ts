@@ -20,8 +20,8 @@ import type {
 import { ResourceManager } from 'api/resources/resourceManager.ts';
 import type {
 	ResourceForInteraction,
-	ResourceRevisionMetadata,
 	ResourceLoadOptions,
+	ResourceRevisionMetadata,
 	//ResourceMetadata,
 	ResourcesForInteraction,
 } from 'shared/types/dataSourceResource.ts';

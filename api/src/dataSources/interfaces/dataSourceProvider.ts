@@ -10,11 +10,7 @@ import type {
 	DataSourceAuthMethod,
 	DataSourceCapability,
 } from 'shared/types/dataSource.ts';
-import type {
-	AcceptedContentType,
-	AcceptedEditType,
-	ContentTypeGuidance,
-} from 'shared/types/dataSource.ts';
+import type { AcceptedContentType, AcceptedEditType, ContentTypeGuidance } from 'shared/types/dataSource.ts';
 
 /**
  * DataSourceProvider interface

@@ -459,7 +459,6 @@ export interface ContentResourceMatch {
 	contentMatches?: ContentMatch[];
 }
 
-
 export interface ContentSearchResult {
 	matches: ContentResourceMatch[];
 	errorMessage: string | null;
@@ -548,7 +547,9 @@ export async function searchFilesContent(
 				),
 			);
 
-			const validResults = contentResults.flat().filter((result): result is ContentResourceMatch => result !== null);
+			const validResults = contentResults.flat().filter((result): result is ContentResourceMatch =>
+				result !== null
+			);
 			logger.info(
 				`FileHandlingUtil: File content search with context completed. Found ${validResults.length} matching files.`,
 			);

@@ -359,8 +359,8 @@ Deno.test({
 	sanitizeOps: false,
 	fn: () => {
 		// Use a valid UUID for testing valid ID preservation
-	const validUuid = '12345678-1234-1234-1234-123456789abc';
-	const portableBlocks: PortableTextBlock[] = [
+		const validUuid = '12345678-1234-1234-1234-123456789abc';
+		const portableBlocks: PortableTextBlock[] = [
 			{
 				_type: 'block',
 				_key: validUuid,
