@@ -5,7 +5,7 @@
 ### **✅ COMPLETED WORK**
 
 #### **1. Type System Updates** ✅
-- **File**: `src/shared/types/dataSourceResource.types.ts`
+- **File**: `shared/types/dataSourceResource.ts`
 - **Status**: Complete
 - **Changes**:
   - Added polymorphic match types: `TextMatch`, `BlockMatch`, `RecordMatch`, `TaskMatch`
@@ -125,7 +125,7 @@
 **Test Results**: All 45 findResources tests now passing ✅
 
 **Files Modified**:
-- `src/shared/types/dataSourceResource.types.ts` - Added contextLines and errorMessage fields
+- `shared/types/dataSourceResource.ts` - Added contextLines and errorMessage fields
 - `api/src/llms/tools/findResources.tool/tool.ts` - Added contextLines parameter and error handling  
 - `api/src/dataSources/filesystem/filesystemAccessor.ts` - Updated context lines logic and error propagation
 
@@ -187,7 +187,7 @@
 ---
 
 ### **📁 FILES MODIFIED (for reference)**
-1. `src/shared/types/dataSourceResource.types.ts` ✅
+1. `shared/types/dataSourceResource.ts` ✅
 2. `api/src/dataSources/interfaces/resourceAccessor.ts` ✅  
 3. `api/src/dataSources/base/bbResourceAccessor.ts` ✅
 4. `api/src/dataSources/filesystem/filesystemAccessor.ts` ✅

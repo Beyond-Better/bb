@@ -9,7 +9,7 @@ import type {
 	LLMToolFindResourcesResourceMatch,
 	LLMToolFindResourcesResourceMatches,
 } from './types.ts';
-import type { FindResourceParams, FindResourceResult, ResultLevel } from 'src/shared/types/dataSourceResource.types.ts';
+import type { FindResourceParams, FindResourceResult, ResultLevel } from 'shared/types/dataSourceResource.ts';
 
 import {
 	formatLogEntryToolResult as formatLogEntryToolResultBrowser,
