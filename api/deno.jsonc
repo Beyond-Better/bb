@@ -1,6 +1,6 @@
 {
 	"name": "bb-api",
-	"version": "0.8.15",
+	"version": "0.8.16",
 	"license": "AGPL-3.0-or-later",
 	"copyright": "2025 - Beyond Better <charlie@beyondbetter.app>",
 	"exports": "./src/main.ts",

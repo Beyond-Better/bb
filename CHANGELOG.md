@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+
+### Changed
+
+
+### Fixed
+
+
+
+## [0.8.16] - 2025-08-08
+
+### Added
+
 - read/write support for editing Notion documents (saas only)
 - read/write support for editing GoogleDocs documents (saas only)
 - dynamic loading for third-party datasources
