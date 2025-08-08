@@ -2,7 +2,7 @@ import type { FreshContext, Plugin } from '$fresh/server.ts';
 import type { BuiConfig } from 'shared/config/types.ts';
 import { initializeAuthState, useAuthState } from '../hooks/useAuthState.ts';
 //import { IS_BROWSER } from '$fresh/runtime.ts';
-import type { FreshAppState } from 'bui/types/state.ts';
+import type { FreshAppState } from 'bui/types/state.types.ts';
 
 export const authPlugin = (buiConfig: BuiConfig): Plugin => {
 	try {
