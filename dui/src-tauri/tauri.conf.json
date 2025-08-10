@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Beyond Better",
+  "productName": "Beyond Better OSS",
   "version": "0.9.0-oss",
   "identifier": "dev.beyondbetter.app",
   "build": {
