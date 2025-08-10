@@ -109,11 +109,11 @@ else
 fi
 
 # Fetch latest release version
-latest_version=$(curl -sL https://api.github.com/repos/Beyond-Better/bb/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+latest_version=$(curl -sL https://asyagnmzoxgyhqprdaky.storage.supabase.co/storage/v1/object/releases/latest.json | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
 # echo "Latest version: $latest_version"
 
 # Download URL
-download_url="https://github.com/Beyond-Better/bb/releases/download/${latest_version}/bb-${arch}-${os}-${latest_version}.tar.gz"
+download_url="https://asyagnmzoxgyhqprdaky.storage.supabase.co/storage/v1/object/releases/${latest_version}/bb-${arch}-${os}-${latest_version}.tar.gz"
 # echo "Download URL: $download_url"
 
 # Create a temporary directory

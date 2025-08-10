@@ -17,6 +17,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.9.0] - 2025-08-09
+
+### Notes
+
+#### Major Upgrade
+
+Beyond Better now supports both read and write editing for external data sources. Notion and Google Docs
+are currently supported with more providers coming soon. See the "Data Sources" help page to learn how to 
+add data sources and configure authentication. 
+
+- https://https://beyondbetter.app/docs/datasources
+
+### Added
+
+
+### Changed
+
+- releases moved to BB storage bucket
+
+
+### Fixed
+
+
 ## [0.8.16] - 2025-08-08
 
 ### Added

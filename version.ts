@@ -1,3 +1,3 @@
-export const VERSION = "0.8.16";
+export const VERSION = "0.9.0+oss";
 
-export const REQUIRED_API_VERSION = "0.8.16";
+export const REQUIRED_API_VERSION = "0.9.0";

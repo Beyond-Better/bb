@@ -20,7 +20,7 @@ use zip::ZipArchive;
 use crate::api::stop_api;
 use crate::bui::stop_bui;
 
-const GITHUB_API_URL: &str = "https://api.github.com/repos/Beyond-Better/bb/releases/latest";
+const RELEASE_API_URL: &str = "https://asyagnmzoxgyhqprdaky.storage.supabase.co/storage/v1/object/releases/latest.json";
 //const DUI_UPDATE_CHECK_INTERVAL: std::time::Duration = std::time::Duration::from_secs(300); // 5 minutes
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -608,22 +608,23 @@ pub async fn perform_upgrade(app: AppHandle) -> Result<(), String> {
 }
 
 async fn fetch_latest_release() -> Result<GithubRelease, String> {
-    debug!("Fetching latest release from GitHub API");
+    debug!("Fetching latest release from release server");
     let client = reqwest::Client::new();
+    let user_agent = format!("BB-APP/{}", env!("CARGO_PKG_VERSION"));
     let response = client
-        .get(GITHUB_API_URL)
-        .header("User-Agent", "BB-DUI")
+        .get(RELEASE_API_URL)
+        .header("User-Agent", &user_agent)
         .send()
         .await
         .map_err(|e| {
-            error!("GitHub API request failed: {}", e);
+            error!("Release API request failed: {}", e);
             e
         })
         .map_err(|e| format!("Failed to fetch latest release: {}", e))?;
 
     if !response.status().is_success() {
         error!(
-            "GitHub API error: {} - {}",
+            "Release API error: {} - {}",
             response.status(),
             response
                 .status()
@@ -631,7 +632,7 @@ async fn fetch_latest_release() -> Result<GithubRelease, String> {
                 .unwrap_or("Unknown error")
         );
         return Err(format!(
-            "GitHub API error: {} - {}",
+            "Release API error: {} - {}",
             response.status(),
             response
                 .status()
@@ -643,7 +644,7 @@ async fn fetch_latest_release() -> Result<GithubRelease, String> {
     response
         .json::<GithubRelease>()
         .await
-        .map_err(|e| format!("Failed to parse GitHub response: {}", e))
+        .map_err(|e| format!("Failed to parse release response: {}", e))
 }
 
 async fn install_binaries(

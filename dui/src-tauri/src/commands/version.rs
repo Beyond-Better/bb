@@ -12,7 +12,7 @@ use std::sync::Mutex;
 use std::time::{Duration, Instant};
 use tauri::command;
 
-const GITHUB_API_URL: &str = "https://api.github.com/repos/Beyond-Better/bb/releases/latest";
+const RELEASE_API_URL: &str = "https://asyagnmzoxgyhqprdaky.storage.supabase.co/storage/v1/object/releases/latest.json";
 const GITHUB_CACHE_DURATION: Duration = Duration::from_secs(3600); // 1 hour
 
 #[derive(Debug, Deserialize)]
@@ -90,24 +90,25 @@ async fn fetch_latest_version() -> Option<VersionCache> {
         }
     }
 
-    // Only fetch from GitHub if we don't have a valid cache
-    debug!("Version cache miss, fetching from GitHub API");
+    // Only fetch from release server if we don't have a valid cache
+    debug!("Version cache miss, fetching from release API");
+    let user_agent = format!("BB-APP/{}", env!("CARGO_PKG_VERSION"));
     match reqwest::Client::new()
-        .get(GITHUB_API_URL)
-        .header("User-Agent", "BB-DUI/0.4.1")
-        .header("Accept", "application/vnd.github.v3+json")
+        .get(RELEASE_API_URL)
+        .header("User-Agent", &user_agent)
+        .header("Accept", "application/json")
         .send()
         .await
     {
         Ok(response) => {
             if response.status() == reqwest::StatusCode::FORBIDDEN {
-                warn!("GitHub API rate limit exceeded");
+                warn!("Release API rate limit exceeded");
                 return None;
             }
 
             if !response.status().is_success() {
                 error!(
-                    "GitHub API error: {} - {}",
+                    "Release API error: {} - {}",
                     response.status(),
                     response
                         .status()
@@ -175,13 +176,13 @@ async fn fetch_latest_version() -> Option<VersionCache> {
                     Some(version_cache)
                 }
                 Err(e) => {
-                    error!("Failed to parse GitHub API response: {}", e);
+                    error!("Failed to parse release API response: {}", e);
                     None
                 }
             }
         }
         Err(e) => {
-            error!("Failed to fetch latest release from GitHub: {}", e);
+            error!("Failed to fetch latest release from release server: {}", e);
             None
         }
     }
@@ -305,9 +306,9 @@ pub async fn check_version_compatibility() -> Result<VersionCompatibility, Strin
         "API installed: {}, compatible with minimum version: {}",
         api_installed, compatible
     );
-    // Fetch latest release info from GitHub
+    // Fetch latest release info from release server
     let latest_release = fetch_latest_version().await;
-    debug!("Latest release from GitHub: {:?}", latest_release);
+    debug!("Latest release from release server: {:?}", latest_release);
 
     let (latest_version, release_notes, has_breaking_changes, critical_notice) =
         if let Some(release) = latest_release {
