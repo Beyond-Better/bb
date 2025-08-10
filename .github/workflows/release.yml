@@ -279,7 +279,7 @@ jobs:
           $msiVersion = $originalVersion -replace '[+-].*', ''
           $configPath = "dui/src-tauri\tauri.conf.json"
           $config = Get-Content $configPath | ConvertFrom-Json
-          $config.package.version = $msiVersion
+          $config.version = $msiVersion
           $config | ConvertTo-Json -Depth 10 | Set-Content $configPath
 
       - name: Install frontend dependencies
