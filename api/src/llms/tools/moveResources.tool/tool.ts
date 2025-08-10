@@ -133,7 +133,7 @@ export default class LLMToolMoveResources extends LLMTool {
 		//logger.info(`LLMToolMoveResources: getDsConnections`, { primaryDsConnection, dsConnections, notFound });
 		if (!primaryDsConnection) {
 			throw createError(ErrorType.DataSourceHandling, `No primary data source`, {
-				name: 'data-source',
+				name: 'datasource',
 				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
 			} as DataSourceHandlingErrorOptions);
 		}
@@ -142,7 +142,7 @@ export default class LLMToolMoveResources extends LLMTool {
 		const dsConnectionToUseId = dsConnectionToUse.id;
 		if (!dsConnectionToUseId) {
 			throw createError(ErrorType.DataSourceHandling, `No data source id`, {
-				name: 'data-source',
+				name: 'datasource',
 				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
 			} as DataSourceHandlingErrorOptions);
 		}
@@ -150,7 +150,7 @@ export default class LLMToolMoveResources extends LLMTool {
 		const dataSourceRoot = dsConnectionToUse.getDataSourceRoot();
 		if (!dataSourceRoot) {
 			throw createError(ErrorType.DataSourceHandling, `No data source root`, {
-				name: 'data-source',
+				name: 'datasource',
 				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
 			} as DataSourceHandlingErrorOptions);
 		}

@@ -96,7 +96,7 @@ export default class LLMToolForgetResources extends LLMTool {
 		);
 		if (!primaryDsConnection) {
 			throw createError(ErrorType.DataSourceHandling, `No primary data source`, {
-				name: 'data-source',
+				name: 'datasource',
 				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
 			} as DataSourceHandlingErrorOptions);
 		}
@@ -105,7 +105,7 @@ export default class LLMToolForgetResources extends LLMTool {
 		const dsConnectionToUseId = dsConnectionToUse.id;
 		if (!dsConnectionToUseId) {
 			throw createError(ErrorType.DataSourceHandling, `No data source id`, {
-				name: 'data-source',
+				name: 'datasource',
 				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
 			} as DataSourceHandlingErrorOptions);
 		}

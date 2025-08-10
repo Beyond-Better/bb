@@ -137,7 +137,9 @@ export async function performUpgrade(): Promise<UpgradeResult> {
 }
 
 export async function fetchLatestRelease(): Promise<GithubRelease> {
-	const response = await fetch('https://asyagnmzoxgyhqprdaky.storage.supabase.co/storage/v1/object/releases/latest.json');
+	const response = await fetch(
+		'https://asyagnmzoxgyhqprdaky.storage.supabase.co/storage/v1/object/releases/latest.json',
+	);
 	if (!response.ok) {
 		throw new Error(`Failed to fetch latest release: ${response.statusText}`);
 	}

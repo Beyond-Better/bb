@@ -28,7 +28,7 @@ export function DataSourcesTab({ editingProject, onUpdate, appState }: DataSourc
 	};
 
 	return (
-		<div className='data-sources-tab'>
+		<div className='datasources-tab'>
 			<div className='mb-4'>
 				{
 					/*<h3 className='text-base font-medium text-gray-900 dark:text-gray-100 mb-2'>

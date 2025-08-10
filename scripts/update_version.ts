@@ -20,7 +20,7 @@ import { parse as parseToml } from '@std/toml';
 
 const updateVersion = async (newVersion: string, minVersion: string) => {
 	// Add +oss build metadata for open source version
-	const ossVersion = newVersion + '+oss';
+	const ossVersion = newVersion + '-oss';
 	
 	const files = ['deno.jsonc', 'cli/deno.jsonc', 'bui/deno.jsonc', 'api/deno.jsonc', 'dui/src-tauri/tauri.conf.json'];
 

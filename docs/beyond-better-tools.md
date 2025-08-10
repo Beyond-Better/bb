@@ -79,7 +79,7 @@ These tools perform complex analysis or data gathering and return rich informati
 - **Interaction Flow**:
   ```
   LLM: "I need to find how authentication is implemented across the codebase"
-  Tool Call: semantic_search --query="authentication implementation" --context-depth=medium --data-sources=all
+  Tool Call: semantic_search --query="authentication implementation" --context-depth=medium --datasources=all
   Tool Response: {
     "results": [
       {

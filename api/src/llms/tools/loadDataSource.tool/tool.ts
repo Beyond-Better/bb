@@ -149,7 +149,7 @@ export default class LLMToolLoadDatasource extends LLMTool {
 		);
 		if (!primaryDsConnection) {
 			throw createError(ErrorType.DataSourceHandling, `Data source not found`, {
-				name: 'data-source',
+				name: 'datasource',
 				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
 			} as DataSourceHandlingErrorOptions);
 		}
@@ -158,7 +158,7 @@ export default class LLMToolLoadDatasource extends LLMTool {
 		const dsConnectionToLoadId = dsConnectionToLoad.id;
 		if (!dsConnectionToLoadId) {
 			throw createError(ErrorType.DataSourceHandling, `No data source id`, {
-				name: 'data-source',
+				name: 'datasource',
 				dataSourceIds: dataSourceId ? [dataSourceId] : undefined,
 			} as DataSourceHandlingErrorOptions);
 		}
