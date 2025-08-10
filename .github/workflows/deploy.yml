@@ -1,9 +1,6 @@
 name: Deploy to Chat server
 
 on:
-  push:
-    branches:
-      - main # or your default branch name
   workflow_dispatch: # Allows manual triggering
 
 jobs:
@@ -22,7 +19,7 @@ jobs:
         run: |
           mkdir -p .bb
           cat << EOF > .bb/config.yaml
-          version: 2.2.0
+          version: 2.2.1
           myPersonsName: BB
           myAssistantsName: Assistant
           defaultModels:
