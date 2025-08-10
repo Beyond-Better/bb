@@ -139,39 +139,39 @@
 
 /* Data Source Component Styles */
 /* 
-.bb-data-source-container {
+.bb-datasource-container {
 	@apply w-full p-4 space-y-4;
 }
 
-.bb-data-source-list {
+.bb-datasource-list {
 	@apply space-y-4;
 }
 
-.bb-no-data-sources {
+.bb-no-datasources {
 	@apply text-gray-500 dark:text-gray-400 text-center py-4;
 }
 
-.bb-data-source-item {
+.bb-datasource-item {
 	@apply border rounded-lg p-4 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm;
 }
 
-.bb-data-source-item.primary {
+.bb-datasource-item.primary {
 	@apply border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20;
 }
 
-.bb-data-source-item.disabled {
+.bb-datasource-item.disabled {
 	@apply opacity-60;
 }
 
-.bb-data-source-header {
+.bb-datasource-header {
 	@apply flex justify-between items-center mb-2;
 }
 
-.bb-data-source-actions {
+.bb-datasource-actions {
 	@apply flex gap-2;
 }
 
-.bb-data-source-details {
+.bb-datasource-details {
 	@apply space-y-2;
 }
 

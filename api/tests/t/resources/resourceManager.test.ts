@@ -99,7 +99,7 @@
 //
 //   describe('loadResource', () => {
 //     it('should load a file resource', async () => {
-//       const result = await resourceManager.loadResource('bb+filesystem+test-data-source://test.txt');
+//       const result = await resourceManager.loadResource('bb+filesystem+test-datasource://test.txt');
 //
 //       assertEquals(result.content, 'Test content');
 //       assertEquals(result.metadata.type, 'file');
@@ -109,7 +109,7 @@
 //
 //     it('should reject for non-existent resources', async () => {
 //       await assertRejects(
-//         () => resourceManager.loadResource('bb+filesystem+test-data-source://nonexistent.txt'),
+//         () => resourceManager.loadResource('bb+filesystem+test-datasource://nonexistent.txt'),
 //         Error,
 //         'Failed to load resource'
 //       );
@@ -152,7 +152,7 @@
 //   describe('writeResource', () => {
 //     it('should write a new file resource', async () => {
 //       const testContent = 'New test content';
-//       const uri = 'bb+filesystem+test-data-source://new_test_file.txt';
+//       const uri = 'bb+filesystem+test-datasource://new_test_file.txt';
 //
 //       // Write the resource
 //       const writeResult = await resourceManager.writeResource(uri, testContent);
@@ -176,7 +176,7 @@
 //       await Deno.writeTextFile(filePath, 'Original content');
 //
 //       const updatedContent = 'Updated content';
-//       const uri = 'bb+filesystem+test-data-source://update_test.txt';
+//       const uri = 'bb+filesystem+test-datasource://update_test.txt';
 //
 //       // Update the resource
 //       await resourceManager.writeResource(uri, updatedContent);
@@ -196,8 +196,8 @@
 //       const sourceFilePath = join(tempDir, 'source.txt');
 //       await Deno.writeTextFile(sourceFilePath, 'Source content');
 //
-//       const sourceUri = 'bb+filesystem+test-data-source://source.txt';
-//       const destUri = 'bb+filesystem+test-data-source://destination.txt';
+//       const sourceUri = 'bb+filesystem+test-datasource://source.txt';
+//       const destUri = 'bb+filesystem+test-datasource://destination.txt';
 //
 //       // Move the resource
 //       const moveResult = await resourceManager.moveResource(sourceUri, destUri);
@@ -226,7 +226,7 @@
 //       const filePath = join(tempDir, 'to_delete.txt');
 //       await Deno.writeTextFile(filePath, 'Delete me');
 //
-//       const uri = 'bb+filesystem+test-data-source://to_delete.txt';
+//       const uri = 'bb+filesystem+test-datasource://to_delete.txt';
 //
 //       // Delete the resource
 //       const deleteResult = await resourceManager.deleteResource(uri);

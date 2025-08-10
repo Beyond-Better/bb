@@ -178,7 +178,7 @@ Leave empty to search only by resource name, date, or size.`,
 
 		if (dsConnections.length === 0) {
 			throw createError(ErrorType.DataSourceHandling, `No valid data sources found`, {
-				name: 'data-source',
+				name: 'datasource',
 				dataSourceIds: targetDataSourceIds,
 			} as DataSourceHandlingErrorOptions);
 		}

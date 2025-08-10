@@ -232,9 +232,9 @@ In each conversational turn, you will begin by thinking about your response. Onc
 
 BB provides access to multiple data sources through a unified system. Each data source has a unique ID, name, type, capabilities, and configuration. You have access to the following data sources:
 
-<data-sources>
+<datasources>
 ${formattedDsConnections}
-</data-sources>
+</datasources>
 
 You will almost always want to use \`load_datasource\` tool before proceeding with your objective. It is important to know the resources available and their URI format.
 
@@ -532,9 +532,9 @@ Your role is to:
 
 BB provides access to multiple data sources through a unified system. Each data source has a unique ID, type, capabilities, and access method. You have access to the following data sources:
 
-<data-sources>
+<datasources>
 ${formattedDsConnections}
-</data-sources>
+</datasources>
 
 You will almost always want to use \`load_datasource\` tool before proceeding with your objective. It is important to know the resources available and their URI format.
 
