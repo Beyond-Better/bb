@@ -232,10 +232,6 @@ jobs:
           #deno-version: v2.3.7
           cache: true
 
-      - name: Get version
-        id: get_version
-        run: echo "VERSION=$(deno eval 'import { VERSION } from "./version.ts"; console.log(VERSION);')" >> $GITHUB_OUTPUT
-
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -245,6 +241,13 @@ jobs:
         uses: swatinem/rust-cache@v2
         with:
           workspaces: './dui/src-tauri -> target'
+
+      - name: Get version
+        id: get_version
+        run: |
+          echo "VERSION=$(deno eval 'import { VERSION } from "version.ts"; console.log(VERSION);')" >> $GITHUB_OUTPUT
+          echo "=== VERSION ==="
+          echo "$VERSION"
 
       - name: Install Linux dependencies
         if: matrix.platform == 'linux'
@@ -275,12 +278,20 @@ jobs:
           echo "$env:TEMP\wix" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           
           # Set MSI-compatible version
-          $originalVersion = "${{ steps.get_version.outputs.VERSION }}"
-          $msiVersion = $originalVersion -replace '[+-].*', ''
-          $configPath = "dui/src-tauri\tauri.conf.json"
+          echo "=== VERSION ==="
+          echo "${{ steps.get_version.outputs.VERSION }}"
+          # $originalVersion = "${{ steps.get_version.outputs.VERSION }}"
+          $configPath = "dui\src-tauri\tauri.conf.json"
           $config = Get-Content $configPath | ConvertFrom-Json
-          $config.package.version = $msiVersion
-          $config | ConvertTo-Json -Depth 10 | Set-Content $configPath
+          $originalVersion = $config.version
+          $msiVersion = $originalVersion -replace '[+-].*', ''
+          echo "=== Version Debug ==="
+          echo "Original version: $originalVersion"
+          echo "MSI version: $msiVersion"
+          echo "=== Updating config ==="
+          (Get-Content $configPath) -replace '"version":\s*"[^"]*"', "`"version`": `"$msiVersion`"" | Set-Content $configPath
+          echo "=== Modified tauri.conf.json ==="
+          Get-Content $configPath
 
       - name: Install frontend dependencies
         run: |
