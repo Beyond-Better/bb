@@ -93,16 +93,53 @@ class OpenAILLM extends OpenAICompatLLM<OpenAITokenUsage> {
 	): void {}
 
 	/**
-	 * Checks if the model is an OpenAI o3 model that requires max_completion_tokens
-	 * instead of max_tokens parameter
+	 * Model parameter configurations for different OpenAI model families.
+	 * Uses regex patterns to determine which token parameter format to use.
 	 */
-	private isO3Model(model: string): boolean {
-		return model.toLowerCase().includes('o3');
+	private static readonly MODEL_PARAMETER_CONFIGS = {
+		// Newer models that use max_completion_tokens
+		max_completion_tokens: [
+			/^gpt-o3/i, // o3 models
+			/^gpt-5/i, // GPT-5 models
+			/^o1/i, // o1 models (reasoning models)
+		],
+		// Traditional models that use max_tokens (fallback)
+		max_tokens: [
+			/^gpt-4(?!.*o3)/i, // GPT-4 models (excluding o3 variants)
+			/^gpt-3\.5/i, // GPT-3.5 models
+		],
+	} as const;
+
+	/**
+	 * Determines which token parameter name to use based on the model.
+	 * Uses pattern matching to categorize models into families/generations.
+	 *
+	 * @param model - The model name to check
+	 * @returns The appropriate token parameter name
+	 */
+	private getTokenParameterName(model: string): 'max_tokens' | 'max_completion_tokens' {
+		// Check for max_completion_tokens patterns first (newer models)
+		const usesMaxCompletionTokens = OpenAILLM.MODEL_PARAMETER_CONFIGS.max_completion_tokens
+			.some((pattern) => pattern.test(model));
+
+		if (usesMaxCompletionTokens) {
+			return 'max_completion_tokens';
+		}
+
+		// Default to max_tokens for older/unrecognized models
+		return 'max_tokens';
+	}
+
+	/**
+	 * Checks if the model requires max_completion_tokens instead of max_tokens
+	 */
+	private usesMaxCompletionTokens(model: string): boolean {
+		return this.getTokenParameterName(model) === 'max_completion_tokens';
 	}
 
 	/**
 	 * Override the base class method to handle OpenAI-specific parameter mapping
-	 * for o3 models that require max_completion_tokens instead of max_tokens
+	 * for models that require max_completion_tokens instead of max_tokens
 	 */
 	override async asProviderMessageRequest(
 		messageRequest: LLMProviderMessageRequest,
@@ -111,8 +148,8 @@ class OpenAILLM extends OpenAICompatLLM<OpenAITokenUsage> {
 		// Get the base request from the parent class
 		const baseRequest = await super.asProviderMessageRequest(messageRequest, interaction);
 
-		// For o3 models, we need to use max_completion_tokens instead of max_tokens
-		if (this.isO3Model(baseRequest.model)) {
+		// For models that use max_completion_tokens, transform the parameter
+		if (this.usesMaxCompletionTokens(baseRequest.model)) {
 			const { max_tokens, ...requestWithoutMaxTokens } = baseRequest;
 			return {
 				...requestWithoutMaxTokens,
@@ -121,7 +158,7 @@ class OpenAILLM extends OpenAICompatLLM<OpenAITokenUsage> {
 			};
 		}
 
-		// For other OpenAI models, use the original request
+		// For models that use max_tokens, use the original request
 		return baseRequest;
 	}
 }

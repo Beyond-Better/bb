@@ -45,8 +45,29 @@ export const formatLogEntryToolResult = (
 		const { data } = bbResponse as LLMToolLoadDatasourceResponseData;
 		const resources = data.resources || [];
 		const metadata = data.metadata;
+		const instructions = data.instructions;
 
-		// Handle metadata display (for 'metadata' or 'both' modes)
+		// Handle instructions-only display (for 'instructions' mode)
+		if (instructions && !metadata && (!resources || resources.length === 0)) {
+			const content = stripIndents`
+				${LLMTool.TOOL_STYLES_CONSOLE.base.label('Data Source:')} ${data.dataSource.dsConnectionName} | ${
+				LLMTool.TOOL_STYLES_CONSOLE.base.label('Type:')
+			} ${data.dataSource.dsProviderType}
+
+				${LLMTool.TOOL_STYLES_CONSOLE.content.status.completed('📚 Detailed Editing Instructions')}
+
+				${instructions}
+			`;
+
+			return {
+				title: LLMTool.TOOL_STYLES_CONSOLE.content.title('Tool Result', 'Load Data Source'),
+				subtitle: LLMTool.TOOL_STYLES_CONSOLE.content.subtitle('Detailed Editing Instructions'),
+				content,
+				preview: `Detailed editing instructions for ${data.dataSource.dsConnectionName}`,
+			};
+		}
+
+		// Handle metadata display (for 'metadata', 'both', or 'combined' modes)
 		if (metadata) {
 			const contentParts = [];
 
@@ -122,28 +143,7 @@ export const formatLogEntryToolResult = (
 				}
 			}
 
-			// Notion details
-			if (metadata.notion) {
-				const notionDetails = [];
-				if (metadata.notion.workspaceInfo) {
-					notionDetails.push(`  🏢 Workspace: ${metadata.notion.workspaceInfo.name || 'Unknown'}`);
-				}
-				if (metadata.notion.totalPages !== undefined) {
-					notionDetails.push(`  📄 Pages: ${metadata.notion.totalPages}`);
-				}
-				if (metadata.notion.totalDatabases !== undefined) {
-					notionDetails.push(`  🗃️ Databases: ${metadata.notion.totalDatabases}`);
-				}
-
-				if (notionDetails.length > 0) {
-					contentParts.push(stripIndents`
-						${LLMTool.TOOL_STYLES_CONSOLE.base.label('Notion Details:')}
-						${notionDetails.join('\n')}
-					`);
-				}
-			}
-
-			// Sample resources (for 'both' mode)
+			// Sample resources (for 'both' or 'combined' mode)
 			if (resources && resources.length > 0) {
 				contentParts.push(stripIndents`
 					${LLMTool.TOOL_STYLES_CONSOLE.content.status.completed(`📝 Sample Resources (${resources.length})`)}
@@ -166,6 +166,19 @@ export const formatLogEntryToolResult = (
 						  Use returnType='resources' with pageToken: ${data.pagination.nextPageToken}
 					`);
 				}
+			}
+
+			// Detailed instructions (for 'combined' mode)
+			if (instructions) {
+				contentParts.push(stripIndents`
+					${
+					LLMTool.TOOL_STYLES_CONSOLE.content.status.completed('🚨 IMPORTANT: Detailed Editing Instructions')
+				}
+					
+					READ THESE INSTRUCTIONS BEFORE PERFORMING ANY EDIT OPERATIONS
+					
+					${instructions}
+				`);
 			}
 
 			// Content Type Guidance

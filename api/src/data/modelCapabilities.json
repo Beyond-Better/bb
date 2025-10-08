@@ -1,10 +1,10 @@
 {
 	"_metadata": {
-		"generatedAt": "2025-07-13T07:12:27.729Z",
+		"generatedAt": "2025-09-30T02:43:30.131Z",
 		"generatedBy": "update_model_capabilities.ts",
 		"sourceFiles": "api/src/data/model_sources/*.json",
 		"totalProviders": 6,
-		"totalModels": 36,
+		"totalModels": 41,
 		"notes": "Pricing converted to per-token format. All data based on comprehensive research of official provider documentation as of June 2025."
 	},
 	"anthropic": {
@@ -14,15 +14,54 @@
 			"maxOutputTokens": 8192,
 			"token_pricing": {
 				"input": 80,
-				"output": 400,
-				"anthropic_cache_read": 8,
-				"anthropic_cache_write_5min": 100
+				"output": 400
 			},
 			"pricing_metadata": {
 				"currency": "USD",
 				"effectiveDate": "2024-10-22"
 			},
 			"featureKey": "models.claude.haiku",
+			"inputTokensCacheTypes": {
+				"read": {
+					"description": "Cache read operations",
+					"inheritsTiers": false,
+					"multiplier": 0.1,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 8
+							}
+						]
+					}
+				},
+				"write_time1": {
+					"description": "Short-term cache write (5min TTL)",
+					"inheritsTiers": false,
+					"multiplier": 1.25,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 100
+							}
+						]
+					}
+				},
+				"write_time2": {
+					"description": "Long-term cache write (60min TTL)",
+					"inheritsTiers": false,
+					"multiplier": 2,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 160
+							}
+						]
+					}
+				}
+			},
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -52,18 +91,57 @@
 		"claude-3-5-sonnet-20241022": {
 			"displayName": "Claude Sonnet 3.5",
 			"contextWindow": 200000,
-			"maxOutputTokens": 128000,
+			"maxOutputTokens": 8192,
 			"token_pricing": {
 				"input": 300,
-				"output": 1500,
-				"anthropic_cache_read": 30,
-				"anthropic_cache_write_5min": 375
+				"output": 1500
 			},
 			"pricing_metadata": {
 				"currency": "USD",
 				"effectiveDate": "2024-10-22"
 			},
 			"featureKey": "models.claude.sonnet",
+			"inputTokensCacheTypes": {
+				"read": {
+					"description": "Cache read operations",
+					"inheritsTiers": false,
+					"multiplier": 0.1,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 30
+							}
+						]
+					}
+				},
+				"write_time1": {
+					"description": "Short-term cache write (5min TTL)",
+					"inheritsTiers": false,
+					"multiplier": 1.25,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 375
+							}
+						]
+					}
+				},
+				"write_time2": {
+					"description": "Long-term cache write (60min TTL)",
+					"inheritsTiers": false,
+					"multiplier": 2,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 600
+							}
+						]
+					}
+				}
+			},
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -96,15 +174,54 @@
 			"maxOutputTokens": 128000,
 			"token_pricing": {
 				"input": 300,
-				"output": 1500,
-				"anthropic_cache_read": 30,
-				"anthropic_cache_write_5min": 375
+				"output": 1500
 			},
 			"pricing_metadata": {
 				"currency": "USD",
 				"effectiveDate": "2025-02-19"
 			},
 			"featureKey": "models.claude.sonnet",
+			"inputTokensCacheTypes": {
+				"read": {
+					"description": "Cache read operations",
+					"inheritsTiers": false,
+					"multiplier": 0.1,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 30
+							}
+						]
+					}
+				},
+				"write_time1": {
+					"description": "Short-term cache write (5min TTL)",
+					"inheritsTiers": false,
+					"multiplier": 1.25,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 375
+							}
+						]
+					}
+				},
+				"write_time2": {
+					"description": "Long-term cache write (60min TTL)",
+					"inheritsTiers": false,
+					"multiplier": 2,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 600
+							}
+						]
+					}
+				}
+			},
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -137,15 +254,54 @@
 			"maxOutputTokens": 4096,
 			"token_pricing": {
 				"input": 25,
-				"output": 125,
-				"anthropic_cache_read": 3,
-				"anthropic_cache_write_5min": 31.25
+				"output": 125
 			},
 			"pricing_metadata": {
 				"currency": "USD",
 				"effectiveDate": "2024-03-07"
 			},
 			"featureKey": "models.claude.haiku",
+			"inputTokensCacheTypes": {
+				"read": {
+					"description": "Cache read operations",
+					"inheritsTiers": false,
+					"multiplier": 0.12,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 3
+							}
+						]
+					}
+				},
+				"write_time1": {
+					"description": "Short-term cache write (5min TTL)",
+					"inheritsTiers": false,
+					"multiplier": 1.2,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 30
+							}
+						]
+					}
+				},
+				"write_time2": {
+					"description": "Long-term cache write (60min TTL)",
+					"inheritsTiers": false,
+					"multiplier": 2,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 50
+							}
+						]
+					}
+				}
+			},
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -178,15 +334,54 @@
 			"maxOutputTokens": 4096,
 			"token_pricing": {
 				"input": 1500,
-				"output": 7500,
-				"anthropic_cache_read": 150,
-				"anthropic_cache_write_5min": 1875
+				"output": 7500
 			},
 			"pricing_metadata": {
 				"currency": "USD",
 				"effectiveDate": "2024-02-29"
 			},
 			"featureKey": "models.claude.opus",
+			"inputTokensCacheTypes": {
+				"read": {
+					"description": "Cache read operations",
+					"inheritsTiers": false,
+					"multiplier": 0.1,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 150
+							}
+						]
+					}
+				},
+				"write_time1": {
+					"description": "Short-term cache write (5min TTL)",
+					"inheritsTiers": false,
+					"multiplier": 1.25,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 1875
+							}
+						]
+					}
+				},
+				"write_time2": {
+					"description": "Long-term cache write (60min TTL)",
+					"inheritsTiers": false,
+					"multiplier": 2,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 3000
+							}
+						]
+					}
+				}
+			},
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -213,21 +408,60 @@
 			"trainingCutoff": "2023-08-01",
 			"releaseDate": "2024-02-29"
 		},
-		"claude-opus-4-20250514": {
-			"displayName": "Claude Opus 4.0",
+		"claude-opus-4-1-20250805": {
+			"displayName": "Claude Opus 4.1",
 			"contextWindow": 200000,
-			"maxOutputTokens": 128000,
+			"maxOutputTokens": 32000,
 			"token_pricing": {
 				"input": 1500,
-				"output": 7500,
-				"anthropic_cache_read": 150,
-				"anthropic_cache_write_5min": 1875
+				"output": 7500
 			},
 			"pricing_metadata": {
 				"currency": "USD",
-				"effectiveDate": "2025-05-23"
+				"effectiveDate": "2025-08-05"
 			},
 			"featureKey": "models.claude.opus",
+			"inputTokensCacheTypes": {
+				"read": {
+					"description": "Cache read operations",
+					"inheritsTiers": false,
+					"multiplier": 0.1,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 150
+							}
+						]
+					}
+				},
+				"write_time1": {
+					"description": "Short-term cache write (5min TTL)",
+					"inheritsTiers": false,
+					"multiplier": 1.25,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 1875
+							}
+						]
+					}
+				},
+				"write_time2": {
+					"description": "Long-term cache write (60min TTL)",
+					"inheritsTiers": false,
+					"multiplier": 2,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 3000
+							}
+						]
+					}
+				}
+			},
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -252,23 +486,62 @@
 			"cost": "very-high",
 			"intelligence": "very-high",
 			"trainingCutoff": "2025-03-01",
-			"releaseDate": "2025-05-23"
+			"releaseDate": "2025-08-05"
 		},
-		"claude-sonnet-4-20250514": {
-			"displayName": "Claude Sonnet 4.0",
+		"claude-opus-4-20250514": {
+			"displayName": "Claude Opus 4.0",
 			"contextWindow": 200000,
-			"maxOutputTokens": 64000,
+			"maxOutputTokens": 32000,
 			"token_pricing": {
-				"input": 300,
-				"output": 1500,
-				"anthropic_cache_read": 30,
-				"anthropic_cache_write_5min": 375
+				"input": 1500,
+				"output": 7500
 			},
 			"pricing_metadata": {
 				"currency": "USD",
-				"effectiveDate": "2025-05-23"
+				"effectiveDate": "2025-05-14"
 			},
-			"featureKey": "models.claude.sonnet",
+			"featureKey": "models.claude.opus",
+			"inputTokensCacheTypes": {
+				"read": {
+					"description": "Cache read operations",
+					"inheritsTiers": false,
+					"multiplier": 0.1,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 150
+							}
+						]
+					}
+				},
+				"write_time1": {
+					"description": "Short-term cache write (5min TTL)",
+					"inheritsTiers": false,
+					"multiplier": 1.25,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 1875
+							}
+						]
+					}
+				},
+				"write_time2": {
+					"description": "Long-term cache write (60min TTL)",
+					"inheritsTiers": false,
+					"multiplier": 2,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 3000
+							}
+						]
+					}
+				}
+			},
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -294,6 +567,282 @@
 			"intelligence": "high",
 			"trainingCutoff": "2025-03-01",
 			"releaseDate": "2025-05-23"
+		},
+		"claude-sonnet-4-20250514": {
+			"displayName": "Claude Sonnet 4",
+			"contextWindow": 1000000,
+			"maxOutputTokens": 128000,
+			"token_pricing": {
+				"input": 300,
+				"output": 1500
+			},
+			"pricing_metadata": {
+				"currency": "USD",
+				"effectiveDate": "2025-05-14"
+			},
+			"featureKey": "models.claude.sonnet",
+			"inputTokensTieredConfig": {
+				"tiers": [
+					{
+						"tier": 0,
+						"name": "base",
+						"threshold": {
+							"min": 0,
+							"max": 200000
+						},
+						"price": 300
+					},
+					{
+						"tier": 1,
+						"name": "extended",
+						"threshold": {
+							"min": 200000,
+							"max": null
+						},
+						"price": 600
+					}
+				],
+				"tierDeterminedBy": "totalInputTokens"
+			},
+			"inputTokensCacheTypes": {
+				"read": {
+					"description": "Cache read operations",
+					"inheritsTiers": true,
+					"multiplier": 0.1,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 30
+							},
+							{
+								"tier": 1,
+								"price": 60
+							}
+						]
+					}
+				},
+				"write_time1": {
+					"description": "Short-term cache write (5min TTL)",
+					"inheritsTiers": true,
+					"multiplier": 1.25,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 375
+							},
+							{
+								"tier": 1,
+								"price": 750
+							}
+						]
+					}
+				},
+				"write_time2": {
+					"description": "Long-term cache write (60min TTL)",
+					"inheritsTiers": true,
+					"multiplier": 2,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 600
+							},
+							{
+								"tier": 1,
+								"price": 1200
+							}
+						]
+					}
+				}
+			},
+			"outputTokensTieredConfig": {
+				"tiers": [
+					{
+						"tier": 0,
+						"name": "base",
+						"threshold": {
+							"min": 0,
+							"max": 200000
+						},
+						"price": 1500
+					},
+					{
+						"tier": 1,
+						"name": "extended",
+						"threshold": {
+							"min": 200000,
+							"max": null
+						},
+						"price": 2250
+					}
+				],
+				"tierDeterminedBy": "totalInputTokens"
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": true,
+				"promptCaching": true,
+				"extendedThinking": true
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 16384,
+				"extendedThinking": false
+			},
+			"constraints": {
+				"temperature": {
+					"min": 0,
+					"max": 1
+				}
+			},
+			"systemPromptBehavior": "optional",
+			"responseSpeed": "fast",
+			"cost": "medium",
+			"intelligence": "high",
+			"trainingCutoff": "2025-03-01",
+			"releaseDate": "2025-05-14"
+		},
+		"claude-sonnet-4-5-20250929": {
+			"displayName": "Claude Sonnet 4.5",
+			"contextWindow": 1000000,
+			"maxOutputTokens": 128000,
+			"token_pricing": {
+				"input": 300,
+				"output": 1500
+			},
+			"pricing_metadata": {
+				"currency": "USD",
+				"effectiveDate": "2025-05-14"
+			},
+			"featureKey": "models.claude.sonnet",
+			"inputTokensTieredConfig": {
+				"tiers": [
+					{
+						"tier": 0,
+						"name": "base",
+						"threshold": {
+							"min": 0,
+							"max": 200000
+						},
+						"price": 300
+					},
+					{
+						"tier": 1,
+						"name": "extended",
+						"threshold": {
+							"min": 200000,
+							"max": null
+						},
+						"price": 600
+					}
+				],
+				"tierDeterminedBy": "totalInputTokens"
+			},
+			"inputTokensCacheTypes": {
+				"read": {
+					"description": "Cache read operations",
+					"inheritsTiers": true,
+					"multiplier": 0.1,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 30
+							},
+							{
+								"tier": 1,
+								"price": 60
+							}
+						]
+					}
+				},
+				"write_time1": {
+					"description": "Short-term cache write (5min TTL)",
+					"inheritsTiers": true,
+					"multiplier": 1.25,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 375
+							},
+							{
+								"tier": 1,
+								"price": 750
+							}
+						]
+					}
+				},
+				"write_time2": {
+					"description": "Long-term cache write (60min TTL)",
+					"inheritsTiers": true,
+					"multiplier": 2,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 600
+							},
+							{
+								"tier": 1,
+								"price": 1200
+							}
+						]
+					}
+				}
+			},
+			"outputTokensTieredConfig": {
+				"tiers": [
+					{
+						"tier": 0,
+						"name": "base",
+						"threshold": {
+							"min": 0,
+							"max": 200000
+						},
+						"price": 1500
+					},
+					{
+						"tier": 1,
+						"name": "extended",
+						"threshold": {
+							"min": 200000,
+							"max": null
+						},
+						"price": 2250
+					}
+				],
+				"tierDeterminedBy": "totalInputTokens"
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": true,
+				"promptCaching": true,
+				"extendedThinking": true
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 16384,
+				"extendedThinking": false
+			},
+			"constraints": {
+				"temperature": {
+					"min": 0,
+					"max": 1
+				}
+			},
+			"systemPromptBehavior": "optional",
+			"responseSpeed": "fast",
+			"cost": "medium",
+			"intelligence": "high",
+			"trainingCutoff": "2025-03-01",
+			"releaseDate": "2025-05-14"
 		}
 	},
 	"deepseek": {
@@ -302,8 +851,8 @@
 			"contextWindow": 64000,
 			"maxOutputTokens": 32000,
 			"token_pricing": {
-				"input": 14,
-				"output": 28
+				"input": 14.000000000000002,
+				"output": 28.000000000000004
 			},
 			"pricing_metadata": {
 				"currency": "USD",
@@ -341,7 +890,7 @@
 			"contextWindow": 64000,
 			"maxOutputTokens": 32000,
 			"token_pricing": {
-				"input": 55,
+				"input": 55.00000000000001,
 				"output": 219
 			},
 			"pricing_metadata": {
@@ -382,15 +931,79 @@
 			"contextWindow": 1048576,
 			"maxOutputTokens": 8192,
 			"token_pricing": {
-				"input": 15,
-				"output": 60,
-				"cache_read": 3.75
+				"input": 7.5,
+				"output": 30
 			},
 			"pricing_metadata": {
 				"currency": "USD",
-				"effectiveDate": "2024-09-01"
+				"effectiveDate": "2025-08-11"
 			},
 			"featureKey": "models.gemini",
+			"inputTokensTieredConfig": {
+				"tiers": [
+					{
+						"tier": 0,
+						"name": "base",
+						"threshold": {
+							"min": 0,
+							"max": 128000
+						},
+						"price": 7.5
+					},
+					{
+						"tier": 1,
+						"name": "extended",
+						"threshold": {
+							"min": 128000,
+							"max": null
+						},
+						"price": 15
+					}
+				],
+				"tierDeterminedBy": "totalInputTokens"
+			},
+			"inputTokensCacheTypes": {
+				"read": {
+					"description": "Context cache read operations",
+					"inheritsTiers": true,
+					"multiplier": 0.25,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 1.875
+							},
+							{
+								"tier": 1,
+								"price": 3.75
+							}
+						]
+					}
+				}
+			},
+			"outputTokensTieredConfig": {
+				"tiers": [
+					{
+						"tier": 0,
+						"name": "base",
+						"threshold": {
+							"min": 0,
+							"max": 128000
+						},
+						"price": 30
+					},
+					{
+						"tier": 1,
+						"name": "extended",
+						"threshold": {
+							"min": 128000,
+							"max": null
+						},
+						"price": 60
+					}
+				],
+				"tierDeterminedBy": "totalInputTokens"
+			},
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -423,14 +1036,78 @@
 			"maxOutputTokens": 8192,
 			"token_pricing": {
 				"input": 3.75,
-				"output": 15,
-				"cache_read": 2
+				"output": 15
 			},
 			"pricing_metadata": {
 				"currency": "USD",
-				"effectiveDate": "2024-10-01"
+				"effectiveDate": "2025-08-11"
 			},
 			"featureKey": "models.gemini",
+			"inputTokensTieredConfig": {
+				"tiers": [
+					{
+						"tier": 0,
+						"name": "base",
+						"threshold": {
+							"min": 0,
+							"max": 128000
+						},
+						"price": 3.75
+					},
+					{
+						"tier": 1,
+						"name": "extended",
+						"threshold": {
+							"min": 128000,
+							"max": null
+						},
+						"price": 7.5
+					}
+				],
+				"tierDeterminedBy": "totalInputTokens"
+			},
+			"inputTokensCacheTypes": {
+				"read": {
+					"description": "Context cache read operations",
+					"inheritsTiers": true,
+					"multiplier": 0.27,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 1
+							},
+							{
+								"tier": 1,
+								"price": 2
+							}
+						]
+					}
+				}
+			},
+			"outputTokensTieredConfig": {
+				"tiers": [
+					{
+						"tier": 0,
+						"name": "base",
+						"threshold": {
+							"min": 0,
+							"max": 128000
+						},
+						"price": 15
+					},
+					{
+						"tier": 1,
+						"name": "extended",
+						"threshold": {
+							"min": 128000,
+							"max": null
+						},
+						"price": 30
+					}
+				],
+				"tierDeterminedBy": "totalInputTokens"
+			},
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -462,15 +1139,79 @@
 			"contextWindow": 2097152,
 			"maxOutputTokens": 8192,
 			"token_pricing": {
-				"input": 250,
-				"output": 1000,
-				"cache_read": 62.5
+				"input": 125,
+				"output": 500
 			},
 			"pricing_metadata": {
 				"currency": "USD",
-				"effectiveDate": "2024-09-01"
+				"effectiveDate": "2025-08-11"
 			},
 			"featureKey": "models.gemini",
+			"inputTokensTieredConfig": {
+				"tiers": [
+					{
+						"tier": 0,
+						"name": "base",
+						"threshold": {
+							"min": 0,
+							"max": 128000
+						},
+						"price": 125
+					},
+					{
+						"tier": 1,
+						"name": "extended",
+						"threshold": {
+							"min": 128000,
+							"max": null
+						},
+						"price": 250
+					}
+				],
+				"tierDeterminedBy": "totalInputTokens"
+			},
+			"inputTokensCacheTypes": {
+				"read": {
+					"description": "Context cache read operations",
+					"inheritsTiers": true,
+					"multiplier": 0.25,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 31.25
+							},
+							{
+								"tier": 1,
+								"price": 62.5
+							}
+						]
+					}
+				}
+			},
+			"outputTokensTieredConfig": {
+				"tiers": [
+					{
+						"tier": 0,
+						"name": "base",
+						"threshold": {
+							"min": 0,
+							"max": 128000
+						},
+						"price": 500
+					},
+					{
+						"tier": 1,
+						"name": "extended",
+						"threshold": {
+							"min": 128000,
+							"max": null
+						},
+						"price": 1000
+					}
+				],
+				"tierDeterminedBy": "totalInputTokens"
+			},
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -503,14 +1244,50 @@
 			"maxOutputTokens": 8192,
 			"token_pricing": {
 				"input": 10,
-				"output": 40,
-				"cache_read": 2.5
+				"output": 40
 			},
 			"pricing_metadata": {
 				"currency": "USD",
-				"effectiveDate": "2025-02-01"
+				"effectiveDate": "2025-08-11"
 			},
 			"featureKey": "models.gemini",
+			"inputTokensCacheTypes": {
+				"read": {
+					"description": "Context cache read operations",
+					"inheritsTiers": false,
+					"multiplier": 0.25,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 2.5
+							}
+						]
+					}
+				}
+			},
+			"inputTokensContentTypes": {
+				"text": {
+					"multiplier": 1
+				},
+				"image": {
+					"multiplier": 1
+				},
+				"video": {
+					"multiplier": 1
+				},
+				"audio": {
+					"multiplier": 7,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 70
+							}
+						]
+					}
+				}
+			},
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -542,14 +1319,51 @@
 			"contextWindow": 1048576,
 			"maxOutputTokens": 8192,
 			"token_pricing": {
-				"input": 7.5,
-				"output": 30
+				"input": 10,
+				"output": 40
 			},
 			"pricing_metadata": {
 				"currency": "USD",
-				"effectiveDate": "2025-02-01"
+				"effectiveDate": "2025-08-11"
 			},
 			"featureKey": "models.gemini",
+			"inputTokensCacheTypes": {
+				"read": {
+					"description": "Context cache read operations",
+					"inheritsTiers": false,
+					"multiplier": 0.25,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 2.5
+							}
+						]
+					}
+				}
+			},
+			"inputTokensContentTypes": {
+				"text": {
+					"multiplier": 1
+				},
+				"image": {
+					"multiplier": 1
+				},
+				"video": {
+					"multiplier": 1
+				},
+				"audio": {
+					"multiplier": 3,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 30
+							}
+						]
+					}
+				}
+			},
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -581,15 +1395,51 @@
 			"contextWindow": 1048576,
 			"maxOutputTokens": 65536,
 			"token_pricing": {
-				"input": 15,
-				"output": 350,
-				"cache_read": 3.75
+				"input": 30,
+				"output": 250
 			},
 			"pricing_metadata": {
 				"currency": "USD",
-				"effectiveDate": "2025-05-01"
+				"effectiveDate": "2025-08-11"
 			},
 			"featureKey": "models.gemini",
+			"inputTokensCacheTypes": {
+				"read": {
+					"description": "Context cache read operations",
+					"inheritsTiers": false,
+					"multiplier": 0.25,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 7.5
+							}
+						]
+					}
+				}
+			},
+			"inputTokensContentTypes": {
+				"text": {
+					"multiplier": 1
+				},
+				"image": {
+					"multiplier": 1
+				},
+				"video": {
+					"multiplier": 1
+				},
+				"audio": {
+					"multiplier": 3.33,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 100
+							}
+						]
+					}
+				}
+			},
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -621,15 +1471,79 @@
 			"contextWindow": 1048576,
 			"maxOutputTokens": 65536,
 			"token_pricing": {
-				"input": 250,
-				"output": 1500,
-				"cache_read": 62.5
+				"input": 125,
+				"output": 1000
 			},
 			"pricing_metadata": {
 				"currency": "USD",
 				"effectiveDate": "2025-05-01"
 			},
 			"featureKey": "models.gemini",
+			"inputTokensTieredConfig": {
+				"tiers": [
+					{
+						"tier": 0,
+						"name": "base",
+						"threshold": {
+							"min": 0,
+							"max": 200000
+						},
+						"price": 125
+					},
+					{
+						"tier": 1,
+						"name": "extended",
+						"threshold": {
+							"min": 200000,
+							"max": null
+						},
+						"price": 250
+					}
+				],
+				"tierDeterminedBy": "totalInputTokens"
+			},
+			"inputTokensCacheTypes": {
+				"read": {
+					"description": "Context cache read operations",
+					"inheritsTiers": true,
+					"multiplier": 0.25,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 31
+							},
+							{
+								"tier": 1,
+								"price": 62.5
+							}
+						]
+					}
+				}
+			},
+			"outputTokensTieredConfig": {
+				"tiers": [
+					{
+						"tier": 0,
+						"name": "base",
+						"threshold": {
+							"min": 0,
+							"max": 200000
+						},
+						"price": 1000
+					},
+					{
+						"tier": 1,
+						"name": "extended",
+						"threshold": {
+							"min": 200000,
+							"max": null
+						},
+						"price": 1500
+					}
+				],
+				"tierDeterminedBy": "totalInputTokens"
+			},
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -865,7 +1779,7 @@
 			},
 			"pricing_metadata": {
 				"currency": "USD",
-				"effectiveDate": "2025-07-13"
+				"effectiveDate": "2025-09-30"
 			},
 			"featureKey": "models.ollama",
 			"supportedFeatures": {
@@ -904,7 +1818,7 @@
 			},
 			"pricing_metadata": {
 				"currency": "USD",
-				"effectiveDate": "2025-07-13"
+				"effectiveDate": "2025-09-30"
 			},
 			"featureKey": "models.ollama",
 			"supportedFeatures": {
@@ -943,7 +1857,7 @@
 			},
 			"pricing_metadata": {
 				"currency": "USD",
-				"effectiveDate": "2025-07-13"
+				"effectiveDate": "2025-09-30"
 			},
 			"featureKey": "models.ollama",
 			"supportedFeatures": {
@@ -982,7 +1896,7 @@
 			},
 			"pricing_metadata": {
 				"currency": "USD",
-				"effectiveDate": "2025-07-13"
+				"effectiveDate": "2025-09-30"
 			},
 			"featureKey": "models.ollama",
 			"supportedFeatures": {
@@ -1021,7 +1935,7 @@
 			},
 			"pricing_metadata": {
 				"currency": "USD",
-				"effectiveDate": "2025-07-13"
+				"effectiveDate": "2025-09-30"
 			},
 			"featureKey": "models.ollama",
 			"supportedFeatures": {
@@ -1060,7 +1974,7 @@
 			},
 			"pricing_metadata": {
 				"currency": "USD",
-				"effectiveDate": "2025-07-13"
+				"effectiveDate": "2025-09-30"
 			},
 			"featureKey": "models.ollama",
 			"supportedFeatures": {
@@ -1099,7 +2013,7 @@
 			},
 			"pricing_metadata": {
 				"currency": "USD",
-				"effectiveDate": "2025-07-13"
+				"effectiveDate": "2025-09-30"
 			},
 			"featureKey": "models.ollama",
 			"supportedFeatures": {
@@ -1175,14 +2089,28 @@
 			"maxOutputTokens": 32768,
 			"token_pricing": {
 				"input": 200,
-				"output": 800,
-				"cache_read": 50
+				"output": 800
 			},
 			"pricing_metadata": {
 				"currency": "USD",
-				"effectiveDate": "2025-04-14"
+				"effectiveDate": "2025-08-13"
 			},
 			"featureKey": "models.openai.gpt4",
+			"inputTokensCacheTypes": {
+				"read": {
+					"description": "Prompt cache read operations",
+					"inheritsTiers": false,
+					"multiplier": 0.25,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 50
+							}
+						]
+					}
+				}
+			},
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -1215,14 +2143,28 @@
 			"maxOutputTokens": 32768,
 			"token_pricing": {
 				"input": 40,
-				"output": 160,
-				"cache_read": 10
+				"output": 160
 			},
 			"pricing_metadata": {
 				"currency": "USD",
-				"effectiveDate": "2025-04-14"
+				"effectiveDate": "2025-08-13"
 			},
 			"featureKey": "models.openai.gpt4",
+			"inputTokensCacheTypes": {
+				"read": {
+					"description": "Prompt cache read operations",
+					"inheritsTiers": false,
+					"multiplier": 0.25,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 10
+							}
+						]
+					}
+				}
+			},
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -1255,14 +2197,28 @@
 			"maxOutputTokens": 32768,
 			"token_pricing": {
 				"input": 10,
-				"output": 40,
-				"cache_read": 2.5
+				"output": 40
 			},
 			"pricing_metadata": {
 				"currency": "USD",
-				"effectiveDate": "2025-04-14"
+				"effectiveDate": "2025-08-13"
 			},
 			"featureKey": "models.openai.gpt4",
+			"inputTokensCacheTypes": {
+				"read": {
+					"description": "Prompt cache read operations",
+					"inheritsTiers": false,
+					"multiplier": 0.25,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 2.5
+							}
+						]
+					}
+				}
+			},
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -1294,15 +2250,61 @@
 			"contextWindow": 128000,
 			"maxOutputTokens": 16384,
 			"token_pricing": {
-				"input": 250,
-				"output": 1000,
-				"cache_read": 125
+				"input": 500,
+				"output": 2000
 			},
 			"pricing_metadata": {
 				"currency": "USD",
-				"effectiveDate": "2024-05-13"
+				"effectiveDate": "2025-08-13"
 			},
 			"featureKey": "models.openai.gpt4",
+			"inputTokensCacheTypes": {
+				"read": {
+					"description": "Prompt cache read operations",
+					"inheritsTiers": false,
+					"multiplier": 0.5,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 250
+							}
+						]
+					}
+				}
+			},
+			"inputTokensContentTypes": {
+				"text": {
+					"multiplier": 1
+				},
+				"audio": {
+					"multiplier": 8,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 4000
+							}
+						]
+					}
+				}
+			},
+			"outputTokensContentTypes": {
+				"text": {
+					"multiplier": 1
+				},
+				"audio": {
+					"multiplier": 4,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 8000
+							}
+						]
+					}
+				}
+			},
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -1334,15 +2336,61 @@
 			"contextWindow": 128000,
 			"maxOutputTokens": 16384,
 			"token_pricing": {
-				"input": 15,
-				"output": 60,
-				"cache_read": 7.5
+				"input": 60,
+				"output": 240
 			},
 			"pricing_metadata": {
 				"currency": "USD",
-				"effectiveDate": "2024-07-18"
+				"effectiveDate": "2025-08-13"
 			},
 			"featureKey": "models.openai.gpt4",
+			"inputTokensCacheTypes": {
+				"read": {
+					"description": "Prompt cache read operations",
+					"inheritsTiers": false,
+					"multiplier": 0.5,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 30
+							}
+						]
+					}
+				}
+			},
+			"inputTokensContentTypes": {
+				"text": {
+					"multiplier": 1
+				},
+				"audio": {
+					"multiplier": 16.67,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 1000
+							}
+						]
+					}
+				}
+			},
+			"outputTokensContentTypes": {
+				"text": {
+					"multiplier": 1
+				},
+				"audio": {
+					"multiplier": 8.33,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 2000
+							}
+						]
+					}
+				}
+			},
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -1369,6 +2417,183 @@
 			"trainingCutoff": "2023-10-01",
 			"releaseDate": "2024-07-18"
 		},
+		"gpt-5-2025-08-07": {
+			"displayName": "GPT-5",
+			"contextWindow": 400000,
+			"maxOutputTokens": 128000,
+			"token_pricing": {
+				"input": 125,
+				"output": 1000,
+				"thought": 1000
+			},
+			"pricing_metadata": {
+				"currency": "USD",
+				"effectiveDate": "2025-08-13"
+			},
+			"featureKey": "models.openai.gpt5",
+			"inputTokensCacheTypes": {
+				"read": {
+					"description": "Prompt cache read operations",
+					"inheritsTiers": false,
+					"multiplier": 0.1,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 12.5
+							}
+						]
+					}
+				}
+			},
+			"thoughtTokensConfig": {
+				"basePrice": 1000,
+				"description": "Tokens used for extended thinking operations"
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": true,
+				"promptCaching": true,
+				"extendedThinking": true
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 32768,
+				"extendedThinking": false
+			},
+			"constraints": {
+				"temperature": {
+					"min": 0,
+					"max": 2
+				}
+			},
+			"systemPromptBehavior": "optional",
+			"responseSpeed": "medium",
+			"cost": "very-high",
+			"intelligence": "very-high",
+			"trainingCutoff": "2024-09-30",
+			"releaseDate": "2025-08-07"
+		},
+		"gpt-5-mini-2025-08-07": {
+			"displayName": "GPT-5 Mini",
+			"contextWindow": 400000,
+			"maxOutputTokens": 128000,
+			"token_pricing": {
+				"input": 25,
+				"output": 200,
+				"thought": 200
+			},
+			"pricing_metadata": {
+				"currency": "USD",
+				"effectiveDate": "2025-08-13"
+			},
+			"featureKey": "models.openai.gpt5",
+			"inputTokensCacheTypes": {
+				"read": {
+					"description": "Prompt cache read operations",
+					"inheritsTiers": false,
+					"multiplier": 0.1,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 2.5
+							}
+						]
+					}
+				}
+			},
+			"thoughtTokensConfig": {
+				"basePrice": 200,
+				"description": "Tokens used for extended thinking operations"
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": true,
+				"promptCaching": true,
+				"extendedThinking": true
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 32768,
+				"extendedThinking": false
+			},
+			"constraints": {
+				"temperature": {
+					"min": 0,
+					"max": 2
+				}
+			},
+			"systemPromptBehavior": "optional",
+			"responseSpeed": "fast",
+			"cost": "medium",
+			"intelligence": "high",
+			"trainingCutoff": "2024-05-31",
+			"releaseDate": "2025-08-07"
+		},
+		"gpt-5-nano-2025-08-07": {
+			"displayName": "GPT-5 Nano",
+			"contextWindow": 400000,
+			"maxOutputTokens": 128000,
+			"token_pricing": {
+				"input": 5,
+				"output": 40,
+				"thought": 40
+			},
+			"pricing_metadata": {
+				"currency": "USD",
+				"effectiveDate": "2025-08-13"
+			},
+			"featureKey": "models.openai.gpt5",
+			"inputTokensCacheTypes": {
+				"read": {
+					"description": "Prompt cache read operations",
+					"inheritsTiers": false,
+					"multiplier": 0.1,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 0.5
+							}
+						]
+					}
+				}
+			},
+			"thoughtTokensConfig": {
+				"basePrice": 40,
+				"description": "Tokens used for extended thinking operations"
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": true,
+				"promptCaching": true,
+				"extendedThinking": true
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 32768,
+				"extendedThinking": false
+			},
+			"constraints": {
+				"temperature": {
+					"min": 0,
+					"max": 2
+				}
+			},
+			"systemPromptBehavior": "optional",
+			"responseSpeed": "very fast",
+			"cost": "low",
+			"intelligence": "medium",
+			"trainingCutoff": "2024-05-31",
+			"releaseDate": "2025-08-07"
+		},
 		"o3": {
 			"displayName": "o3",
 			"contextWindow": 200000,
@@ -1376,13 +2601,32 @@
 			"token_pricing": {
 				"input": 1000,
 				"output": 4000,
-				"cache_read": 250
+				"thought": 4000
 			},
 			"pricing_metadata": {
 				"currency": "USD",
-				"effectiveDate": "2025-04-16"
+				"effectiveDate": "2025-08-13"
 			},
 			"featureKey": "models.openai.o3",
+			"inputTokensCacheTypes": {
+				"read": {
+					"description": "Prompt cache read operations",
+					"inheritsTiers": false,
+					"multiplier": 0.25,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 250
+							}
+						]
+					}
+				}
+			},
+			"thoughtTokensConfig": {
+				"basePrice": 4000,
+				"description": "Tokens used for reasoning/thinking operations"
+			},
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,
@@ -1414,15 +2658,34 @@
 			"contextWindow": 200000,
 			"maxOutputTokens": 100000,
 			"token_pricing": {
-				"input": 110,
-				"output": 440,
-				"cache_read": 27.5
+				"input": 110.00000000000001,
+				"output": 440.00000000000006,
+				"thought": 440.00000000000006
 			},
 			"pricing_metadata": {
 				"currency": "USD",
-				"effectiveDate": "2025-04-16"
+				"effectiveDate": "2025-08-13"
 			},
 			"featureKey": "models.openai.o4",
+			"inputTokensCacheTypes": {
+				"read": {
+					"description": "Prompt cache read operations",
+					"inheritsTiers": false,
+					"multiplier": 0.25,
+					"explicitPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"price": 27.500000000000004
+							}
+						]
+					}
+				}
+			},
+			"thoughtTokensConfig": {
+				"basePrice": 440.00000000000006,
+				"description": "Tokens used for reasoning/thinking operations"
+			},
 			"supportedFeatures": {
 				"functionCalling": true,
 				"json": true,

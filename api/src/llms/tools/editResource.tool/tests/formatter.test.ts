@@ -148,7 +148,7 @@ Deno.test({
 	name: 'EditResourceTool - Console Formatter - Tool result successful',
 	fn: () => {
 		const resultContent = {
-			toolResult: [
+			toolResults: [
 				{ type: 'text' as const, text: 'Searched data source: local [primary]' },
 				{
 					type: 'text' as const,
@@ -197,7 +197,7 @@ Deno.test({
 	name: 'EditResourceTool - Console Formatter - Tool result with warnings',
 	fn: () => {
 		const resultContent = {
-			toolResult: [
+			toolResults: [
 				{ type: 'text' as const, text: 'Operated on data source: test-notion [notion-id]' },
 				{
 					type: 'text' as const,
@@ -327,7 +327,7 @@ Deno.test({
 	name: 'EditResourceTool - Browser Formatter - Tool result',
 	fn: () => {
 		const resultContent = {
-			toolResult: [
+			toolResults: [
 				{ type: 'text' as const, text: 'Searched data source: local [primary]' },
 				{ type: 'text' as const, text: '✅  Operation 1 completed successfully' },
 			],

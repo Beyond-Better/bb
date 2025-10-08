@@ -27,12 +27,16 @@ import { ChatInput } from '../components/ChatInput.tsx';
 import { CollaborationStateEmpty } from '../components/CollaborationStateEmpty.tsx';
 //import { ToolBar } from '../components/ToolBar.tsx';
 //import { ApiStatus } from 'shared/types.ts';
-import type { CollaborationLogDataEntry, CollaborationValues } from 'shared/types.ts';
+import type { CollaborationLogDataEntry, CollaborationLogEntry, CollaborationValues } from 'shared/types.ts';
 import { generateInteractionId, shortenInteractionId } from 'shared/generateIds.ts';
 import { getApiHostname, getApiPort, getApiUseTls } from '../utils/url.utils.ts';
 import { getWorkingApiUrl } from '../utils/connectionManager.utils.ts';
 import { LLMRolesModelConfig } from 'api/types.ts';
 import { focusChatInputSync } from '../utils/focusManagement.utils.ts';
+import type { LogEntryFormatResponse } from '../utils/apiClient.utils.ts';
+import { logDataEntryHasLogEntry } from '../utils/typeGuards.utils.ts';
+import { useLogEntryFilterState } from '../hooks/useLogEntryFilterState.ts';
+import { shouldShowParentEntry } from '../utils/logEntryFilterState.utils.ts';
 
 // Helper functions for URL parameters
 const getCollaborationId = () => {
@@ -156,6 +160,15 @@ const chatConfig = signal<ChatConfig>({ ...defaultChatConfig });
 const modelData = signal<ModelDetails | null>(null);
 const attachedFiles = signal<LLMAttachedFiles>([]);
 
+// Cache for formatted log entries - key is unique entry identifier, value is formatted result
+const formattedEntriesCache = signal<Map<string, LogEntryFormatResponse['formattedResult']>>(new Map());
+
+// Generate unique key for cache based on entry properties
+function getEntryKey(logEntry: CollaborationLogEntry): string {
+	return logEntry ? `${logEntry.entryType || 'no_entry'}_${JSON.stringify(logEntry.content).slice(0, 50)}` : '';
+	//return logEntry ? `${logDataEntry.timestamp}_${logEntry.entryType || 'no_entry'}_${JSON.stringify(logEntry.content).slice(0, 50)}` : '';
+}
+
 export default function Chat({
 	chatState,
 }: ChatProps): JSX.Element {
@@ -185,6 +198,19 @@ export default function Chat({
 	const messagesEndRef = useRef<HTMLDivElement>(null);
 	// Track input changes for performance monitoring
 	//const lastInputUpdateRef = useRef<number>(Date.now());
+
+	// Get filter state
+	const { filterState } = useLogEntryFilterState();
+
+	// Track filter preset to force remount when it changes
+	const [filterPresetKey, setFilterPresetKey] = useState(filterState.value.preset);
+
+	// Update key when filter preset changes to force MessageEntry remount
+	useEffect(() => {
+		setFilterPresetKey(filterState.value.preset);
+		// Enable auto-scroll when filter changes so user sees new content
+		setShouldAutoScroll(true);
+	}, [filterState.value.preset]);
 
 	const setInputWithTracking = (value: string) => {
 		//const now = Date.now();
@@ -377,10 +403,40 @@ export default function Chat({
 
 	// Utility functions
 
-	const handleCopy = async (text: string) => {
+	const handleCopy = async (text: string, html?: string, toastMessage?: string) => {
+		if (!text && !html) {
+			setToastMessage(toastMessage || 'Failed to copy content');
+			setShowToast(true);
+		}
 		try {
-			await navigator.clipboard.writeText(text);
-			setToastMessage('Content copied to clipboard!');
+			// Copy using the modern API or fallback
+			if (navigator.clipboard && window.isSecureContext) {
+				//await navigator.clipboard.writeText(text);
+
+				const typePlain = 'text/plain';
+				const typeHtml = 'text/html';
+				const clipboardItems: ClipboardItem[] = [];
+				if (html) {
+					clipboardItems.push(
+						new ClipboardItem({
+							[typeHtml]: html,
+						}),
+					);
+				}
+				if (text) {
+					clipboardItems.push(
+						new ClipboardItem({
+							[typePlain]: text,
+						}),
+					);
+				}
+
+				await navigator.clipboard.write(clipboardItems);
+			} else {
+				// Fallback for older browsers
+				document.execCommand('copy');
+			}
+			setToastMessage(toastMessage || 'Content copied to clipboard!');
 			setShowToast(true);
 		} catch (err) {
 			console.error('ChatIsland: Failed to copy:', err);
@@ -428,6 +484,23 @@ export default function Chat({
 		// Simply return the entry as it's already a valid CollaborationLogDataEntry
 		// The type guards are used in the UI components to safely access properties
 		return logDataEntry;
+	};
+
+	const onFormattedLogEntry = (
+		logEntry: CollaborationLogEntry,
+		formattedLogEntry: LogEntryFormatResponse['formattedResult'],
+	) => {
+		const entryKey = getEntryKey(logEntry);
+		const hasCachedEntry = formattedEntriesCache.value.has(entryKey);
+		if (!hasCachedEntry) formattedEntriesCache.value.set(entryKey, formattedLogEntry);
+	};
+
+	const getFormattedLogEntry = (
+		logDataEntry: CollaborationLogDataEntry,
+	): LogEntryFormatResponse['formattedResult'] | null => {
+		if (!logDataEntry.logEntry) return null;
+		const entryKey = getEntryKey(logDataEntry.logEntry);
+		return formattedEntriesCache.value.get(entryKey) || null;
 	};
 
 	const deleteCollaboration = async (id: string) => {
@@ -745,7 +818,7 @@ export default function Chat({
 		}
 
 		return () => messagesContainer.removeEventListener('scroll', handleScroll);
-	}, [chatState.value.logDataEntries, shouldAutoScroll]);
+	}, [chatState.value.logDataEntries, shouldAutoScroll, filterState.value.preset]);
 
 	// Maintain scroll position when input height changes
 	useEffect(() => {
@@ -963,6 +1036,9 @@ export default function Chat({
 									disabled={!chatState.value.status.isReady ||
 										isProcessing(chatState.value.status)}
 									projectId={projectId}
+									onCopy={handleCopy}
+									getFormattedLogEntry={getFormattedLogEntry}
+									projectConfig={projectState.value.projectConfig}
 								/>
 
 								{/* Messages */}
@@ -1033,17 +1109,24 @@ export default function Chat({
 												</div>
 											)}
 										{chatState.value.logDataEntries.length > 0 &&
-											chatState.value.logDataEntries.map((logDataEntry, index) => (
-												<MessageEntry
-													key={index}
-													logDataEntry={transformEntry(logDataEntry)}
-													index={index}
-													onCopy={handleCopy}
-													apiClient={chatState.value.apiClient!}
-													projectId={projectId}
-													collaborationId={chatState.value.collaborationId!}
-												/>
-											))}
+											// FUTURE: Add fade-in animation here for smooth entry appearance
+											// Consider: transition-opacity duration-200
+											chatState.value.logDataEntries
+												.filter((entry) => shouldShowParentEntry(entry, filterState.value))
+												.map((logDataEntry, index) => (
+													<MessageEntry
+														key={`${filterPresetKey}-${index}`}
+														logDataEntry={transformEntry(logDataEntry)}
+														index={index}
+														onCopy={handleCopy}
+														onFormattedLogEntry={onFormattedLogEntry}
+														apiClient={chatState.value.apiClient!}
+														projectId={projectId}
+														collaborationId={chatState.value.collaborationId!}
+														projectConfig={projectState.value.projectConfig}
+														filterState={filterState.value}
+													/>
+												))}
 									</div>
 								</div>
 

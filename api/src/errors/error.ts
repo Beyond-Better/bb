@@ -7,11 +7,13 @@ export { isError } from 'shared/error.ts';
 export enum ErrorType {
 	CommandExecution = 'CommandExecution',
 	Persistence = 'PersistenceError',
+	Authentication = 'AuthenticationError',
 	API = 'APIError',
 	LLM = 'LLMError',
 	LLMRateLimit = 'RateLimitError',
 	LLMValidation = 'ValidationError',
 	ToolHandling = 'ToolHandlingError',
+	MCPServer = 'MCPServerError',
 	ProjectHandling = 'ProjectHandlingError',
 	DataSourceHandling = 'DataSourceHandlingError',
 	FileHandling = 'FileHandlingError',
@@ -35,10 +37,12 @@ export enum ErrorType {
 export const ErrorTypes = [
 	ErrorType.API,
 	ErrorType.Persistence,
+	ErrorType.Authentication,
 	ErrorType.LLM,
 	ErrorType.LLMRateLimit,
 	ErrorType.LLMValidation,
 	ErrorType.ToolHandling,
+	ErrorType.MCPServer,
 	ErrorType.ProjectHandling,
 	ErrorType.DataSourceHandling,
 
@@ -69,6 +73,13 @@ export interface CommandExecutionErrorOptions extends ErrorOptions {
 
 export interface ErrorOptions {
 	name: string;
+}
+
+export interface AuthenticationErrorOptions extends ErrorOptions {
+	userId?: string;
+	method?: string;
+	token?: string;
+	reason?: string;
 }
 
 export interface APIErrorOptions extends ErrorOptions {
@@ -116,6 +127,20 @@ export interface TokenUsageValidationErrorOptions extends ErrorOptions {
 	value?: unknown;
 	constraint?: string;
 }
+
+export class AuthenticationError extends Error {
+	constructor(
+		message: string,
+		public options?: AuthenticationErrorOptions,
+	) {
+		super(message);
+		this.name = ErrorType.Authentication;
+		this.options = options;
+	}
+}
+export const isAuthenticationError = (value: unknown): value is AuthenticationError => {
+	return value instanceof AuthenticationError;
+};
 
 export class APIError extends Error {
 	public status: Status;
@@ -432,6 +457,29 @@ export class ToolHandlingError extends Error {
 
 export const isToolHandlingError = (value: unknown): value is ToolHandlingError => {
 	return value instanceof ToolHandlingError;
+};
+
+export interface MCPServerErrorOptions extends ErrorOptions {
+	serverName: string;
+	operation: 'tool-run' | 'tool-input' | 'validation' | 'capability-check';
+	transport: 'http' | 'stdio';
+	config?: Record<string, unknown>;
+	params?: Record<string, unknown>;
+	toolInput?: Record<string, unknown>;
+}
+
+export class MCPServerError extends Error {
+	constructor(
+		message: string,
+		public options: MCPServerErrorOptions,
+	) {
+		super(message);
+		this.name = ErrorType.MCPServer;
+	}
+}
+
+export const isMCPServerError = (value: unknown): value is MCPServerError => {
+	return value instanceof MCPServerError;
 };
 
 export interface PersistenceErrorOptions extends ErrorOptions {

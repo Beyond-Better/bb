@@ -7,49 +7,31 @@
 
 import type { Context } from '@oak/oak';
 import { logger } from 'shared/logger.ts';
-import type { SessionManager } from 'api/auth/session.ts';
+import type { UserFeatureProfile } from 'shared/featureAccess.ts';
 import {
-	CacheManagement,
-	checkFeatureAccess,
-	DatasourceAccess,
-	FEATURE_KEYS,
+	getAvailableModels,
 	getFeatureAccess,
 	getUserFeatureProfile as getUserFeatureProfileFromUtils,
-	ModelAccess,
-	RateLimits,
-	SupportAccess,
-	ToolsAccess,
-} from 'shared/features.ts';
+} from 'api/utils/featureAccess.ts';
 import type { SupabaseClientWithSchema } from 'shared/types/supabase.ts';
+//import type { UserAuthSession } from 'api/auth/userAuthSession.ts';
+import type { UserContext } from 'shared/types/app.ts';
+import { SupabaseClientFactory } from 'api/auth/supabaseClientFactory.ts';
 
-export interface TeamFeatureProfile {
-	teamId: string;
-	models: string[];
-	datasources: { name: string; read: boolean; write: boolean }[];
-	tools: string[];
-	limits: { tokensPerMinute: number; requestsPerMinute: number };
-	support: {
-		community: boolean;
-		email: boolean;
-		priorityQueue: boolean;
-		earlyAccess: boolean;
-		workspaceIsolation: boolean;
-		sso: boolean;
-		dedicatedCSM: boolean;
-		onPremises: boolean;
-	};
-}
+export type TeamFeatureProfile = UserFeatureProfile & { teamId: string };
 
 /**
- * Get Supabase clients from session manager
+ * Get Supabase clients from userAuthSession
  */
-async function getSupabaseClients(sessionManager: SessionManager): Promise<{
+async function getSupabaseClients(userContext: UserContext): Promise<{
 	coreClient: SupabaseClientWithSchema<'abi_core'>;
+	authClient: SupabaseClientWithSchema<'abi_auth'>;
 	billingClient: SupabaseClientWithSchema<'abi_billing'>;
 }> {
-	const coreClient = sessionManager.getCoreClient() as SupabaseClientWithSchema<'abi_core'>;
-	const billingClient = sessionManager.getBillingClient() as SupabaseClientWithSchema<'abi_billing'>;
-	return { coreClient, billingClient };
+	const coreClient = await SupabaseClientFactory.getCoreClient(userContext);
+	const authClient = await SupabaseClientFactory.getAuthClient(userContext);
+	const billingClient = await SupabaseClientFactory.getBillingClient(userContext);
+	return { coreClient, authClient, billingClient };
 }
 
 /**
@@ -119,18 +101,11 @@ async function checkTeamAccess(
  */
 export async function getTeamFeatureProfile(ctx: Context & { params: { teamId: string } }) {
 	try {
-		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
-		if (!sessionManager) {
-			logger.warn('TeamFeaturesHandler: getTeamFeatureProfile: No session manager configured');
+		const userContext = ctx.state.userContext;
+		if (!userContext) {
+			logger.warn('TeamFeaturesHandler: No user context configured');
 			ctx.response.status = 400;
-			ctx.response.body = { error: 'No session manager configured' };
-			return;
-		}
-
-		const session = await sessionManager.getSession();
-		if (!session?.user?.id) {
-			ctx.response.status = 401;
-			ctx.response.body = { error: 'Unauthorized' };
+			ctx.response.body = { error: 'No user context configured' };
 			return;
 		}
 
@@ -141,10 +116,10 @@ export async function getTeamFeatureProfile(ctx: Context & { params: { teamId: s
 			return;
 		}
 
-		const { coreClient, billingClient } = await getSupabaseClients(sessionManager);
+		const { coreClient } = await getSupabaseClients(userContext);
 
 		// Check if user has access to this team
-		const hasAccess = await checkTeamAccess(coreClient, session.user.id, teamId);
+		const hasAccess = await checkTeamAccess(coreClient, userContext.userId, teamId);
 		if (!hasAccess) {
 			ctx.response.status = 403;
 			ctx.response.body = { error: 'Access denied - user not member of team' };
@@ -168,7 +143,7 @@ export async function getTeamFeatureProfile(ctx: Context & { params: { teamId: s
 		}
 
 		// Get team features based on team owner's subscription
-		const profile = await getUserFeatureProfileFromUtils(coreClient, billingClient, teamOwner.user_id);
+		const profile = await getUserFeatureProfileFromUtils(userContext, teamOwner.user_id);
 
 		const teamProfile: TeamFeatureProfile = {
 			teamId,
@@ -230,18 +205,11 @@ export async function getTeamFeatureProfile(ctx: Context & { params: { teamId: s
  */
 export async function checkTeamFeatureAccess(ctx: Context & { params: { teamId: string } }) {
 	try {
-		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
-		if (!sessionManager) {
-			logger.warn('TeamFeaturesHandler: checkTeamFeatureAccess: No session manager configured');
+		const userContext = ctx.state.userContext;
+		if (!userContext) {
+			logger.warn('TeamFeaturesHandler: No user context configured');
 			ctx.response.status = 400;
-			ctx.response.body = { error: 'No session manager configured' };
-			return;
-		}
-
-		const session = await sessionManager.getSession();
-		if (!session?.user?.id) {
-			ctx.response.status = 401;
-			ctx.response.body = { error: 'Unauthorized' };
+			ctx.response.body = { error: 'No user context configured' };
 			return;
 		}
 
@@ -261,10 +229,10 @@ export async function checkTeamFeatureAccess(ctx: Context & { params: { teamId: 
 			return;
 		}
 
-		const { coreClient, billingClient } = await getSupabaseClients(sessionManager);
+		const { coreClient, authClient } = await getSupabaseClients(userContext);
 
 		// Check if user has access to this team
-		const hasAccess = await checkTeamAccess(coreClient, session.user.id, teamId);
+		const hasAccess = await checkTeamAccess(coreClient, userContext.userId, teamId);
 		if (!hasAccess) {
 			ctx.response.status = 403;
 			ctx.response.body = { error: 'Access denied - user not member of team' };
@@ -272,7 +240,7 @@ export async function checkTeamFeatureAccess(ctx: Context & { params: { teamId: 
 		}
 
 		// Get team owner to check features
-		const { data: teamOwner, error } = await coreClient
+		const { data: teamOwner, error } = await authClient
 			.from('team_members')
 			.select('user_id')
 			.eq('team_id', teamId)
@@ -285,7 +253,7 @@ export async function checkTeamFeatureAccess(ctx: Context & { params: { teamId: 
 			return;
 		}
 
-		const result = await getFeatureAccess(coreClient, billingClient, teamOwner.user_id, featureKey);
+		const result = await getFeatureAccess(userContext, featureKey, true, teamOwner.user_id);
 
 		ctx.response.status = 200;
 		ctx.response.body = { result };
@@ -337,18 +305,11 @@ export async function checkTeamFeatureAccess(ctx: Context & { params: { teamId: 
  */
 export async function getTeamAvailableModels(ctx: Context & { params: { teamId: string } }) {
 	try {
-		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
-		if (!sessionManager) {
-			logger.warn('TeamFeaturesHandler: getTeamAvailableModels: No session manager configured');
+		const userContext = ctx.state.userContext;
+		if (!userContext) {
+			logger.warn('TeamFeaturesHandler: No user context configured');
 			ctx.response.status = 400;
-			ctx.response.body = { error: 'No session manager configured' };
-			return;
-		}
-
-		const session = await sessionManager.getSession();
-		if (!session?.user?.id) {
-			ctx.response.status = 401;
-			ctx.response.body = { error: 'Unauthorized' };
+			ctx.response.body = { error: 'No user context configured' };
 			return;
 		}
 
@@ -359,10 +320,10 @@ export async function getTeamAvailableModels(ctx: Context & { params: { teamId: 
 			return;
 		}
 
-		const { coreClient, billingClient } = await getSupabaseClients(sessionManager);
+		const { coreClient, authClient } = await getSupabaseClients(userContext);
 
 		// Check if user has access to this team
-		const hasAccess = await checkTeamAccess(coreClient, session.user.id, teamId);
+		const hasAccess = await checkTeamAccess(coreClient, userContext.userId, teamId);
 		if (!hasAccess) {
 			ctx.response.status = 403;
 			ctx.response.body = { error: 'Access denied - user not member of team' };
@@ -370,7 +331,7 @@ export async function getTeamAvailableModels(ctx: Context & { params: { teamId: 
 		}
 
 		// Get team owner to check features
-		const { data: teamOwner, error } = await coreClient
+		const { data: teamOwner, error } = await authClient
 			.from('team_members')
 			.select('user_id')
 			.eq('team_id', teamId)
@@ -383,7 +344,7 @@ export async function getTeamAvailableModels(ctx: Context & { params: { teamId: 
 			return;
 		}
 
-		const models = await ModelAccess.getAvailableModels(coreClient, billingClient, teamOwner.user_id);
+		const models = await getAvailableModels(userContext, teamOwner.user_id);
 
 		ctx.response.status = 200;
 		ctx.response.body = { models };

@@ -3,6 +3,7 @@ import type { ComponentChildren } from 'preact';
 import { IS_BROWSER } from '$fresh/runtime.ts';
 import { initializeAuthState, useAuthState } from '../../hooks/useAuthState.ts';
 import type { BuiConfig } from 'shared/config/types.ts';
+import { setBuiConfig } from '../../hooks/useAppState.ts';
 
 interface AppConfigContextProps {
 	children: ComponentChildren;
@@ -19,6 +20,7 @@ export default function AppConfigContext({ children, buiConfig }: AppConfigConte
 		// Initialize app state
 		const initializeAppConfig = () => {
 			initializeAuthState(buiConfig);
+			setBuiConfig(buiConfig);
 		};
 
 		initializeAppConfig();

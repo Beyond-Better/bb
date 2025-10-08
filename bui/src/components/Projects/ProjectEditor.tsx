@@ -223,18 +223,19 @@ export function ProjectEditor({
 	const defaultModelsOrchestrator = useSignal<ModelSelectionValue>(
 		editingProject?.value?.config?.defaultModels.orchestrator
 			? {
-				global: editingProject?.value?.config?.defaultModels.orchestrator?.global || 'claude-sonnet-4-20250514',
+				global: editingProject?.value?.config?.defaultModels.orchestrator?.global ||
+					'claude-sonnet-4-5-20250929',
 				project: editingProject?.value?.config?.defaultModels.orchestrator?.project || null,
 			}
-			: { global: 'claude-sonnet-4-20250514', project: null },
+			: { global: 'claude-sonnet-4-5-20250929', project: null },
 	);
 	const defaultModelsAgent = useSignal<ModelSelectionValue>(
 		editingProject?.value?.config?.defaultModels.agent
 			? {
-				global: editingProject?.value?.config?.defaultModels.agent?.global || 'claude-sonnet-4-20250514',
+				global: editingProject?.value?.config?.defaultModels.agent?.global || 'claude-sonnet-4-5-20250929',
 				project: editingProject?.value?.config?.defaultModels.agent?.project || null,
 			}
-			: { global: 'claude-sonnet-4-20250514', project: null },
+			: { global: 'claude-sonnet-4-5-20250929', project: null },
 	);
 	const defaultModelsChat = useSignal<ModelSelectionValue>(
 		editingProject?.value?.config?.defaultModels.chat
@@ -748,7 +749,7 @@ export function ProjectEditor({
 											if (value.trim()) {
 												isLoadingSuggestions.value = true;
 												try {
-													const response = await appState.value.apiClient?.suggestFiles(
+													const response = await appState.value.apiClient?.suggestResources(
 														value,
 														editingProject?.value?.data.projectId || '',
 													);

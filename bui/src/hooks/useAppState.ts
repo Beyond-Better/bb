@@ -9,17 +9,20 @@ import { createWebSocketManagerApp, type WebSocketManagerApp } from '../utils/we
 import { type ApiClient, createApiClientManager } from '../utils/apiClient.utils.ts';
 import { getApiHostname, getApiPort, getApiUseTls } from '../utils/url.utils.ts';
 import { getWorkingApiUrl } from '../utils/connectionManager.utils.ts';
+import type { BuiConfig } from 'shared/config/types.ts';
+//import { BuiConfigDefaults } from 'shared/config/types.ts';
 
 export interface AppState {
 	systemMeta: SystemMeta | null;
 	wsManager: WebSocketManagerApp | null;
 	apiClient: ApiClient | null;
 	status: WebSocketStatus;
+	path: string | null;
 	error: string | null;
 	versionInfo: VersionInfo | undefined;
 	projectId: ProjectId | null;
 	collaborationId: string | null;
-	path: string;
+	buiConfig: BuiConfig | null;
 }
 
 // Load initial state from localStorage and URL
@@ -64,6 +67,7 @@ const appState = signal<AppState>({
 	},
 	error: null,
 	versionInfo: undefined,
+	buiConfig: null,
 	...loadStoredState(),
 });
 
@@ -137,22 +141,24 @@ async function initializeAppStateAsync() {
 		});
 
 		// Initialize app state with the working URLs
-		initializeAppState({
-			wsUrl: wsUrl,
-			apiUrl: apiUrl,
-			onMessage: (message) => {
-				console.log('useAppState: Received message:', message);
+		initializeAppState(
+			{
+				wsUrl: wsUrl,
+				apiUrl: apiUrl,
+				onMessage: (message) => {
+					console.log('useAppState: Received message:', message);
+				},
+				onError: (error) => {
+					console.error('useAppState: WebSocket error:', error);
+				},
+				onClose: () => {
+					console.log('useAppState: WebSocket closed');
+				},
+				onOpen: () => {
+					console.log('useAppState: WebSocket opened');
+				},
 			},
-			onError: (error) => {
-				console.error('useAppState: WebSocket error:', error);
-			},
-			onClose: () => {
-				console.log('useAppState: WebSocket closed');
-			},
-			onOpen: () => {
-				console.log('useAppState: WebSocket opened');
-			},
-		});
+		);
 	} catch (error) {
 		console.error('useAppState: Failed to initialize connection:', error);
 
@@ -190,6 +196,21 @@ async function initializeAppStateAsync() {
 	}
 }
 
+export function setBuiConfig(buiConfig: BuiConfig) {
+	const redactedConfig = {
+		...buiConfig,
+		googleOauth: {
+			...buiConfig.googleOauth,
+			clientSecret: '[REDACTED]',
+		},
+	};
+
+	appState.value = {
+		...appState.value,
+		buiConfig: redactedConfig,
+	};
+}
+
 export function setPath(path: string) {
 	appState.value = {
 		...appState.value,
@@ -222,6 +243,7 @@ export function initializeAppState(config: WebSocketConfigApp): void {
 		apiUrl: config.apiUrl,
 		wsUrl: config.wsUrl,
 	});
+
 	if (appState.value.wsManager || appState.value.apiClient) {
 		console.log('AppState already initialized');
 		return;
@@ -367,5 +389,6 @@ export function cleanupAppState(): void {
 		projectId,
 		collaborationId,
 		path: '/',
+		buiConfig: null,
 	};
 }

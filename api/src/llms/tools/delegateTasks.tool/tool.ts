@@ -21,7 +21,7 @@ import { logger } from 'shared/logger.ts';
 import type { LLMAnswerToolUse, LLMMessageContentParts } from 'api/llms/llmMessage.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 //import { createError, ErrorType } from 'api/utils/error.ts';
-//import type InteractionManager from 'api/llms/interactionManager.ts';
+//import type { InteractionManager } from 'api/llms/interactionManager.ts';
 import type OrchestratorController from 'api/controllers/orchestratorController.ts';
 //import { ResourceManager } from 'api/resources/resourceManager.ts';
 //import { AgentCapabilityManager } from '../../../llms/agentCapabilityManager.ts';

@@ -21,6 +21,6 @@ export interface LLMToolApplyPatchResponseData {
 }
 
 export interface LLMToolApplyPatchResult {
-	toolResult: LLMToolRunResultContent;
+	toolResults: LLMToolRunResultContent;
 	bbResponse: LLMToolApplyPatchResponseData;
 }

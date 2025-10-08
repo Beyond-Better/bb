@@ -2,7 +2,7 @@ import { assertEquals, assertExists } from 'api/tests/deps.ts';
 import { join } from '@std/path';
 
 import Collaboration from 'api/collaborations/collaboration.ts';
-import LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
+import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import LLMMessage, { type LLMMessageContentPart, type LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
 import { GitUtils } from 'shared/git.ts';
 import type {
@@ -75,9 +75,11 @@ async function setupTestEnvironment(projectId: ProjectId, dataSourceRoot: string
 	const projectEditor = await getProjectEditor(projectId);
 
 	// Create collaboration, interaction and stub the LLMFactory to prevent real provider creation
+	// Use dynamic import to avoid circular dependency
+	const { default: LLMConversationInteractionClass } = await import('api/llms/conversationInteraction.ts');
 	const collaboration = Collaboration.create('test-collaboration-id', projectId);
-	const interaction = new LLMConversationInteraction(collaboration, 'test-interaction-id');
-	const { factoryStub } = makeConversationInteractionStub(interaction, projectEditor);
+	const interaction = new LLMConversationInteractionClass(collaboration, 'test-interaction-id');
+	const { factoryStub } = await makeConversationInteractionStub(interaction, projectEditor);
 
 	// Now init the interaction - it will use the stubbed factory
 	await interaction.init('claude-3-5-haiku-20241022', mockInteractionCallbacks);

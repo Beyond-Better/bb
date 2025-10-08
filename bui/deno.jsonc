@@ -1,5 +1,5 @@
 {
-	"version": "0.9.0-oss",
+	"version": "0.9.10-oss",
 	"license": "AGPL-3.0-or-later",
 	"copyright": "2025 - Beyond Better <charlie@beyondbetter.app>",
 	"lock": false,
@@ -8,6 +8,7 @@
 		"check": "deno fmt --check && deno lint && deno check **/*.ts && deno check **/*.tsx",
 		"cli": "echo \"import '\\$fresh/src/dev/cli.ts'\" | deno run --unstable -A -",
 		"manifest": "deno task cli manifest $(pwd)/src",
+		"start-local": "DENO_TLS_CA_STORE=system deno run -A --unstable-kv --watch=static/,routes/ src/dev.ts",
 		"start": "deno run -A --unstable-kv --watch=static/,routes/ src/dev.ts",
 		"start-prod": "deno run -A --unstable-kv src/dev.ts",
 		"fresh-build": "deno run -A --unstable-kv src/dev.ts build",
@@ -35,6 +36,13 @@
 	],
 	"importMap": "../import_map.json",
 	"compilerOptions": {
+		"lib": [
+			"dom",
+			"dom.iterable",
+			"dom.asynciterable",
+			"deno.ns",
+			"deno.unstable"
+		],
 		"jsx": "react-jsx",
 		"jsxImportSource": "preact"
 	},

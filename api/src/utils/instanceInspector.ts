@@ -1,7 +1,7 @@
 import { logger } from 'shared/logger.ts';
 import { projectEditorManager } from 'api/editor/projectEditorManager.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
-import { interactionManager } from 'api/llms/interactionManager.ts';
+import { InteractionManager } from 'api/llms/interactionManager.ts';
 import { getMCPManager } from 'api/mcp/mcpManager.ts';
 import type LLMInteraction from 'api/llms/baseInteraction.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
@@ -127,6 +127,7 @@ function inspectInteractionForEditor(interaction: LLMInteraction): InteractionIn
 /**
  * Collects metadata about a ProjectEditor instance without capturing the entire object
  */
+// deno-lint-ignore require-await
 async function inspectEditor(conversationId: string, editor: ProjectEditor): Promise<EditorInstanceInfo> {
 	const baseController = editor.orchestratorController;
 
@@ -184,6 +185,7 @@ async function inspectEditor(conversationId: string, editor: ProjectEditor): Pro
  * Collects information about an LLM interaction
  */
 function inspectInteraction(interaction: LLMInteraction): InteractionInfo {
+	const interactionManager = InteractionManager.getInstance();
 	return {
 		id: interaction.id,
 		type: interaction.constructor.name,
@@ -203,6 +205,7 @@ function inspectInteraction(interaction: LLMInteraction): InteractionInfo {
 export async function getInstanceOverview(_options: { detailed?: boolean } = {}): Promise<InstanceOverview> {
 	const projectEditors = projectEditorManager.getActiveEditors();
 	const mcpManager = await getMCPManager();
+	const interactionManager = InteractionManager.getInstance();
 
 	// Get all interactions from interactionManager
 	const allInteractions = interactionManager.getAllInteractions();

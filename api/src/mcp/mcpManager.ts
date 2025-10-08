@@ -1,31 +1,64 @@
-import { Client } from 'mcp/client/index.js';
-import { StdioClientTransport } from 'mcp/client/stdio.js';
 import type { ReadResourceResult } from 'mcp/types.js';
 
 import { logger } from 'shared/logger.ts';
-// No need to import DataSourceForSystemPrompt as we're using a generic format
-import { createError, ErrorType } from 'api/utils/error.ts';
-import { errorMessage } from 'shared/error.ts';
-import { getVersionInfo } from 'shared/version.ts';
+import type ProjectEditor from 'api/editor/projectEditor.ts';
+import { ModelRegistryService } from 'api/llms/modelRegistryService.ts';
+
 //import type { LLMToolInputSchema } from 'api/llms/llmTool.ts';
 import type { LLMAnswerToolUse, LLMMessageContentParts } from 'api/llms/llmMessage.ts';
 import { getConfigManager } from 'shared/config/configManager.ts';
-import type { GlobalConfig, MCPServerConfig } from 'shared/config/types.ts';
+import type {
+	GlobalConfig,
+	MCPServerConfig,
+	//MCPOAuthConfig
+} from 'shared/config/types.ts';
 import type { ResourceMetadata } from 'shared/types/dataSourceResource.ts';
 import type { DataSourceCapability } from 'shared/types/dataSource.ts';
+import type { ModelCapabilities, ModelInfo } from 'api/types/modelCapabilities.ts';
+
+// Import extracted types and services
+import type {
+	ClientRegistrationRequest,
+	ClientRegistrationResponse,
+	McpServerInfo,
+	OAuthServerMetadata,
+	SamplingCreateMessageParams,
+	SamplingCreateMessageResult,
+	SamplingMessage,
+	SamplingModelPreferences,
+} from 'api/types/mcp.ts';
+import { MCPOAuthService } from 'api/mcp/auth/mcpOAuthService.ts';
+import { MCPConnectionService } from 'api/mcp/connection/mcpConnectionService.ts';
+import { MCPRequestHandlerService } from 'api/mcp/handlers/mcpRequestHandlerService.ts';
+import { MCPToolService } from 'api/mcp/services/mcpToolService.ts';
+import { MCPResourceService } from 'api/mcp/services/mcpResourceService.ts';
+import { MCPServerRegistry } from 'api/mcp/registry/mcpServerRegistry.ts';
+import { saveServerConfig } from 'api/utils/mcp.ts';
+
+// Types now imported from api/src/types/mcp.ts
+
+// BBOAuthClientProvider now extracted to api/src/mcp/auth/mcpOAuthService.ts
 
 export class MCPManager {
 	private static instance: MCPManager;
 	private static testInstances = new Map<string, MCPManager>();
-	// Exposed for instance inspection but treated as private
-	servers: Map<string, {
-		server: Client;
-		config: MCPServerConfig;
-		tools?: Array<{ name: string; description?: string; inputSchema: unknown }>;
-		resources?: Array<ResourceMetadata>;
-		capabilities?: DataSourceCapability[];
-	}> = new Map();
+
+	// Service dependencies
+	private oauthService!: MCPOAuthService;
+	private connectionService!: MCPConnectionService;
+	private requestHandlerService!: MCPRequestHandlerService;
+	private toolService!: MCPToolService;
+	private resourceService!: MCPResourceService;
+	private serverRegistry!: MCPServerRegistry;
 	private globalConfig!: GlobalConfig;
+
+	/**
+	 * Get the servers map from the registry
+	 * Exposed for instance inspection but registry is the source of truth
+	 */
+	get servers(): Map<string, McpServerInfo> {
+		return this.serverRegistry.serversMap;
+	}
 
 	private constructor() {}
 
@@ -65,6 +98,33 @@ export class MCPManager {
 		const configManager = await getConfigManager();
 		this.globalConfig = await configManager.getGlobalConfig();
 
+		// Initialize server registry first (it owns the servers map)
+		this.serverRegistry = new MCPServerRegistry(this.globalConfig);
+
+		// Initialize ModelRegistryService first (required by request handler)
+		const modelRegistryService = await ModelRegistryService.getInstance();
+		logger.debug('MCPManager: ModelRegistryService initialized successfully');
+
+		// Initialize services with registry's servers map
+		this.oauthService = new MCPOAuthService(this.servers, this.globalConfig);
+		this.requestHandlerService = new MCPRequestHandlerService(
+			this.servers,
+			//this.globalConfig,
+			modelRegistryService,
+		);
+
+		// Initialize connection service with request handler service
+		this.connectionService = new MCPConnectionService(
+			this.servers,
+			this.oauthService,
+			this.globalConfig,
+			this.requestHandlerService,
+		);
+
+		// Initialize tool and resource services with OAuth service for token refresh
+		this.toolService = new MCPToolService(this.servers, this.connectionService, this.oauthService);
+		this.resourceService = new MCPResourceService(this.servers, this.connectionService, this.oauthService);
+
 		// Get MCP configurations
 		const mcpServerConfigs = await this.getMCPServerConfigurations();
 		//logger.info(`MCPManager: Loading tools from ${mcpServerConfigs.length} MCP servers`);
@@ -72,7 +132,7 @@ export class MCPManager {
 		for (const config of mcpServerConfigs) {
 			//logger.info(`MCPManager: Loading tools for ${config.id}`, { config });
 			try {
-				await this.connectServer(config);
+				await this.connectionService.connectServer(config);
 			} catch (error) {
 				logger.error(`MCPManager: Failed to connect to MCP server ${config.name}:`, error);
 			}
@@ -80,191 +140,123 @@ export class MCPManager {
 		return this;
 	}
 
-	private async connectServer(config: MCPServerConfig): Promise<void> {
-		logger.info(`MCPManager: Connecting to MCP server: ${config.id}`);
+	/**
+	 * Update global configuration across all services
+	 * Called when configuration changes need to be propagated
+	 */
+	private updateGlobalConfigReferences(globalConfig: GlobalConfig): void {
+		this.globalConfig = globalConfig;
+		this.serverRegistry.updateGlobalConfig(globalConfig);
+	}
 
-		try {
-			// Always include the system PATH in the environment
-			const env = { ...config.env };
-			const currentPath = Deno.env.get('PATH') || '';
-			const pathSeparator = Deno.build.os === 'windows' ? ';' : ':';
+	/**
+	 * Public method to connect or reconnect a server by ID
+	 * Used for dynamic server connections after OAuth completion or manual reconnection
+	 */
+	public async connectServerById(serverId: string): Promise<void> {
+		return await this.connectionService.connectServerById(serverId);
+	}
 
-			// Process PATH_ADD if present in the environment config
-			if (env && 'PATH_ADD' in env) {
-				const pathAdd = env.PATH_ADD;
-				delete env.PATH_ADD; // Remove PATH_ADD so it doesn't get passed directly
+	/**
+	 * Add a new MCP server configuration dynamically without restarting the API
+	 * This supports both STDIO and HTTP transports, with proper OAuth handling
+	 */
+	public async addServer(config: MCPServerConfig): Promise<void> {
+		logger.info(`MCPManager: Adding new server configuration: ${config.id}`);
 
-				// Create the new PATH by combining PATH_ADD with the current PATH
-				env.PATH = pathAdd + pathSeparator + currentPath;
-				logger.debug(`MCPManager: Extended PATH for ${config.id}: ${env.PATH}`);
-			} else {
-				// Just use the current PATH if PATH_ADD is not specified
-				env.PATH = currentPath;
-				logger.debug(`MCPManager: Using system PATH for ${config.id}: ${env.PATH}`);
+		// Check if server already exists and close existing connection
+		if (this.serverRegistry.has(config.id)) {
+			logger.warn(`MCPManager: Server ${config.id} already exists, updating configuration`);
+			// Close existing connection
+			const existingServerInfo = this.serverRegistry.get(config.id);
+			if (existingServerInfo) {
+				try {
+					await existingServerInfo.server.close();
+				} catch (error) {
+					logger.debug(`MCPManager: Error closing existing server ${config.id}:`, error);
+				}
 			}
+		}
 
-			const transport = new StdioClientTransport({
-				command: config.command,
-				args: config.args,
-				env: env,
-			});
-			const client = new Client(
-				{
-					name: 'beyond-better',
-					version: (await getVersionInfo()).version,
-				},
-				{
-					capabilities: {
-						prompts: {},
-						resources: {},
-						tools: {},
-					},
-				},
-			);
+		// Delegate configuration management to server registry
+		await this.serverRegistry.addServer(config);
 
-			await client.connect(transport);
-
-			// Store server info
-			this.servers.set(config.id, { server: client, config, capabilities: ['read', 'list'] });
-
-			//return config.id;
+		// Connect to the server
+		try {
+			await this.connectionService.connectServer(config);
+			logger.info(`MCPManager: Successfully added and connected server ${config.id}`);
 		} catch (error) {
-			logger.error(`MCPManager: Error connecting to server ${config.id}:`, error);
-			throw createError(
-				ErrorType.ExternalServiceError,
-				`Failed to connect to MCP server: ${errorMessage(error)}`,
-				{
-					name: 'mcp-connection-error',
-					service: 'mcp',
-					action: 'connect',
-					server: config.name,
-				},
+			// Log connection error but don't fail the add operation
+			// Server will be available for connection later (e.g., after OAuth)
+			logger.warn(`MCPManager: Server ${config.id} added to config but connection failed:`, error);
+			logger.info(
+				`MCPManager: Server ${config.id} will be available for connection after authentication if required`,
 			);
 		}
+	}
+
+	/**
+	 * Remove an MCP server configuration and close its connection
+	 */
+	public async removeServer(serverId: string): Promise<void> {
+		logger.info(`MCPManager: Removing server: ${serverId}`);
+
+		// Close connection if it exists
+		const serverInfo = this.serverRegistry.get(serverId);
+		if (serverInfo) {
+			try {
+				await serverInfo.server.close();
+				logger.info(`MCPManager: Closed connection for server ${serverId}`);
+			} catch (error) {
+				logger.debug(`MCPManager: Error closing connection for ${serverId}:`, error);
+			}
+		}
+
+		// Delegate configuration removal to server registry
+		await this.serverRegistry.removeServer(serverId);
+	}
+
+	/**
+	 * Validate session ID for HTTP transport after potential reconnection
+	 */
+	public async validateHttpSession(serverId: string): Promise<boolean> {
+		return await this.connectionService.validateHttpSession(serverId);
+	}
+
+	/**
+	 * Check if a server is available (hybrid approach for STDIO vs HTTP)
+	 */
+	public async isServerAvailable(serverId: string): Promise<boolean> {
+		return await this.connectionService.isServerAvailable(serverId);
+	}
+
+	/**
+	 * Reset reconnection state for a server (useful for manual retries)
+	 */
+	public resetReconnectionState(serverId: string): void {
+		return this.connectionService.resetReconnectionState(serverId);
 	}
 
 	async listTools(
 		serverId: string,
 	): Promise<Array<{ name: string; description?: string; inputSchema: unknown }>> {
-		const serverInfo = this.servers.get(serverId);
-		if (!serverInfo) {
-			throw createError(ErrorType.ExternalServiceError, `MCP server ${serverId} not found`, {
-				name: 'mcp-server-error',
-				service: 'mcp',
-				action: 'list-tools',
-				serverId,
-			});
-		}
-
-		// If tools are already cached, return them
-		if (serverInfo.tools) {
-			logger.debug(`MCPManager: Using cached tools for server ${serverId}`);
-			return serverInfo.tools;
-		}
-
-		// Otherwise, fetch tools from the server and cache them
-		try {
-			const response = await serverInfo.server.listTools();
-			// Cache the tools
-			serverInfo.tools = response.tools;
-			return response.tools;
-		} catch (error) {
-			logger.error(`MCPManager: Error listing tools for server ${serverId}:`, error);
-			throw createError(ErrorType.ExternalServiceError, `Failed to list MCP tools: ${errorMessage(error)}`, {
-				name: 'mcp-tool-listing-error',
-				service: 'mcp',
-				action: 'list-tools',
-				serverId,
-			});
-		}
+		return await this.toolService.listTools(serverId);
 	}
 
 	async listResources(
 		serverId: string,
 	): Promise<Array<ResourceMetadata>> {
-		const serverInfo = this.servers.get(serverId);
-		if (!serverInfo) {
-			throw createError(ErrorType.ExternalServiceError, `MCP server ${serverId} not found`, {
-				name: 'mcp-server-error',
-				service: 'mcp',
-				action: 'list-resources',
-				serverId,
-			});
-		}
-
-		// If tools are already cached, return them
-		if (serverInfo.resources) {
-			logger.debug(`MCPManager: Using cached resources for server ${serverId}`);
-			return serverInfo.resources;
-		}
-
-		// Otherwise, fetch resources from the server and cache them
-		try {
-			const response = await serverInfo.server.listResources();
-			//logger.info(`MCPManager: Resources for server ${serverId}:`, response);
-			// Cache the resources
-			serverInfo.resources = response.resources.map((resource) => ({
-				...resource,
-				type: 'mcp',
-				contentType: resource.mimeType?.startsWith('image/') ? 'image' : 'text',
-				mimeType: resource.mimeType || 'text/plain',
-				lastModified: new Date(),
-			}));
-			return serverInfo.resources;
-		} catch (error) {
-			// MCPManager: Error listing resources for server slack: McpError: MCP error -32601: Method not found
-			if (error && typeof error === 'object' && 'code' in error && error.code === -32601) {
-				logger.warn(`MCPManager: Listing resources for server ${serverId} is not supported`);
-				return [];
-			} else {
-				logger.error(`MCPManager: Error listing resources for server ${serverId}:`, error);
-				throw createError(
-					ErrorType.ExternalServiceError,
-					`Failed to list MCP resources: ${errorMessage(error)}`,
-					{
-						name: 'mcp-resource-listing-error',
-						service: 'mcp',
-						action: 'list-resources',
-						serverId,
-					},
-				);
-			}
-		}
+		return await this.resourceService.listResources(serverId);
 	}
 
 	async executeMCPTool(
 		serverId: string,
 		toolName: string,
 		toolUse: LLMAnswerToolUse,
-	): Promise<LLMMessageContentParts> {
-		const serverInfo = this.servers.get(serverId);
-		if (!serverInfo) {
-			throw createError(ErrorType.ExternalServiceError, `MCP server ${serverId} not found`, {
-				name: 'mcp-server-error',
-				service: 'mcp',
-				action: 'execute-tool',
-				serverId,
-			});
-		}
-		const { toolInput } = toolUse;
-
-		try {
-			logger.info(`MCPManager: Executing MCP tool ${toolName} with args:`, toolInput);
-			const result = await serverInfo.server.callTool({
-				name: toolName,
-				arguments: toolInput as unknown as { [x: string]: unknown },
-			});
-			return result.content as LLMMessageContentParts;
-		} catch (error) {
-			logger.error(`MCPManager: Error executing tool ${toolName}:`, error);
-			throw createError(ErrorType.ExternalServiceError, `Failed to execute MCP tool: ${errorMessage(error)}`, {
-				name: 'mcp-tool-execution-error',
-				service: 'mcp',
-				action: 'execute-tool',
-				toolName,
-				serverId,
-			});
-		}
+		projectEditor: ProjectEditor,
+		collaborationId: string,
+	): Promise<{ content: LLMMessageContentParts; toolResponse: string | null }> {
+		return await this.toolService.executeMCPTool(serverId, toolName, toolUse, projectEditor, collaborationId);
 	}
 
 	/*
@@ -278,57 +270,28 @@ export class MCPManager {
 		serverId: string,
 		resourceUri: string,
 	): Promise<ReadResourceResult> {
-		const serverInfo = this.servers.get(serverId);
-		if (!serverInfo) {
-			throw createError(ErrorType.ExternalServiceError, `MCP server ${serverId} not found`, {
-				name: 'mcp-server-error',
-				service: 'mcp',
-				action: 'load-resource',
-				serverId,
-			});
-		}
-
-		try {
-			logger.info(`MCPManager: Loading resource ${resourceUri}`);
-			const result = await serverInfo.server.readResource({
-				uri: resourceUri,
-			});
-			return result;
-		} catch (error) {
-			logger.error(`MCPManager: Error executing tool ${resourceUri}:`, error);
-			throw createError(ErrorType.ExternalServiceError, `Failed to load MCP resource: ${errorMessage(error)}`, {
-				name: 'mcp-load-resource-error',
-				service: 'mcp',
-				action: 'load-resource',
-				resourceUri,
-				serverId,
-			});
-		}
+		return await this.resourceService.loadResource(serverId, resourceUri);
 	}
 
 	async cleanup(): Promise<void> {
-		for (const [serverId, serverInfo] of this.servers.entries()) {
-			try {
-				// Close the transport which is managed by the server
-				await serverInfo.server.close();
-				this.servers.delete(serverId);
-			} catch (error) {
-				logger.error(`MCPManager: Error cleaning up server ${serverId}:`, error);
-			}
-		}
+		// Delegate cleanup to connection service
+		await this.connectionService.cleanup();
+
+		// Clear servers map after connections are closed
+		this.serverRegistry.clear();
 	}
 
 	public getMCPServerConfiguration(serverId: string): MCPServerConfig | null {
-		return this.servers.get(serverId)?.config || null;
+		return this.serverRegistry.getMCPServerConfiguration(serverId);
 	}
 
 	// deno-lint-ignore require-await
 	private async getMCPServerConfigurations(): Promise<MCPServerConfig[]> {
-		return this.globalConfig.api?.mcpServers || [];
+		return this.serverRegistry.getMCPServerConfigurations();
 	}
 
 	public getServerCapabilities(serverId: string): DataSourceCapability[] | null {
-		return this.servers.get(serverId)?.capabilities || null;
+		return this.serverRegistry.getServerCapabilities(serverId);
 	}
 
 	/**
@@ -337,7 +300,20 @@ export class MCPManager {
 	 */
 	// deno-lint-ignore require-await
 	async getServers(): Promise<string[]> {
-		return Array.from(this.servers.keys());
+		return this.serverRegistry.getServers();
+	}
+
+	/**
+	 * Public method to handle sampling requests
+	 * Can be used when SDK supports sampling or for manual processing
+	 * Delegates to request handler service
+	 */
+	public async processSamplingRequest(
+		serverId: string,
+		params: SamplingCreateMessageParams,
+		meta: Record<string, unknown>,
+	): Promise<SamplingCreateMessageResult> {
+		return await this.requestHandlerService.processSamplingRequest(serverId, params, meta);
 	}
 
 	/**
@@ -345,43 +321,14 @@ export class MCPManager {
 	 * @param serverId ID of the server to refresh tools for
 	 */
 	async refreshToolsCache(serverId: string): Promise<void> {
-		const serverInfo = this.servers.get(serverId);
-		if (!serverInfo) {
-			throw createError(ErrorType.ExternalServiceError, `MCP server ${serverId} not found`, {
-				name: 'mcp-server-error',
-				service: 'mcp',
-				action: 'refresh-tools-cache',
-				serverId,
-			});
-		}
-
-		try {
-			const response = await serverInfo.server.listTools();
-			serverInfo.tools = response.tools;
-			logger.debug(`MCPManager: Refreshed tools cache for server ${serverId}`);
-		} catch (error) {
-			logger.error(`MCPManager: Error refreshing tools cache for server ${serverId}:`, error);
-			throw createError(
-				ErrorType.ExternalServiceError,
-				`Failed to refresh MCP tools cache: ${errorMessage(error)}`,
-				{
-					name: 'mcp-tools-cache-refresh-error',
-					service: 'mcp',
-					action: 'refresh-tools-cache',
-					serverId,
-				},
-			);
-		}
+		return await this.toolService.refreshToolsCache(serverId);
 	}
 
 	/**
 	 * Refresh the tools cache for all servers
 	 */
 	async refreshAllToolsCaches(): Promise<void> {
-		const serverIds = Array.from(this.servers.keys());
-		for (const serverId of serverIds) {
-			await this.refreshToolsCache(serverId);
-		}
+		return await this.toolService.refreshAllToolsCaches();
 	}
 
 	/**
@@ -389,35 +336,74 @@ export class MCPManager {
 	 * @returns Array of all MCP tools with their metadata
 	 */
 	async getAllTools(): Promise<Array<{ name: string; description: string; server: string }>> {
-		const allTools: Array<{ name: string; description: string; server: string }> = [];
-		const serverIds = await this.getServers();
+		return await this.toolService.getAllTools();
+	}
+	// ============================================================================
+	// OAUTH METHODS (now delegated to OAuth service)
+	// ============================================================================
 
-		for (const serverId of serverIds) {
-			const serverInfo = this.servers.get(serverId);
-			if (!serverInfo) continue;
+	/**
+	 * Save server configuration to persistent storage
+	 * Uses shared utility for consistency across all MCP services
+	 */
+	public async saveServerConfig(config: MCPServerConfig): Promise<void> {
+		return await saveServerConfig(config);
+	}
 
-			const serverName = serverInfo.config.name || serverInfo.config.id;
+	// ============================================================================
+	// OAUTH DISCOVERY AND FLOW METHODS
+	// ============================================================================
 
-			// Use cached tools if available, otherwise fetch them
-			let tools;
-			try {
-				tools = serverInfo.tools || await this.listTools(serverId);
-			} catch (error) {
-				logger.warn(`MCPManager: Error getting tools for server ${serverId}:`, error);
-				continue;
-			}
+	/**
+	 * Attempt Dynamic Client Registration (RFC7591)
+	 * Delegates to OAuth service
+	 */
+	public async registerDynamicClient(
+		serverUrl: string,
+		registrationEndpoint: string,
+		serverId: string,
+	): Promise<ClientRegistrationResponse> {
+		return await this.oauthService.registerDynamicClient(serverUrl, registrationEndpoint, serverId);
+	}
 
-			// Format each tool with simple name, description, and server information
-			for (const tool of tools) {
-				allTools.push({
-					name: `${tool.name}_${serverId}`,
-					description: tool.description || `MCP Tool ${tool.name}`,
-					server: serverName,
-				});
-			}
-		}
+	/**
+	 * Discover OAuth server endpoints for a given server URL
+	 * Delegates to OAuth service
+	 */
+	public async discoverOAuthEndpoints(serverUrl: string): Promise<OAuthServerMetadata> {
+		return await this.oauthService.discoverOAuthEndpoints(serverUrl);
+	}
 
-		return allTools;
+	/**
+	 * Generate authorization URL for OAuth Authorization Code flow
+	 * Delegates to OAuth service
+	 */
+	async generateAuthorizationUrl(serverId: string, clientState?: string): Promise<string> {
+		return await this.oauthService.generateAuthorizationUrl(serverId, clientState);
+	}
+
+	/**
+	 * Handle OAuth authorization callback and exchange code for tokens
+	 * Delegates to OAuth service
+	 */
+	async handleAuthorizationCallback(code: string, state: string): Promise<void> {
+		return await this.oauthService.handleAuthorizationCallback(code, state);
+	}
+
+	/**
+	 * Refresh expired access token using refresh token
+	 * Delegates to OAuth service
+	 */
+	async refreshAccessToken(serverId: string): Promise<void> {
+		return await this.oauthService.refreshAccessToken(serverId);
+	}
+
+	/**
+	 * Perform Client Credentials OAuth flow for app-to-app authentication
+	 * Delegates to OAuth service
+	 */
+	async performClientCredentialsFlow(serverId: string): Promise<void> {
+		return await this.oauthService.performClientCredentialsFlow(serverId);
 	}
 }
 
@@ -426,6 +412,7 @@ export default MCPManager;
 /**
  * Gets the global mcpManager instance
  */
+// deno-lint-ignore require-await
 export async function getMCPManager(): Promise<MCPManager> {
 	const noSingleton = Deno.env.get('BB_NO_SINGLETON_MCP_MANAGER'); // used for testing - don't rely on it for other purposes
 	if (noSingleton) return MCPManager.getOneUseInstance();

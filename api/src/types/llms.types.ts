@@ -23,6 +23,7 @@ export const MODELS = {
 	// Anthropic models
 	CLAUDE_4_0_OPUS: 'claude-opus-4-20250514',
 	CLAUDE_4_0_SONNET: 'claude-sonnet-4-20250514',
+	CLAUDE_4_5_SONNET: 'claude-sonnet-4-5-20250929',
 	CLAUDE_3_7_SONNET: 'claude-3-7-sonnet-20250219',
 	CLAUDE_3_5_SONNET: 'claude-3-5-sonnet-20241022',
 	CLAUDE_3_5_HAIKU: 'claude-3-5-haiku-20241022',
@@ -73,6 +74,7 @@ export const MODELS = {
 export const AnthropicModel = {
 	CLAUDE_4_0_OPUS: MODELS.CLAUDE_4_0_OPUS,
 	CLAUDE_4_0_SONNET: MODELS.CLAUDE_4_0_SONNET,
+	CLAUDE_4_5_SONNET: MODELS.CLAUDE_4_5_SONNET,
 	CLAUDE_3_7_SONNET: MODELS.CLAUDE_3_7_SONNET,
 	CLAUDE_3_5_SONNET: MODELS.CLAUDE_3_5_SONNET,
 	CLAUDE_3_5_HAIKU: MODELS.CLAUDE_3_5_HAIKU,
@@ -179,51 +181,7 @@ export const LLMModelsByProvider = {
 	[LLMProvider.UNKNOWN]: [],
 };
 
-/**
- * Legacy model-to-provider mapping for backwards compatibility
- * This will be populated dynamically by the ModelRegistryService
- * For now, provide static mapping for known models
- */
-const staticModelToProvider: Record<string, LLMProvider> = {};
-
-// Populate static mappings
-Object.values(AnthropicModel).forEach((model) => {
-	staticModelToProvider[model] = LLMProvider.ANTHROPIC;
-});
-Object.values(OpenAIModel).forEach((model) => {
-	staticModelToProvider[model] = LLMProvider.OPENAI;
-});
-Object.values(DeepSeekModel).forEach((model) => {
-	staticModelToProvider[model] = LLMProvider.DEEPSEEK;
-});
-Object.values(GoogleModel).forEach((model) => {
-	staticModelToProvider[model] = LLMProvider.GOOGLE;
-});
-Object.values(GroqModel).forEach((model) => {
-	staticModelToProvider[model] = LLMProvider.GROQ;
-});
-Object.values(OllamaModel).forEach((model) => {
-	staticModelToProvider[model] = LLMProvider.OLLAMA;
-});
-
-// Export the static mapping (will be enhanced by ModelRegistryService)
-export const LLMModelToProvider: Record<string, LLMProvider> = staticModelToProvider;
-
-/**
- * Function to get updated model-to-provider mapping from ModelRegistryService
- * This should be used instead of the static LLMModelToProvider when possible
- */
-export async function getLLMModelToProvider(): Promise<Record<string, LLMProvider>> {
-	try {
-		// Dynamic import to avoid circular dependencies
-		const { ModelRegistryService } = await import('api/llms/modelRegistryService.ts');
-		const registryService = await ModelRegistryService.getInstance();
-		return registryService.getModelToProviderMapping();
-	} catch (_error) {
-		// Fallback to static mapping if service isn't available
-		return staticModelToProvider;
-	}
-}
+// moved getLLMModelToProvider to 'api/utils/model.ts'
 
 export type LLMTokenUsage = TokenUsage;
 

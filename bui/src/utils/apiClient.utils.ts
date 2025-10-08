@@ -17,8 +17,8 @@ import type {
 } from 'shared/types/project.ts';
 import type { DataSourceProviderInfo } from 'shared/types/dataSource.ts';
 import type { CollaborationParams } from 'shared/types/collaboration.ts';
-import type { GlobalConfig, ProjectConfig } from 'shared/config/types.ts';
-import type { FileSuggestionsResponse } from 'api/utils/fileSuggestions.ts';
+import type { GlobalConfig, MCPServerConfig, ProjectConfig } from 'shared/config/types.ts';
+import type { ResourceSuggestionsResponse } from 'api/utils/resourceSuggestions.ts';
 import type { ListDirectoryResponse } from 'api/utils/fileHandling.ts';
 import type { Session, User } from '../types/auth.ts';
 import type { LLMModelConfig } from '../types/llm.types.ts';
@@ -70,11 +70,64 @@ export interface ApiStatus {
 	projectName?: string;
 }
 
+// Pricing tier interfaces
+export interface PricingTier {
+	tier: number;
+	name: string;
+	threshold: { min: number; max: number | null };
+	// Note: Actual pricing must be loaded from backend edge function, not from JSON
+	price?: number; // Placeholder for future backend-loaded pricing
+}
+
+export interface TieredPricingConfig {
+	tiers: PricingTier[];
+	tierDeterminedBy: 'totalInputTokens' | 'inputTokens' | 'totalTokens';
+}
+
+export interface ModelPricingInfo {
+	// IMPORTANT: All pricing values below are RAW model registry data
+	// Actual user pricing must be loaded from backend edge functions
+
+	// Basic token pricing (flat rate models) - RAW DATA ONLY
+	token_pricing?: {
+		input: number; // Raw price - NOT user pricing
+		output: number; // Raw price - NOT user pricing
+	};
+
+	// Tiered pricing configurations - Token thresholds are valid, prices are RAW
+	inputTokensTieredConfig?: TieredPricingConfig;
+	outputTokensTieredConfig?: TieredPricingConfig;
+
+	// Cache pricing (for prompt caching enabled models) - RAW DATA ONLY
+	inputTokensCacheTypes?: Record<string, {
+		description: string;
+		inheritsTiers: boolean;
+		multiplier: number; // Raw multiplier - NOT user pricing
+		explicitPricing?: {
+			tiers: Array<{ tier: number; price: number }>; // Raw prices - NOT user pricing
+		};
+	}>;
+
+	// Content type pricing (for multimodal models) - RAW DATA ONLY
+	inputTokensContentTypes?: Record<string, {
+		multiplier: number; // Raw multiplier - NOT user pricing
+		explicitPricing?: {
+			tiers: Array<{ tier: number; price: number }>; // Raw prices - NOT user pricing
+		};
+	}>;
+
+	// Pricing metadata
+	pricing_metadata?: {
+		currency: string;
+		effectiveDate: string;
+	};
+}
+
 // Model capability types
 export interface ModelCapabilities {
 	contextWindow: number;
 	maxOutputTokens: number;
-	pricing?: Record<string, unknown>;
+	pricing?: ModelPricingInfo;
 	supportedFeatures: {
 		extendedThinking?: boolean;
 		promptCaching?: boolean;
@@ -178,6 +231,32 @@ export interface ApiUpgradeResponse {
 
 export interface ConfigUpdateResponse {
 	message: string;
+}
+
+// OAuth API Response Types
+export interface MCPOAuthAuthorizeResponse {
+	authorizationUrl: string;
+	state?: string;
+	codeVerifier?: string;
+}
+
+export interface MCPOAuthTokenResponse {
+	accessToken: string;
+	refreshToken?: string;
+	expiresAt?: number;
+	tokenType?: string;
+	scope?: string;
+}
+
+export interface MCPOAuthServerStatus {
+	connected: boolean;
+	serverInfo?: {
+		name: string;
+		version?: string;
+		capabilities?: string[];
+	};
+	lastChecked?: string;
+	error?: string;
 }
 
 export class ApiClient {
@@ -802,20 +881,20 @@ export class ApiClient {
 	}
 
 	// File Management Methods
-	async suggestFiles(partialPath: string, projectId: ProjectId): Promise<FileSuggestionsResponse | null> {
-		return await this.post<FileSuggestionsResponse>(
-			'/api/v1/files/suggest',
+	async suggestResources(partialPath: string, projectId: ProjectId): Promise<ResourceSuggestionsResponse | null> {
+		return await this.post<ResourceSuggestionsResponse>(
+			'/api/v1/resources/suggest',
 			{ partialPath, projectId },
 		);
 	}
 
-	async suggestFilesForPath(partialPath: string, rootPath: string, options: {
+	async suggestResourcesForPath(partialPath: string, rootPath: string, options: {
 		limit?: number;
 		caseSensitive?: boolean;
 		type?: 'all' | 'file' | 'directory';
-	} = {}): Promise<FileSuggestionsResponse | null> {
-		return await this.post<FileSuggestionsResponse>(
-			'/api/v1/files/suggest-for-path',
+	} = {}): Promise<ResourceSuggestionsResponse | null> {
+		return await this.post<ResourceSuggestionsResponse>(
+			'/api/v1/resources/suggest-for-path',
 			{
 				partialPath,
 				rootPath,
@@ -834,7 +913,7 @@ export class ApiClient {
 		} = {},
 	): Promise<ListDirectoryResponse | null> {
 		try {
-			return await this.post<ListDirectoryResponse>('/api/v1/files/list-directory', {
+			return await this.post<ListDirectoryResponse>('/api/v1/resources/list-directory', {
 				dirPath,
 				...options,
 			});
@@ -894,9 +973,9 @@ export class ApiClient {
 	async getCollaboration(
 		collaborationId: string,
 		projectId: ProjectId,
-	): Promise<(CollaborationValues & { logDataEntries: CollaborationLogDataEntry[] }) | null> {
+	): Promise<(CollaborationValues & { logDataEntries: CollaborationLogDataEntry[]; error?: string }) | null> {
 		//): Promise<(CollaborationResponse & { logDataEntries: CollaborationLogDataEntry[] }) | null> {
-		return await this.get<CollaborationValues & { logDataEntries: CollaborationLogDataEntry[] }>(
+		return await this.get<CollaborationValues & { logDataEntries: CollaborationLogDataEntry[]; error?: string }>(
 			`/api/v1/collaborations/${collaborationId}?projectId=${encodeURIComponent(projectId)}`,
 			[404],
 		);
@@ -939,8 +1018,8 @@ export class ApiClient {
 		collaborationId: string,
 		interactionId: string,
 		projectId: ProjectId,
-	): Promise<(CollaborationResponse & { logDataEntries: CollaborationLogDataEntry[] }) | null> {
-		return await this.get<CollaborationResponse & { logDataEntries: CollaborationLogDataEntry[] }>(
+	): Promise<(CollaborationResponse & { logDataEntries: CollaborationLogDataEntry[]; error?: string }) | null> {
+		return await this.get<CollaborationResponse & { logDataEntries: CollaborationLogDataEntry[]; error?: string }>(
 			`/api/v1/collaborations/${collaborationId}/interactions/${interactionId}?projectId=${
 				encodeURIComponent(projectId)
 			}`,
@@ -991,6 +1070,293 @@ export class ApiClient {
 		return await this.get<CollaborationValues>(
 			`/api/v1/collaborations/defaults?projectId=${encodeURIComponent(projectId)}`,
 		);
+	}
+
+	// OAuth Methods for MCP Server Management
+
+	/**
+	 * Initiate OAuth authorization flow for MCP server
+	 * @param serverId MCP server ID
+	 * @param state Optional client-generated state for CSRF protection
+	 * @returns Authorization URL and flow parameters
+	 */
+	async mcpServerOAuthAuthorize(serverId: string, state?: string): Promise<MCPOAuthAuthorizeResponse | null> {
+		try {
+			const requestBody = state ? { state } : {};
+			return await this.post<MCPOAuthAuthorizeResponse>(`/api/v1/mcp/servers/${serverId}/authorize`, requestBody);
+		} catch (error) {
+			console.error(`APIClient: MCP OAuth authorize failed for ${serverId}: ${(error as Error).message}`);
+			return null;
+		}
+	}
+
+	/**
+	 * Handle OAuth callback for MCP server
+	 * @param serverId MCP server ID
+	 * @param code Authorization code from OAuth provider
+	 * @param state State parameter for CSRF protection
+	 * @param codeVerifier PKCE code verifier (optional)
+	 * @returns Token response
+	 */
+	async mcpServerOAuthCallback(
+		serverId: string,
+		code: string,
+		state?: string,
+		codeVerifier?: string,
+	): Promise<MCPOAuthTokenResponse | null> {
+		try {
+			return await this.post<MCPOAuthTokenResponse>(`/api/v1/mcp/servers/${serverId}/callback`, {
+				code,
+				state,
+				codeVerifier,
+			});
+		} catch (error) {
+			console.error(`APIClient: MCP OAuth callback failed for ${serverId}: ${(error as Error).message}`);
+			return null;
+		}
+	}
+
+	/**
+	 * Perform client credentials OAuth flow for MCP server
+	 * @param serverId MCP server ID
+	 * @returns Token response
+	 */
+	async mcpServerOAuthClientCredentials(serverId: string): Promise<MCPOAuthTokenResponse | null> {
+		try {
+			return await this.post<MCPOAuthTokenResponse>(`/api/v1/mcp/servers/${serverId}/client-credentials`, {});
+		} catch (error) {
+			console.error(
+				`APIClient: MCP OAuth client credentials failed for ${serverId}: ${(error as Error).message}`,
+			);
+			return null;
+		}
+	}
+
+	/**
+	 * Refresh OAuth token for MCP server
+	 * @param serverId MCP server ID
+	 * @returns Token response with new access token
+	 */
+	async mcpServerOAuthRefresh(serverId: string): Promise<MCPOAuthTokenResponse | null> {
+		try {
+			return await this.post<MCPOAuthTokenResponse>(`/api/v1/mcp/servers/${serverId}/refresh`, {});
+		} catch (error) {
+			console.error(`APIClient: MCP OAuth token refresh failed for ${serverId}: ${(error as Error).message}`);
+			return null;
+		}
+	}
+
+	/**
+	 * Get MCP server connection status
+	 * @param serverId MCP server ID
+	 * @returns Server status and connection info
+	 */
+	async mcpServerStatus(serverId: string): Promise<MCPOAuthServerStatus | null> {
+		try {
+			return await this.get<MCPOAuthServerStatus>(`/api/v1/mcp/servers/${serverId}/status`);
+		} catch (error) {
+			console.error(`APIClient: MCP server status check failed for ${serverId}: ${(error as Error).message}`);
+			return null;
+		}
+	}
+
+	/**
+	 * Get OAuth configuration status for MCP server
+	 * @param serverId MCP server ID
+	 * @returns OAuth configuration status including discovery and dynamic registration info
+	 */
+	async mcpServerOAuthConfig(serverId: string): Promise<
+		{
+			serverId: string;
+			hasOAuth: boolean;
+			grantType?: string;
+			configurationStatus: 'complete' | 'missing_client_credentials' | 'discovery_failed';
+			supportsDynamicRegistration: boolean;
+			dynamicRegistrationStatus: 'successful' | 'failed' | 'not_attempted' | 'not_supported';
+			discoveredEndpoints?: {
+				authorization_endpoint?: string;
+				token_endpoint?: string;
+				registration_endpoint?: string;
+			};
+			hasClientCredentials: boolean;
+			hasAccessToken: boolean;
+		} | null
+	> {
+		try {
+			return await this.get<{
+				serverId: string;
+				hasOAuth: boolean;
+				grantType?: string;
+				configurationStatus: 'complete' | 'missing_client_credentials' | 'discovery_failed';
+				supportsDynamicRegistration: boolean;
+				dynamicRegistrationStatus: 'successful' | 'failed' | 'not_attempted' | 'not_supported';
+				discoveredEndpoints?: {
+					authorization_endpoint?: string;
+					token_endpoint?: string;
+					registration_endpoint?: string;
+				};
+				hasClientCredentials: boolean;
+				hasAccessToken: boolean;
+			}>(`/api/v1/mcp/servers/${serverId}/oauth-config`);
+		} catch (error) {
+			console.error(`APIClient: MCP OAuth config check failed for ${serverId}: ${(error as Error).message}`);
+			return null;
+		}
+	}
+
+	// MCP Server Management Methods
+
+	/**
+	 * Add new MCP server configuration
+	 * @param serverConfig MCP server configuration
+	 * @returns Success response with server info
+	 */
+	async addMCPServer(serverConfig: MCPServerConfig): Promise<
+		{
+			success: boolean;
+			message: string;
+			serverId: string;
+			connected: boolean;
+			connectionError?: string;
+		} | null
+	> {
+		try {
+			// Ensure required fields are provided
+			if (!serverConfig.name?.trim()) {
+				throw new Error('Server name is required');
+			}
+			if (!serverConfig.id?.trim()) {
+				throw new Error('Server ID is required');
+			}
+
+			return await this.post<{
+				success: boolean;
+				message: string;
+				serverId: string;
+				connected: boolean;
+				connectionError?: string;
+			}, MCPServerConfig>('/api/v1/mcp/servers', serverConfig);
+		} catch (error) {
+			console.error(`APIClient: Add MCP server failed for ${serverConfig.id}: ${(error as Error).message}`);
+			return null;
+		}
+	}
+
+	/**
+	 * Update existing MCP server configuration
+	 * @param serverId MCP server ID
+	 * @param serverConfig Updated MCP server configuration (excluding ID)
+	 * @returns Success response with server info
+	 */
+	async updateMCPServer(serverId: string, serverConfig: Omit<MCPServerConfig, 'id'>): Promise<
+		{
+			success: boolean;
+			message: string;
+			serverId: string;
+		} | null
+	> {
+		try {
+			// Ensure name is provided for API validation
+			if (!serverConfig.name?.trim()) {
+				throw new Error('Server name is required');
+			}
+
+			return await this.put<{
+				success: boolean;
+				message: string;
+				serverId: string;
+			}, Omit<MCPServerConfig, 'id'>>(`/api/v1/mcp/servers/${serverId}`, serverConfig);
+		} catch (error) {
+			console.error(`APIClient: Update MCP server failed for ${serverId}: ${(error as Error).message}`);
+			return null;
+		}
+	}
+
+	/**
+	 * Remove MCP server configuration
+	 * @param serverId MCP server ID
+	 * @returns Success response
+	 */
+	async removeMCPServer(serverId: string): Promise<
+		{
+			success: boolean;
+			message: string;
+		} | null
+	> {
+		try {
+			return await this.delete<{
+				success: boolean;
+				message: string;
+			}>(`/api/v1/mcp/servers/${serverId}`);
+		} catch (error) {
+			console.error(`APIClient: Remove MCP server failed for ${serverId}: ${(error as Error).message}`);
+			return null;
+		}
+	}
+
+	/**
+	 * Connect to MCP server manually
+	 * @param serverId MCP server ID
+	 * @returns Success response
+	 */
+	async connectMCPServer(serverId: string): Promise<
+		{
+			success: boolean;
+			message: string;
+			requiresAuth?: boolean;
+		} | null
+	> {
+		try {
+			return await this.post<{
+				success: boolean;
+				message: string;
+				requiresAuth?: boolean;
+			}>(`/api/v1/mcp/servers/${serverId}/connect`, {});
+		} catch (error) {
+			console.error(`APIClient: Connect MCP server failed for ${serverId}: ${(error as Error).message}`);
+			return null;
+		}
+	}
+
+	/**
+	 * List all MCP servers
+	 * @returns Array of MCP server configurations with status
+	 */
+	async listMCPServers(): Promise<
+		{
+			servers: Array<{
+				id: string;
+				name: string;
+				description?: string;
+				transport: 'stdio' | 'http';
+				status: 'connected' | 'disconnected' | 'error';
+				oauth?: {
+					grantType: 'authorization_code' | 'client_credentials';
+					hasToken: boolean;
+					expiresAt?: string;
+				};
+			}>;
+		} | null
+	> {
+		try {
+			return await this.get<{
+				servers: Array<{
+					id: string;
+					name: string;
+					description?: string;
+					transport: 'stdio' | 'http';
+					status: 'connected' | 'disconnected' | 'error';
+					oauth?: {
+						grantType: 'authorization_code' | 'client_credentials';
+						hasToken: boolean;
+						expiresAt?: string;
+					};
+				}>;
+			}>('/api/v1/mcp/servers');
+		} catch (error) {
+			console.error(`APIClient: List MCP servers failed: ${(error as Error).message}`);
+			return null;
+		}
 	}
 
 	async getMeta(): Promise<SystemMeta | null> {

@@ -41,6 +41,22 @@ pub struct LlmProviders {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
+pub struct GoogleOauth {
+    #[serde(rename = "redirectUri")]
+    #[serde(default)]
+    pub redirect_uri: String,
+    #[serde(rename = "clientId")]
+    pub client_id: Option<String>,
+    #[serde(rename = "clientSecret")]
+    pub client_secret: Option<String>,
+    #[serde(rename = "configUri")]
+    pub config_uri: Option<String>,
+    #[serde(rename = "refreshExchangeUri")]
+    pub refresh_exchange_uri: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all(serialize = "camelCase", deserialize = "camelCase"))]
 pub struct LlmKeys {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub anthropic: Option<String>,
@@ -102,6 +118,9 @@ pub struct BuiConfig {
     pub environment: Option<String>,
     #[serde(default)]
     pub local_mode: bool,
+    #[serde(rename = "googleOauth")]
+    #[serde(default)]
+    pub google_oauth: GoogleOauth,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -206,6 +225,18 @@ impl Default for LlmKeys {
     }
 }
 
+impl Default for GoogleOauth {
+    fn default() -> Self {
+        GoogleOauth {
+            redirect_uri: "https://chat.beyondbetter.app/oauth/google/callback".to_string(),
+            client_id: None,
+            client_secret: None,
+            config_uri: Some("https://chat.beyondbetter.app/api/v1/oauth/google/config".to_string()),
+            refresh_exchange_uri: Some("https://chat.beyondbetter.app/api/v1/oauth/google/token".to_string()),
+        }
+    }
+}
+
 impl Default for ApiConfig {
     fn default() -> Self {
         ApiConfig {
@@ -239,6 +270,7 @@ impl Default for BuiConfig {
             kv_session_path: "auth.kv".to_string(),
             environment: None,
             local_mode: false,
+            google_oauth: GoogleOauth::default(),
         }
     }
 }
@@ -268,8 +300,8 @@ impl Default for CliConfig {
 impl Default for DefaultModels {
     fn default() -> Self {
         DefaultModels {
-            orchestrator: "claude-sonnet-4-20250514".to_string(),
-            agent: "claude-sonnet-4-20250514".to_string(),
+            orchestrator: "claude-sonnet-4-5-20250929".to_string(),
+            agent: "claude-sonnet-4-5-20250929".to_string(),
             chat: "claude-3-5-haiku-20241022".to_string(),
         }
     }

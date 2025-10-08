@@ -6,6 +6,7 @@
 import { ResourceType } from 'api/types/llms.ts';
 import { DataSourceAccessMethod, DataSourceProviderType } from 'shared/types/dataSource.ts';
 import type { PortableTextBlock, PortableTextOperation } from 'api/types/portableText.ts';
+import type { TabularSheet } from 'api/types/tabular.ts';
 
 /**
  * Configurations for an MCP resource
@@ -172,6 +173,7 @@ export interface ResourceLoadResult {
 	formats?: {
 		plainText: string;
 		structured: any[];
+		//tabular: any[];
 	};
 
 	/**
@@ -625,7 +627,7 @@ export interface ResourceSearchResult {
 // Resource Edit Operation
 // ========================================================================
 
-export type EditType = 'searchReplace' | 'range' | 'blocks' | 'structuredData';
+export type EditType = 'searchReplace' | 'range' | 'blocks' | 'structuredData' | 'cell';
 
 export interface ResourceEditOperation {
 	// Required field indicating the type of operation
@@ -661,6 +663,22 @@ export interface ResourceEditOperation {
 
 	// Structured data properties (when editType === 'structuredData')
 	structuredData_operation?: any;
+
+	// Cell operation properties (when editType === 'cell')
+	cell_operationType?:
+		| 'setValue'
+		| 'setFormula'
+		| 'clear'
+		| 'format'
+		| 'insertRows'
+		| 'insertColumns'
+		| 'deleteRows'
+		| 'deleteColumns';
+	cell_range?: string; // A1 notation: "A1", "A1:B5", "Sheet1!A1:C10"
+	cell_values?: any[][]; // 2D array for setValue operations
+	cell_formula?: string; // Formula for setFormula (e.g., "=SUM(A1:A10)")
+	cell_format?: CellFormat; // Cell formatting options
+	cell_sheetName?: string; // Target sheet name
 }
 
 /**
@@ -715,6 +733,12 @@ export interface ResourceWriteOptions {
 	 * Content type (MIME type) to set on the resource
 	 */
 	contentType?: string;
+
+	/**
+	 * Content format type for structured data sources
+	 * Indicates whether content is plain text, structured blocks, or binary
+	 */
+	contentFormat?: 'plain-text' | 'structured' | 'binary' | 'tabular';
 
 	/**
 	 * Additional metadata to set on the resource
@@ -876,6 +900,18 @@ export interface BinaryContent {
 	mimeType: string;
 }
 
+/**
+ * Tabular content for spreadsheet and database data sources
+ */
+export interface TabularContent {
+	/** Array of sheets/tables with their data */
+	sheets: Array<TabularSheet>;
+	/** Whether to allow empty content (default: false) */
+	allowEmptyContent?: boolean;
+	/** Required confirmation string acknowledging tabular content creation */
+	acknowledgement: string;
+}
+
 export interface RangeTextSpan {
 	_type: 'span';
 	_key: string;
@@ -1026,6 +1062,29 @@ export type RangeOperationType =
 	| 'replaceRange'
 	| 'updateTextStyle'
 	| 'updateParagraphStyle';
+
+/**
+ * Cell formatting options for tabular data
+ */
+export interface CellFormat {
+	/** Number format (e.g., "0.00%", "$#,##0.00") */
+	numberFormat?: string;
+	/** Background color as hex code */
+	backgroundColor?: string;
+	/** Text color as hex code */
+	color?: string;
+	/** Text alignment */
+	horizontalAlignment?: 'LEFT' | 'CENTER' | 'RIGHT';
+	verticalAlignment?: 'TOP' | 'MIDDLE' | 'BOTTOM';
+	/** Text formatting */
+	bold?: boolean;
+	italic?: boolean;
+	strikethrough?: boolean;
+	underline?: boolean;
+	/** Font family and size */
+	fontFamily?: string;
+	fontSize?: number;
+}
 
 /**
  * Row operation for structured data editing (tables, CSV, databases)
@@ -1197,4 +1256,13 @@ export function isBinaryContent(content: any): content is BinaryContent {
 	return content &&
 		(content.data instanceof Uint8Array || typeof content.data === 'string') &&
 		typeof content.mimeType === 'string';
+}
+
+/**
+ * Type guard to check if content is TabularContent
+ */
+export function isTabularContent(content: any): content is TabularContent {
+	return content &&
+		Array.isArray(content.sheets) &&
+		typeof content.acknowledgement === 'string';
 }

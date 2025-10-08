@@ -2,7 +2,7 @@ import { useComputed, useSignal } from '@preact/signals';
 import { useEffect, useRef } from 'preact/hooks';
 import type { Signal } from '@preact/signals';
 import type { AppState } from '../hooks/useAppState.ts';
-import type { FileSuggestionsResponse } from 'api/utils/fileSuggestions.ts';
+import type { ResourceSuggestionsResponse } from 'api/utils/resourceSuggestions.ts';
 import { ColumnFileBrowser } from './ColumnFileBrowser.tsx';
 
 interface FileBrowserProps {
@@ -61,7 +61,7 @@ export function FileBrowser({
 
 	// Below is the original dropdown implementation
 	const inputValue = useSignal(value);
-	const suggestions = useSignal<FileSuggestionsResponse['suggestions']>([]);
+	const suggestions = useSignal<ResourceSuggestionsResponse['suggestions']>([]);
 	const showSuggestions = useSignal(false);
 	const loading = useSignal(false);
 	const inputRef = useRef<HTMLInputElement>(null);
@@ -104,7 +104,7 @@ export function FileBrowser({
 		loading.value = true;
 		try {
 			const apiClient = appState.value.apiClient;
-			const response = await apiClient?.suggestFilesForPath(path, rootPath, { type });
+			const response = await apiClient?.suggestResourcesForPath(path, rootPath, { type });
 			if (response) {
 				suggestions.value = response.suggestions;
 			}

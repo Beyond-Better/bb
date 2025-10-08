@@ -1,20 +1,18 @@
 import type { Context } from '@oak/oak';
 import type { BillingPreview, Plan, Subscription } from 'shared/types/subscription.ts';
-import type { SessionManager } from 'api/auth/session.ts';
 import { logger } from 'shared/logger.ts';
 
 export async function getCurrentSubscription(ctx: Context) {
 	try {
-		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
-		if (!sessionManager) {
-			logger.warn(
-				`SubscriptionHandler: getCurrentSubscription: No session manager configured`,
-			);
+		const userContext = ctx.state.userContext;
+		if (!userContext) {
+			logger.warn('SubscriptionHandler: No user context configured');
 			ctx.response.status = 400;
-			ctx.response.body = { error: 'No session manager configured' };
+			ctx.response.body = { error: 'No user context configured' };
 			return;
 		}
-		const supabaseClient = sessionManager.getClient();
+
+		const supabaseClient = userContext.userAuthSession.getClient();
 
 		const { data, error } = await supabaseClient.functions.invoke('user-subscription', {
 			method: 'GET',
@@ -40,16 +38,15 @@ export async function getCurrentSubscription(ctx: Context) {
 
 export async function getAvailablePlans(ctx: Context) {
 	try {
-		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
-		if (!sessionManager) {
-			logger.warn(
-				`SubscriptionHandler: getAvailablePlans: No session manager configured`,
-			);
+		const userContext = ctx.state.userContext;
+		if (!userContext) {
+			logger.warn('SubscriptionHandler: No user context configured');
 			ctx.response.status = 400;
-			ctx.response.body = { error: 'No session manager configured' };
+			ctx.response.body = { error: 'No user context configured' };
 			return;
 		}
-		const supabaseClient = sessionManager.getClient();
+
+		const supabaseClient = userContext.userAuthSession.getClient();
 		//logger.info(`SubscriptionHandler: Getting plans`);
 
 		const { data, error } = await supabaseClient.functions.invoke('plans', {
@@ -73,16 +70,15 @@ export async function getAvailablePlans(ctx: Context) {
 
 export async function changePlan(ctx: Context) {
 	try {
-		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
-		if (!sessionManager) {
-			logger.warn(
-				`SubscriptionHandler: changePlan: No session manager configured`,
-			);
+		const userContext = ctx.state.userContext;
+		if (!userContext) {
+			logger.warn('SubscriptionHandler: No user context configured');
 			ctx.response.status = 400;
-			ctx.response.body = { error: 'No session manager configured' };
+			ctx.response.body = { error: 'No user context configured' };
 			return;
 		}
-		const supabaseClient = sessionManager.getClient();
+
+		const supabaseClient = userContext.userAuthSession.getClient();
 
 		const body = await ctx.request.body.json();
 		const planId = body.planId;
@@ -125,16 +121,15 @@ export async function changePlan(ctx: Context) {
 
 export async function getPreview(ctx: Context) {
 	try {
-		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
-		if (!sessionManager) {
-			logger.warn(
-				`SubscriptionHandler: getPreview: No session manager configured`,
-			);
+		const userContext = ctx.state.userContext;
+		if (!userContext) {
+			logger.warn('SubscriptionHandler: No user context configured');
 			ctx.response.status = 400;
-			ctx.response.body = { error: 'No session manager configured' };
+			ctx.response.body = { error: 'No user context configured' };
 			return;
 		}
-		const supabaseClient = sessionManager.getClient();
+
+		const supabaseClient = userContext.userAuthSession.getClient();
 
 		const body = await ctx.request.body.json();
 		const planId = body.planId;
@@ -176,16 +171,15 @@ export async function getPreview(ctx: Context) {
 
 export async function cancelSubscription(ctx: Context) {
 	try {
-		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
-		if (!sessionManager) {
-			logger.warn(
-				`SubscriptionHandler: cancelSubscription: No session manager configured`,
-			);
+		const userContext = ctx.state.userContext;
+		if (!userContext) {
+			logger.warn('SubscriptionHandler: No user context configured');
 			ctx.response.status = 400;
-			ctx.response.body = { error: 'No session manager configured' };
+			ctx.response.body = { error: 'No user context configured' };
 			return;
 		}
-		const supabaseClient = sessionManager.getClient();
+
+		const supabaseClient = userContext.userAuthSession.getClient();
 
 		const body = await ctx.request.body.json();
 		const cancelAtPeriodEnd = body.cancelAtPeriodEnd ?? true; // Default to true if not specified

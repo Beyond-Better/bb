@@ -6,11 +6,10 @@ import type { CollaborationLogEntryType } from 'shared/types.ts';
 import type { LogEntryFormattedResult } from 'api/logEntries/types.ts';
 import LogEntryFormatterManager from '../../logEntries/logEntryFormatterManager.ts';
 import { logger } from 'shared/logger.ts';
-import type { SessionManager } from 'api/auth/session.ts';
 import { projectEditorManager } from 'api/editor/projectEditorManager.ts';
 
 export const logEntryFormatter = async (
-	{ params, request, response, app }: RouterContext<
+	{ params, request, response, state }: RouterContext<
 		'/v1/format_log_entry/:logEntryDestination/:logEntryFormatterType',
 		{ logEntryDestination: LLMToolFormatterDestination; logEntryFormatterType: CollaborationLogEntryType }
 	>,
@@ -26,20 +25,18 @@ export const logEntryFormatter = async (
 		// 	logEntry
 		// );
 
-		const sessionManager: SessionManager = app.state.auth.sessionManager;
-		if (!sessionManager) {
-			logger.warn(
-				`HandlerLogEntryFormatter: No session manager configured`,
-			);
+		const userContext = state.userContext;
+		if (!userContext) {
+			logger.warn('HandlerLogEntryFormatter: No user context configured');
 			response.status = 400;
-			response.body = { error: 'No session manager configured' };
+			response.body = { error: 'No user context configured' };
 			return;
 		}
 
 		const projectEditor = await projectEditorManager.getOrCreateEditor(
 			projectId,
 			collaborationId,
-			sessionManager,
+			userContext,
 		);
 		const logEntryFormatterManager = await new LogEntryFormatterManager(
 			projectEditor,

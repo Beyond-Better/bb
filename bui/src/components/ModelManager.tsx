@@ -86,9 +86,20 @@ const SUGGESTED_COMBOS = [
 		provider: 'Anthropic',
 		icon: getProviderIcon('anthropic'),
 		models: {
-			orchestrator: 'claude-sonnet-4-20250514',
-			agent: 'claude-sonnet-4-20250514',
+			orchestrator: 'claude-sonnet-4-5-20250929',
+			agent: 'claude-sonnet-4-5-20250929',
 			chat: 'claude-3-5-haiku-20241022',
+		},
+	},
+	{
+		name: 'OpenAI Balanced',
+		description: 'OpenAI models for reliability and consistency',
+		provider: 'OpenAI',
+		icon: getProviderIcon('openai'),
+		models: {
+			orchestrator: 'gpt-5-2025-08-07',
+			agent: 'gpt-5-mini-2025-08-07',
+			chat: 'gpt-5-nano-2025-08-07',
 		},
 	},
 	{
@@ -97,9 +108,9 @@ const SUGGESTED_COMBOS = [
 		provider: 'Anthropic',
 		icon: getProviderIcon('anthropic'),
 		models: {
-			orchestrator: 'claude-opus-4-20250514',
-			agent: 'claude-opus-4-20250514',
-			chat: 'claude-sonnet-4-20250514',
+			orchestrator: 'claude-opus-4-1-20250805',
+			agent: 'claude-opus-4-1-20250805',
+			chat: 'claude-sonnet-4-5-20250929',
 		},
 	},
 	{
@@ -108,8 +119,8 @@ const SUGGESTED_COMBOS = [
 		provider: 'Anthropic',
 		icon: getProviderIcon('anthropic'),
 		models: {
-			orchestrator: 'claude-opus-4-20250514',
-			agent: 'claude-sonnet-4-20250514',
+			orchestrator: 'claude-opus-4-1-20250805',
+			agent: 'claude-sonnet-4-5-20250929',
 			chat: 'claude-3-5-haiku-20241022',
 		},
 	},
@@ -130,9 +141,9 @@ const SUGGESTED_COMBOS = [
 		provider: 'Cross-Provider',
 		icon: getProviderIcon('generic'),
 		models: {
-			orchestrator: 'claude-opus-4-20250514',
-			agent: 'claude-sonnet-4-20250514',
-			chat: 'gpt-4o',
+			orchestrator: 'claude-opus-4-1-20250805',
+			agent: 'claude-sonnet-4-5-20250929',
+			chat: 'gpt-5-2025-08-07',
 		},
 	},
 	{
@@ -141,8 +152,8 @@ const SUGGESTED_COMBOS = [
 		provider: 'Cross-Provider',
 		icon: getProviderIcon('generic'),
 		models: {
-			orchestrator: 'claude-sonnet-4-20250514',
-			agent: 'gpt-4o',
+			orchestrator: 'claude-sonnet-4-5-20250929',
+			agent: 'gpt-5-2025-08-07',
 			chat: 'claude-3-5-haiku-20241022',
 		},
 	},
@@ -152,9 +163,9 @@ const SUGGESTED_COMBOS = [
 		provider: 'Cross-Provider',
 		icon: getProviderIcon('generic'),
 		models: {
-			orchestrator: 'claude-opus-4-20250514',
-			agent: 'claude-sonnet-4-20250514',
-			chat: 'gpt-4o',
+			orchestrator: 'claude-opus-4-1-20250805',
+			agent: 'claude-sonnet-4-5-20250929',
+			chat: 'gpt-5-2025-08-07',
 		},
 	},
 	{
@@ -164,7 +175,7 @@ const SUGGESTED_COMBOS = [
 		icon: getProviderIcon('generic'),
 		models: {
 			orchestrator: 'claude-3-5-haiku-20241022',
-			agent: 'gpt-3.5-turbo',
+			agent: 'gpt-5-nano-2025-08-07',
 			chat: 'gemini-1.5-flash',
 		},
 	},
@@ -188,17 +199,6 @@ const SUGGESTED_COMBOS = [
 			orchestrator: 'gemini-2.5-flash-preview-05-20',
 			agent: 'gemini-2.5-flash-preview-05-20',
 			chat: 'gemini-1.5-flash',
-		},
-	},
-	{
-		name: 'OpenAI Balanced',
-		description: 'OpenAI models for reliability and consistency',
-		provider: 'OpenAI',
-		icon: getProviderIcon('openai'),
-		models: {
-			orchestrator: 'gpt-4o',
-			agent: 'gpt-4',
-			chat: 'gpt-3.5-turbo',
 		},
 	},
 ];

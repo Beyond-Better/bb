@@ -1,0 +1,7 @@
+{
+	"name": "search_web",
+	"description": "Searches the web using the Brave Search API. Returns comprehensive search results including web pages, news articles, videos, locations, discussions, and knowledge panels. Supports advanced search parameters and filtering options. Can use either user-provided API keys or the proxied service for seamless operation.",
+	"version": "1.0.0",
+	"author": "BB Team",
+	"license": "MIT"
+}

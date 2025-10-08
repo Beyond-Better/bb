@@ -11,6 +11,7 @@ import {
 	FileReadError,
 	FileWriteError,
 	LLMError,
+	MCPServerError,
 	ProjectHandlingError,
 	RateLimitError,
 	ResourceChangeError,
@@ -35,6 +36,7 @@ import type {
 	LLMErrorOptions,
 	LLMRateLimitErrorOptions,
 	LLMValidationErrorOptions,
+	MCPServerErrorOptions,
 	ProjectHandlingErrorOptions,
 	ResourceHandlingErrorOptions,
 	ToolHandlingErrorOptions,
@@ -57,6 +59,7 @@ export const createError = (
 		| DataSourceHandlingErrorOptions
 		| FileHandlingErrorOptions
 		| ToolHandlingErrorOptions
+		| MCPServerErrorOptions
 		| VectorSearchErrorOptions
 		| ExternalServiceErrorOptions
 		| CommandExecutionErrorOptions,
@@ -139,6 +142,8 @@ export const createError = (
 		}
 		case ErrorType.ToolHandling:
 			return new ToolHandlingError(message, options as ToolHandlingErrorOptions);
+		case ErrorType.MCPServer:
+			return new MCPServerError(message, options as MCPServerErrorOptions);
 		case ErrorType.VectorSearch:
 			return new VectorSearchError(message, options as VectorSearchErrorOptions);
 		case ErrorType.CommandExecution:

@@ -1,9 +1,9 @@
 import { assertEquals } from 'testing/asserts.ts';
-import { Context, testing } from 'oak';
+import { type Context, testing } from 'oak';
 import { authMiddleware, requireAuth } from './auth.middleware.ts';
 import { ConfigManagerV2 } from 'shared/config/configManager.ts';
-import type { BbState } from '../types/app.types.ts';
-import type { Session } from '../types/auth.ts';
+import type { BbState } from 'api/types/app.ts';
+import type { Session } from 'api/types/auth.ts';
 
 // Mock session data
 const mockSession: Session = {
@@ -17,12 +17,14 @@ const mockSession: Session = {
 };
 
 // Mock session manager
-const mockSessionManager = {
+const mockUserAuthSession = {
+	// deno-lint-ignore require-await
 	getSession: async () => mockSession,
 };
 
 // Mock unauthenticated session manager
-const mockUnauthenticatedSessionManager = {
+const mockUnauthenticatedUserAuthSession = {
+	// deno-lint-ignore require-await
 	getSession: async () => null,
 };
 
@@ -40,14 +42,17 @@ function createMockContext(
 	ctx.app = {
 		state: {
 			auth: {
-				sessionManager: authenticated ? mockSessionManager : mockUnauthenticatedSessionManager,
+				sessionManager: authenticated ? mockUserAuthSession : mockUnauthenticatedUserAuthSession,
 			},
 		},
+		// deno-lint-ignore no-explicit-any
 	} as any;
 
 	// Mock config manager
+	// deno-lint-ignore require-await
 	ConfigManagerV2.getInstance = async () =>
 		({
+			// deno-lint-ignore require-await
 			getGlobalConfig: async () => ({
 				api: {
 					localMode,
@@ -63,6 +68,7 @@ Deno.test('Auth Middleware', async (t) => {
 		const ctx = createMockContext('/protected', false, true);
 		let nextCalled = false;
 
+		// deno-lint-ignore require-await
 		await authMiddleware(ctx as Context<BbState>, async () => {
 			nextCalled = true;
 		});
@@ -75,19 +81,23 @@ Deno.test('Auth Middleware', async (t) => {
 		const ctx = createMockContext('/protected', true, false);
 		let nextCalled = false;
 
+		// deno-lint-ignore require-await
 		await authMiddleware(ctx as Context<BbState>, async () => {
 			nextCalled = true;
 		});
+		const session = await ctx.userContext.userAuthSession.getSession();
 
 		assertEquals(nextCalled, true);
 		assertEquals(ctx.response.status, undefined);
-		assertEquals(ctx.state.session, mockSession);
+		assertEquals(session, mockSession);
+		//assertEquals(ctx.state.session, mockSession);
 	});
 
 	await t.step('blocks unauthenticated requests', async () => {
 		const ctx = createMockContext('/protected', false, false);
 		let nextCalled = false;
 
+		// deno-lint-ignore require-await
 		await authMiddleware(ctx as Context<BbState>, async () => {
 			nextCalled = true;
 		});
@@ -104,6 +114,7 @@ Deno.test('requireAuth helper', async (t) => {
 		const ctx = createMockContext('/protected', false, false);
 		let nextCalled = false;
 
+		// deno-lint-ignore require-await
 		await middleware(ctx as Context<BbState>, async () => {
 			nextCalled = true;
 		});
@@ -117,6 +128,7 @@ Deno.test('requireAuth helper', async (t) => {
 		const ctx = createMockContext('/public', false, false);
 		let nextCalled = false;
 
+		// deno-lint-ignore require-await
 		await middleware(ctx as Context<BbState>, async () => {
 			nextCalled = true;
 		});
@@ -130,6 +142,7 @@ Deno.test('requireAuth helper', async (t) => {
 		const ctx = createMockContext('/protected/resource', false, false);
 		let nextCalled = false;
 
+		// deno-lint-ignore require-await
 		await middleware(ctx as Context<BbState>, async () => {
 			nextCalled = true;
 		});
@@ -143,6 +156,7 @@ Deno.test('requireAuth helper', async (t) => {
 		const ctx = createMockContext('/protected', false, true);
 		let nextCalled = false;
 
+		// deno-lint-ignore require-await
 		await middleware(ctx as Context<BbState>, async () => {
 			nextCalled = true;
 		});

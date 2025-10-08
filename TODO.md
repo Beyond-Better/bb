@@ -272,3 +272,26 @@ X Change free plan to BYO api keys - limited data sources and tools
 √ add token-usage log to llm-proxy
 √ save partial prompt when navigating away, not just on page reload (eg, user switches to different conversation or to project settings)
 
+√ Fix postgres linter errors: https://supabase.com/dashboard/project/asyagnmzoxgyhqprdaky/advisors/security
+√ Change tools to use accessors: removeResources, renameResources, rewriteResources
+√ Star conversations in BUI
+√ Support coupon codes for subscriptions
+√ Ensure Oauth details get reloaded into projectConfig after doing auth flow
+√ Add detailed info in ~~system prompt~~ datasource instructions for how to structure URIs 
+√ Progress marker for pricing tier change in chat input
+√ Add "Settings" to docs - with focus on model selection
+√ Hardcoded tick in progress bar
+√ Token pill is not resetting with new (or changed) conversation
+√ Add feature restrictions for read/write datasources
+√ Test whether feature checks for datasources are working
+√ Pricing fallback error - admin notifiction should include details of token type, model, etc
+√ No pricing found for token type anthropic_cache_read in model gemini-2.5-pro-preview-06-05
+√ Create token_usage types to use tiers and cache types from provider_model_pricing
+√ Check token_usage records for Gemini (done with new tiered pricing)
+√ After auth for googledocs datasource; ensure saving to project config also updates `auth` in instantiated datasource
+√ Re-enable model features check in llm-proxy
+√ Re-enable caching in features utils files
+√ Include symlinks in filebrowser for datasources - symlinks should get resolved before saving root directory
+X Change searchAndReplace tool to use structured `data` for `bbResponse` - Using editResource tool instead
+√ change conversation title in BUI
+√ Ensure message history is saved, even if there is tool error (should be ok) or LLM response error

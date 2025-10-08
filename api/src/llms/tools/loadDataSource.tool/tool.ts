@@ -10,6 +10,7 @@ import {
 } from './formatter.console.ts';
 //import type { PaginationInfo, ResourceMetadata } from 'shared/types/dataSourceResource.ts';
 import type { LLMToolLoadDatasourceInput } from './types.ts';
+import type { InstructionFilters } from 'api/types/instructionFilters.ts';
 import type { ContentTypeGuidance } from 'shared/types/dataSource.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type { CollaborationLogEntryContentToolResult } from 'shared/types.ts';
@@ -19,6 +20,21 @@ import type { DataSourceHandlingErrorOptions } from 'api/errors/error.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
 import { logger } from 'shared/logger.ts';
 
+/**
+ * ⚠️  CRITICAL: ALWAYS GET INSTRUCTIONS BEFORE EDITING
+ *
+ * Before performing ANY edit operations (edit_resource, write_resource), you MUST:
+ * 1. Load data source with returnType="instructions" or returnType="combined"
+ * 2. Read and understand the editing instructions for that specific data source type
+ * 3. Follow the provider-specific guidance for operation structure and parameters
+ *
+ * Different data sources have different editing requirements:
+ * - Google Docs: Range operations with 1-based indexing and specific formatting
+ * - Filesystem: Search/replace operations with exact text matching
+ * - Notion: Block operations with structured content and _key values
+ *
+ * Failure to follow provider-specific instructions will result in edit failures.
+ */
 export default class LLMToolLoadDatasource extends LLMTool {
 	get inputSchema(): LLMToolInputSchema {
 		return {
@@ -31,9 +47,65 @@ export default class LLMToolLoadDatasource extends LLMTool {
 				},
 				returnType: {
 					type: 'string',
-					enum: ['metadata', 'resources', 'both'],
+					enum: ['metadata', 'resources', 'both', 'instructions', 'combined'],
 					description:
-						'What to return: "metadata" (default) returns data source summary with capabilities and constraints, "resources" returns actual resource list, "both" returns metadata plus sample resources for immediate context.',
+						'What to return: "metadata" (default) returns data source summary with capabilities and constraints, "resources" returns actual resource list, "both" returns metadata plus sample resources for immediate context, "instructions" returns detailed editing guidance with comprehensive examples, "combined" returns all information (metadata + resources + instructions). **IMPORTANT: Always get instructions before performing any edit operations.**',
+				},
+				instructionFilters: {
+					type: 'object',
+					description:
+						'Optional filters to customize instruction content when returnType includes "instructions". If not provided, returns comprehensive instructions.',
+					properties: {
+						contentTypes: {
+							type: 'array',
+							items: {
+								type: 'string',
+								enum: ['documents', 'spreadsheets', 'files', 'databases', 'apis'],
+							},
+							description:
+								'Filter instructions by content type. Example: ["documents"] for Google Docs only, ["spreadsheets"] for Google Sheets only, ["documents", "spreadsheets"] for both.',
+						},
+						operations: {
+							type: 'array',
+							items: {
+								type: 'string',
+								enum: ['create', 'edit', 'search', 'delete', 'move', 'rename', 'utility'],
+							},
+							description:
+								'Filter instructions by operation type. Example: ["create"] for writing only, ["edit"] for editing only, ["utility"] for rename/move/remove operations.',
+						},
+						editTypes: {
+							type: 'array',
+							items: {
+								type: 'string',
+								enum: ['searchReplace', 'range', 'blocks', 'cell', 'structuredData'],
+							},
+							description:
+								'Filter instructions by edit operation type. Example: ["searchReplace"] for text search/replace only, ["cell"] for spreadsheet operations only.',
+						},
+						sections: {
+							type: 'array',
+							items: {
+								type: 'string',
+								enum: [
+									'workflows',
+									'examples',
+									'limitations',
+									'bestPractices',
+									'troubleshooting',
+									'overview',
+								],
+							},
+							description:
+								'Filter instructions by section type. Example: ["workflows", "limitations"] for critical workflows and limitations only.',
+						},
+						includeOverview: {
+							type: 'boolean',
+							default: true,
+							description:
+								'Whether to include provider overview and capabilities. Set to false to exclude general information when you only need specific operation details.',
+						},
+					},
 				},
 				path: {
 					type: 'string',
@@ -129,6 +201,7 @@ export default class LLMToolLoadDatasource extends LLMTool {
 		const {
 			dataSourceId,
 			returnType = 'metadata',
+			instructionFilters,
 			path,
 			depth = 1,
 			pageSize,
@@ -163,6 +236,158 @@ export default class LLMToolLoadDatasource extends LLMTool {
 			} as DataSourceHandlingErrorOptions);
 		}
 		try {
+			// Handle combined return type (all information)
+			if (returnType === 'combined') {
+				// Get the resource accessor to call getMetadata on it
+				const resourceAccessor = await dsConnectionToLoad.getResourceAccessor();
+				const metadata = await resourceAccessor.getMetadata();
+
+				// Get content type guidance and detailed instructions from the provider
+				const contentTypeGuidance = dsConnectionToLoad.provider.getContentTypeGuidance();
+				const instructionsContent = dsConnectionToLoad.provider.getDetailedInstructions(instructionFilters);
+
+				// Get a sample of resources
+				const sampleSize = metadata.filesystem?.practicalLimits?.recommendedPageSize || 15;
+				const resourcesResult = await resourceAccessor.listResources({
+					path,
+					depth: depth || 1,
+					pageSize: Math.min(sampleSize, 20), // Cap at 20 for combined mode
+					pageToken,
+				});
+
+				const toolResultContentParts: LLMMessageContentPartTextBlock[] = [];
+
+				const dsConnectionStatus = notFound.length > 0
+					? `Could not find data source for: [${notFound.join(', ')}]`
+					: `Data source: ${dsConnectionToLoad.id}\nName: ${dsConnectionToLoad.name}\nType: ${dsConnectionToLoad.providerType}`;
+
+				// Add header information
+				toolResultContentParts.push({
+					'type': 'text',
+					'text': dsConnectionStatus,
+				});
+
+				// Add metadata
+				const metadataText = resourceAccessor.formatMetadata(metadata);
+				toolResultContentParts.push({
+					'type': 'text',
+					'text': `\n## Metadata\n${metadataText}`,
+				});
+
+				// Add content type guidance
+				toolResultContentParts.push({
+					'type': 'text',
+					'text': this.formatContentTypeGuidance(contentTypeGuidance),
+				});
+
+				// Add sample resources
+				const resources = resourcesResult.resources;
+				const uriTemplate = resourcesResult.uriTemplate ||
+					dsConnectionToLoad.getUriForResource('file:./{path}');
+
+				if (resources.length > 0) {
+					const resourcesWithMetadata = resources.map((r) => {
+						const uriExpression = 'path';
+						let entry = `- ${uriExpression}: "${r.uriTerm || r.uri || r.uriTemplate}"`;
+						if (r.type) entry += `\n  type: "${r.extraType || r.type}"`;
+						if (r.mimeType) entry += `\n  mimeType: "${r.mimeType}"`;
+						if (r.size !== undefined && r.size !== null) entry += `\n  size: ${r.size}`;
+						if (r.description) entry += `\n  description: "${r.description}"`;
+						if (r.lastModified) {
+							const formattedDate = r.lastModified instanceof Date
+								? r.lastModified.toISOString()
+								: r.lastModified;
+							entry += `\n  lastModified: "${formattedDate}"`;
+						}
+						return entry;
+					}).join('\n\n');
+
+					toolResultContentParts.push({
+						'type': 'text',
+						'text': `\n## Sample Resources (${resources.length} of ${
+							metadata.totalResources || 'unknown'
+						})\nURI Template: ${uriTemplate}\n<resources>\n${resourcesWithMetadata}\n</resources>`,
+					});
+
+					if (resourcesResult.pagination?.nextPageToken) {
+						toolResultContentParts.push({
+							'type': 'text',
+							'text':
+								`\nMore resources available. Use returnType='resources' with pageToken: ${resourcesResult.pagination.nextPageToken}`,
+						});
+					}
+				} else {
+					toolResultContentParts.push({
+						'type': 'text',
+						'text': '\n## Sample Resources\nNo resources found in sample.',
+					});
+				}
+
+				// Add detailed instructions with emphasis
+				toolResultContentParts.push({
+					'type': 'text',
+					'text': `\n## 🚨 IMPORTANT: Detailed Editing Instructions\n\n` +
+						`**READ THESE INSTRUCTIONS BEFORE PERFORMING ANY EDIT OPERATIONS**\n\n` +
+						`${instructionsContent}`,
+				});
+
+				const toolResults = toolResultContentParts;
+				const toolResponse =
+					`Retrieved complete information (metadata + resources + instructions) for data source: ${dsConnectionToLoadId}`;
+				const bbResponse = {
+					data: {
+						metadata,
+						contentTypeGuidance,
+						instructions: instructionsContent,
+						resources: resourcesResult.resources,
+						uriTemplate: resourcesResult.uriTemplate,
+						pagination: resourcesResult.pagination,
+						dataSource: {
+							dsConnectionId: dsConnectionToLoadId,
+							dsConnectionName: dsConnectionToLoad.name,
+							dsProviderType: dsConnectionToLoad.providerType,
+						},
+					},
+				};
+
+				return {
+					toolResults,
+					toolResponse,
+					bbResponse,
+				};
+			}
+
+			// Handle instructions return type
+			if (returnType === 'instructions') {
+				// Delegate to provider for detailed instructions
+				const instructionsContent = dsConnectionToLoad.provider.getDetailedInstructions(instructionFilters);
+
+				const toolResultContentParts: LLMMessageContentPartTextBlock[] = [{
+					'type': 'text',
+					'text':
+						`Data source: ${dsConnectionToLoad.id}\nName: ${dsConnectionToLoad.name}\nType: ${dsConnectionToLoad.providerType}\n\n${instructionsContent}`,
+				}];
+
+				const toolResults = toolResultContentParts;
+				const toolResponse = `Retrieved detailed editing instructions for data source: ${dsConnectionToLoadId}`;
+				const bbResponse = {
+					data: {
+						instructions: instructionsContent,
+						dataSource: {
+							dsConnectionId: dsConnectionToLoadId,
+							dsConnectionName: dsConnectionToLoad.name,
+							dsProviderType: dsConnectionToLoad.providerType,
+						},
+					},
+				};
+
+				return {
+					toolResults,
+					toolResponse,
+					bbResponse,
+				};
+			}
+
 			// Handle metadata return type
 			if (returnType === 'metadata' || returnType === 'both') {
 				// Get the resource accessor to call getMetadata on it

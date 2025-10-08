@@ -40,7 +40,7 @@ export interface LLMToolDisplayResourceResponseData {
 }
 
 export interface LLMToolDisplayResourceResult {
-	toolResult: LLMToolRunResultContent;
+	toolResults: LLMToolRunResultContent;
 	bbResponse: LLMToolDisplayResourceResponseData;
 }
 

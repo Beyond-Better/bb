@@ -2,7 +2,7 @@
 // but it's not a trivial task
 
 import type { ApiConfig, BuiConfig, CliConfig, ConfigVersion, DefaultModels, DuiConfig } from 'shared/config/types.ts';
-import type { ProjectId } from 'shared/types.ts';
+import type { CollaborationId, InteractionId, ProjectId } from 'shared/types.ts';
 
 /**
  * Base application configuration interface
@@ -39,3 +39,6 @@ export interface GlobalConfig extends AppConfig {
 export interface ProjectConfig extends AppConfig {
 	projectId: ProjectId;
 }
+
+// Re-export UserContext from new location to maintain backward compatibility
+export type { UserContext } from 'shared/types/userContext.ts';

@@ -180,13 +180,15 @@ class LLMConversationInteraction extends LLMInteraction {
 		_turnIndex: number,
 	): Promise<LLMMessageContentParts | null> {
 		try {
-			logger.info(
-				`ConversationInteraction: createResourceContentBlocks - resourceUri: ${resourceUri} [${revisionId}]`,
-			);
 			const resourceMetadata = this.getResourceRevisionMetadata(
 				generateResourceRevisionKey(resourceUri, revisionId),
 			);
-			const content = await this.readResourceContent(resourceUri, revisionId);
+			logger.info(
+				`ConversationInteraction: createResourceContentBlocks - resourceUri: ${resourceUri} [${revisionId}] (${
+					resourceMetadata?.mimeType || 'unknown mimeType'
+				})`,
+			);
+			const content = await this.readResourceContent(resourceUri, revisionId, resourceMetadata);
 			if (!resourceMetadata || !content) {
 				throw new Error(`Resource has not been added to conversation: ${resourceUri}`);
 			}
@@ -219,6 +221,19 @@ class LLMConversationInteraction extends LLMInteraction {
 				type: 'text',
 				text: `${BB_RESOURCE_METADATA_DELIMITER}\n${JSON.stringify(metadata, null, 2)}`,
 			};
+			//logger.info(`ConversationInteraction: createResourceContentBlocks using metadata - resourceUri: ${resourceUri} [${revisionId}]`, metadataBlock);
+
+			// For PDFs, create base64 content block and metadata block
+			if (resourceMetadata.mimeType === 'application/pdf') {
+				//logger.info(`ConversationInteraction: createResourceContentBlocks as PDF - resourceUri: ${resourceUri} [${revisionId}]`);
+				const pdfData = content as Uint8Array;
+				const base64Data = encodeBase64(pdfData);
+				const pdfContentBlock: LLMMessageContentPartTextBlock = {
+					type: 'text',
+					text: base64Data, // Send as base64 string to prevent corruption
+				};
+				return [metadataBlock, pdfContentBlock];
+			}
 
 			// For images, create image block and metadata block
 			if (resourceMetadata.contentType === 'image') {
@@ -267,18 +282,18 @@ class LLMConversationInteraction extends LLMInteraction {
 	public async readResourceContent(
 		resourceUri: string,
 		revisionId: string,
-		//_resourceMetadata: ResourceRevisionMetadata,
+		resourceMetadata: ResourceRevisionMetadata | undefined,
 	): Promise<string | Uint8Array> {
 		try {
 			//logger.info(`ConversationInteraction: Reading resource revision from project: ${resourceUri}`);
-			const content = await this.getResourceRevision(resourceUri, revisionId);
+			const content = await this.getResourceRevision(resourceUri, revisionId, resourceMetadata);
 			if (content === null) {
 				logger.info(`ConversationInteraction: Reading contents of Resource ${resourceUri}`);
 				const resource = await this.projectData.getProjectResource(resourceUri);
 				if (!resource) {
 					throw new Error(`Resource could not be loaded for: ${resourceUri}`);
 				}
-				await this.storeResourceRevision(resourceUri, revisionId, resource.content);
+				await this.storeResourceRevision(resourceUri, revisionId, resource.content, resource.metadata);
 				return resource.content;
 			}
 			logger.info(
@@ -307,15 +322,28 @@ class LLMConversationInteraction extends LLMInteraction {
 		}
 	}
 
-	async storeResourceRevision(resourceUri: string, revisionId: string, content: string | Uint8Array): Promise<void> {
+	async storeResourceRevision(
+		resourceUri: string,
+		revisionId: string,
+		content: string | Uint8Array,
+		resourceMetadata: ResourceRevisionMetadata | undefined,
+	): Promise<void> {
 		logger.info(`ConversationInteraction: Storing resource revision: ${resourceUri} Revision: (${revisionId})`);
-		await this.interactionPersistence.storeResourceRevision(resourceUri, revisionId, content);
+		await this.interactionPersistence.storeResourceRevision(resourceUri, revisionId, content, resourceMetadata);
 	}
 
-	async getResourceRevision(resourceUri: string, revisionId: string): Promise<string | Uint8Array | null> {
+	async getResourceRevision(
+		resourceUri: string,
+		revisionId: string,
+		resourceMetadata: ResourceRevisionMetadata | undefined,
+	): Promise<string | Uint8Array | null> {
 		logger.info(`ConversationInteraction: Getting resource revision: ${resourceUri} Revision: (${revisionId})`);
 		try {
-			const content = await this.interactionPersistence.getResourceRevision(resourceUri, revisionId);
+			const content = await this.interactionPersistence.getResourceRevision(
+				resourceUri,
+				revisionId,
+				resourceMetadata,
+			);
 			return content;
 		} catch (error) {
 			logger.info(
@@ -356,7 +384,7 @@ class LLMConversationInteraction extends LLMInteraction {
 			const resourceMetadata = this.getResourceRevisionMetadata(
 				generateResourceRevisionKey(resourceUri, revisionId),
 			);
-			const content = await this.readResourceContent(resourceUri, revisionId);
+			const content = await this.readResourceContent(resourceUri, revisionId, resourceMetadata);
 			if (!resourceMetadata || !content) {
 				throw new Error(`Resource has not been added to conversation: ${resourceUri}`);
 			}

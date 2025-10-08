@@ -1,6 +1,6 @@
 import { assertEquals, assertExists } from '../../../deps.ts';
-import InteractionManager from '../../../../src/llms/interactions/interactionManager.ts';
-import LLMConversationInteraction from '../../../../src/llms/interactions/conversationInteraction.ts';
+import { InteractionManager } from 'api/llms/interactionManager.ts';
+import LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import LLM from '../../../../src/llms/providers/baseLLM.ts';
 
 /*

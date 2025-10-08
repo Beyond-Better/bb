@@ -13,7 +13,7 @@
  * Options:
  *   --input=PATH                 Input capabilities file (default: api/src/data/modelCapabilities.json)
  *   --environment=ENV            Environment: staging|production (default: staging)
- *   --supabase-url=URL           Override Supabase config URL
+ *   --supabase-config-url=URL           Override Supabase config URL
  *   --auth-token=TOKEN           Authentication token (can also use env var)
  *   --dry-run                    Show what would be synced without making changes
  *   --force                      Update all models regardless of changes
@@ -29,6 +29,12 @@ import type {
 	PartialTokenPricing,
 	//TokenTypeEnum
 } from 'shared/types/models.ts';
+import {
+	type CacheTypeConfig,
+	type ContentTypeConfig,
+	generateTokenType,
+	type TieredPricingConfig,
+} from 'shared/tieredPricing.ts';
 import { createClient } from '@supabase/supabase-js';
 import { fetchSupabaseConfig } from 'api/auth/config.ts';
 
@@ -36,7 +42,7 @@ import { fetchSupabaseConfig } from 'api/auth/config.ts';
  * LLM-Proxy model interface (matches new database schema)
  */
 interface LLMProxyModel {
-	model_id: string;
+	//model_id: string;
 	provider_name: string;
 	model_name: string;
 	model_type: string;
@@ -56,7 +62,6 @@ interface LLMProxyModel {
  * Model update payload for the edge function (new dynamic structure)
  */
 interface ModelUpdatePayload {
-	model_id: string;
 	provider_name: string;
 	model_name: string;
 	model_type: string;
@@ -71,7 +76,7 @@ interface ModelUpdatePayload {
 interface SyncConfig {
 	inputPath: string;
 	environment: 'staging' | 'production';
-	supabaseUrl?: string;
+	supabaseConfigUrl?: string;
 	authToken?: string;
 	dryRun: boolean;
 	force: boolean;
@@ -81,7 +86,7 @@ interface SyncConfig {
  * Sync result for a single model
  */
 interface SyncResult {
-	modelId: string;
+	modelName: string;
 	provider: string;
 	action: 'created' | 'updated' | 'skipped' | 'failed';
 	error?: string;
@@ -91,6 +96,7 @@ interface SyncResult {
 interface UpdatedModelCapabilities {
 	displayName: string;
 	contextWindow: number;
+	featureKey: string;
 	maxOutputTokens: number;
 	token_pricing?: PartialTokenPricing; // New dynamic pricing structure
 	pricing_metadata?: {
@@ -108,6 +114,18 @@ interface UpdatedModelCapabilities {
 		};
 		currency: string;
 		effectiveDate: string;
+	};
+	// NEW: Tiered pricing configuration fields
+	inputTokensTieredConfig?: TieredPricingConfig;
+	inputTokensCacheTypes?: Record<string, CacheTypeConfig>;
+	inputTokensContentTypes?: Record<string, ContentTypeConfig>;
+	outputTokensTieredConfig?: TieredPricingConfig;
+	outputTokensCacheTypes?: Record<string, CacheTypeConfig>;
+	outputTokensContentTypes?: Record<string, ContentTypeConfig>;
+	thoughtTokensConfig?: {
+		basePrice: number;
+		tieredPricing?: TieredPricingConfig;
+		description?: string;
 	};
 	supportedFeatures: {
 		functionCalling: boolean;
@@ -170,6 +188,11 @@ class ModelSyncer {
 		// Sync models
 		await this.syncModels(modelsToSync);
 
+		// Post-sync validation
+		if (!this.config.dryRun) {
+			await this.validatePricingRecords();
+		}
+
 		// Report results
 		this.reportResults();
 
@@ -208,11 +231,11 @@ class ModelSyncer {
 	 */
 	private async fetchCurrentLLMProxyModels(): Promise<void> {
 		try {
-			console.log('🔍 Fetching current models from llm-proxy...');
-
 			const supabaseConfig = await fetchSupabaseConfig({
-				supabaseConfigUrl: this.config.supabaseUrl,
+				supabaseConfigUrl: this.config.supabaseConfigUrl,
 			});
+
+			console.log(`🔍 Fetching current models from llm-proxy at ${supabaseConfig.url} ...`);
 
 			const supabaseClient = createClient(supabaseConfig.url, supabaseConfig.anonKey);
 
@@ -258,22 +281,22 @@ class ModelSyncer {
 				continue;
 			}
 
-			for (const [modelId, capabilities] of Object.entries(models)) {
+			for (const [modelName, capabilities] of Object.entries(models)) {
 				// Skip hidden models
 				if (capabilities.hidden) {
-					console.log(`⏭️ Skipping hidden model: ${provider}/${modelId}`);
+					console.log(`⏭️ Skipping hidden model: ${provider}/${modelName}`);
 					continue;
 				}
 
 				// Convert to LLM-Proxy format
-				const payload = this.convertToLLMProxyFormat(provider, modelId, capabilities);
+				const payload = this.convertToLLMProxyFormat(provider, modelName, capabilities);
 
 				// Check if model needs updating
 				if (this.config.force || this.shouldUpdateModel(payload)) {
 					modelsToSync.push(payload);
 				} else {
 					this.syncResults.push({
-						modelId,
+						modelName: modelName,
 						provider,
 						action: 'skipped',
 					});
@@ -290,12 +313,12 @@ class ModelSyncer {
 	 */
 	private convertToLLMProxyFormat(
 		provider: string,
-		modelId: string,
+		modelName: string,
 		capabilities: UpdatedModelCapabilities,
 	): ModelUpdatePayload {
 		// Convert from new token_pricing structure or fallback to legacy pricing structure
 		let token_pricing: PartialTokenPricing = {};
-		
+
 		if (capabilities.token_pricing) {
 			// New format: use token_pricing directly
 			token_pricing = { ...capabilities.token_pricing };
@@ -303,12 +326,13 @@ class ModelSyncer {
 			// Legacy format: convert from old pricing structure
 			token_pricing.input = capabilities.pricing.inputTokens.basePriceCentsUsd;
 			token_pricing.output = capabilities.pricing.outputTokens.basePriceCentsUsd;
-			
+
 			if (capabilities.pricing.inputTokens.cachedPriceCentsUsd !== undefined) {
 				if (provider === 'anthropic') {
 					token_pricing.anthropic_cache_read = capabilities.pricing.inputTokens.cachedPriceCentsUsd;
 					// Estimate cache write cost as 1.25x base cost
-					token_pricing.anthropic_cache_write_5min = capabilities.pricing.inputTokens.basePriceCentsUsd * 1.25;
+					token_pricing.anthropic_cache_write_5min = capabilities.pricing.inputTokens.basePriceCentsUsd *
+						1.25;
 				} else {
 					token_pricing.cache_read = capabilities.pricing.inputTokens.cachedPriceCentsUsd;
 				}
@@ -316,17 +340,18 @@ class ModelSyncer {
 		}
 
 		return {
-			model_id: modelId,
 			provider_name: provider,
-			model_name: modelId, // Using modelId as model_name
+			model_name: modelName,
 			model_type: 'text', // Default to text, could be enhanced based on capabilities
 			token_pricing: token_pricing, // Dynamic pricing structure
 			is_available: true,
 			settings: {
+				// Existing settings
 				displayName: capabilities.displayName,
 				contextWindow: capabilities.contextWindow,
 				maxOutputTokens: capabilities.maxOutputTokens,
 				supportedFeatures: capabilities.supportedFeatures,
+				featureKey: capabilities.featureKey,
 				responseSpeed: capabilities.responseSpeed,
 				cost: capabilities.cost,
 				intelligence: capabilities.intelligence,
@@ -336,6 +361,33 @@ class ModelSyncer {
 				...(capabilities.trainingCutoff && { trainingCutoff: capabilities.trainingCutoff }),
 				...(capabilities.releaseDate && { releaseDate: capabilities.releaseDate }),
 				...(capabilities.pricing_metadata && { pricing_metadata: capabilities.pricing_metadata }),
+
+				// NEW: Complete tiered pricing configuration stored directly in settings
+				...(capabilities.inputTokensTieredConfig && {
+					inputTokensTieredConfig: capabilities.inputTokensTieredConfig,
+				}),
+				...(capabilities.inputTokensCacheTypes && {
+					inputTokensCacheTypes: capabilities.inputTokensCacheTypes,
+				}),
+				...(capabilities.inputTokensContentTypes && {
+					inputTokensContentTypes: capabilities.inputTokensContentTypes,
+				}),
+				...(capabilities.outputTokensTieredConfig && {
+					outputTokensTieredConfig: capabilities.outputTokensTieredConfig,
+				}),
+				...(capabilities.outputTokensCacheTypes && {
+					outputTokensCacheTypes: capabilities.outputTokensCacheTypes,
+				}),
+				...(capabilities.outputTokensContentTypes && {
+					outputTokensContentTypes: capabilities.outputTokensContentTypes,
+				}),
+				...(capabilities.thoughtTokensConfig && {
+					thoughtTokensConfig: capabilities.thoughtTokensConfig,
+				}),
+
+				// Convenience flag for quick tier support detection
+				supportsTieredPricing:
+					!!(capabilities.inputTokensTieredConfig?.tiers || capabilities.outputTokensTieredConfig?.tiers),
 			},
 		};
 	}
@@ -345,7 +397,7 @@ class ModelSyncer {
 	 */
 	private shouldUpdateModel(payload: ModelUpdatePayload): boolean {
 		const existing = this.currentLLMProxyModels.find(
-			(m) => m.model_id === payload.model_id && m.provider_name === payload.provider_name,
+			(m) => m.model_name === payload.model_name && m.provider_name === payload.provider_name,
 		);
 
 		if (!existing) {
@@ -373,11 +425,13 @@ class ModelSyncer {
 			console.log('🧪 DRY RUN - Would sync the following models:');
 			for (const model of modelsToSync) {
 				const existing = this.currentLLMProxyModels.find(
-					(m) => m.model_id === model.model_id && m.provider_name === model.provider_name,
+					(m) => m.model_name === model.model_name && m.provider_name === model.provider_name,
 				);
 				const action = existing ? 'UPDATE' : 'CREATE';
 				const tokenTypes = Object.keys(model.token_pricing).join(', ');
-				console.log(`  ${action}: ${model.provider_name}/${model.model_id} - ${model.settings.displayName} (${tokenTypes})`);
+				console.log(
+					`  ${action}: ${model.provider_name}/${model.model_name} - ${model.settings.displayName} (${tokenTypes})`,
+				);
 			}
 			return;
 		}
@@ -385,7 +439,7 @@ class ModelSyncer {
 		console.log(`🔄 Syncing ${modelsToSync.length} models...`);
 
 		const supabaseConfig = await fetchSupabaseConfig({
-			supabaseConfigUrl: this.config.supabaseUrl,
+			supabaseConfigUrl: this.config.supabaseConfigUrl,
 		});
 
 		const supabaseClient = createClient(supabaseConfig.url, supabaseConfig.anonKey);
@@ -395,7 +449,7 @@ class ModelSyncer {
 			const progress = `[${i + 1}/${modelsToSync.length}]`;
 
 			try {
-				console.log(`${progress} Syncing ${model.provider_name}/${model.model_id}...`);
+				console.log(`${progress} Syncing ${model.provider_name}/${model.model_name}...`);
 
 				const { data: _data, error } = await supabaseClient.functions.invoke('sync-model', {
 					method: 'POST',
@@ -412,29 +466,31 @@ class ModelSyncer {
 				}
 
 				const existing = this.currentLLMProxyModels.find(
-					(m) => m.model_id === model.model_id && m.provider_name === model.provider_name,
+					(m) => m.model_name === model.model_name && m.provider_name === model.provider_name,
 				);
 
 				this.syncResults.push({
-					modelId: model.model_id,
+					modelName: model.model_name,
 					provider: model.provider_name,
 					action: existing ? 'updated' : 'created',
 				});
 
 				const tokenCount = Object.keys(model.token_pricing).length;
-				console.log(`  ✅ ${progress} Successfully synced ${model.provider_name}/${model.model_id} (${tokenCount} token types)`);
+				console.log(
+					`  ✅ ${progress} Successfully synced ${model.provider_name}/${model.model_name} (${tokenCount} token types)`,
+				);
 			} catch (error) {
 				const errorMessage = isError(error) ? error.message : String(error);
 
 				this.syncResults.push({
-					modelId: model.model_id,
+					modelName: model.model_name,
 					provider: model.provider_name,
 					action: 'failed',
 					error: errorMessage,
 				});
 
 				console.log(
-					`  ❌ ${progress} Failed to sync ${model.provider_name}/${model.model_id}: ${errorMessage}`,
+					`  ❌ ${progress} Failed to sync ${model.provider_name}/${model.model_name}: ${errorMessage}`,
 				);
 			}
 
@@ -442,6 +498,87 @@ class ModelSyncer {
 			if (i < modelsToSync.length - 1) {
 				await new Promise((resolve) => setTimeout(resolve, 100));
 			}
+		}
+	}
+
+	/**
+	 * Validate that all synced models have essential pricing records
+	 */
+	private async validatePricingRecords(): Promise<void> {
+		console.log('🔍 Validating pricing records for synced models...');
+
+		try {
+			const supabaseConfig = await fetchSupabaseConfig({
+				supabaseConfigUrl: this.config.supabaseConfigUrl,
+			});
+
+			const supabaseClient = createClient(supabaseConfig.url, supabaseConfig.anonKey, {
+				db: { schema: 'abi_llm' },
+			});
+
+			// Check for models missing essential pricing
+			const { data: modelsWithoutPricing, error } = await supabaseClient.rpc('validate_model_pricing');
+
+			if (error) {
+				console.error('❌ Error validating pricing records:', error.message);
+				return;
+			}
+
+			if (modelsWithoutPricing && modelsWithoutPricing.length > 0) {
+				console.warn(`⚠️ Found ${modelsWithoutPricing.length} models with missing essential pricing:`);
+				for (const model of modelsWithoutPricing) {
+					console.warn(
+						`  - ${model.provider_name}/${model.model_name}: missing ${model.missing_types.join(', ')}`,
+					);
+				}
+
+				// These models should have been marked as unavailable by sync-model function
+				console.log('💡 Models with missing pricing have been marked as unavailable');
+			} else {
+				console.log('✅ All synced models have essential pricing records');
+			}
+
+			// Check for fallback usage patterns (if models have tiered config but using base pricing)
+			const { data: tieredModelsWithoutRecords, error: tieredError } = await supabaseClient
+				.from('provider_models')
+				.select(`
+					model_id,
+					model_name,
+					provider_name,
+					settings
+				`)
+				.eq('is_available', true)
+				.not('settings->>supportsTieredPricing', 'is', null);
+
+			if (!tieredError && tieredModelsWithoutRecords) {
+				const problematicModels = [];
+
+				for (const model of tieredModelsWithoutRecords) {
+					if (model.settings?.supportsTieredPricing) {
+						// Check if model has any tiered pricing records
+						const { data: tieredRecords } = await supabaseClient
+							.from('provider_model_pricing')
+							.select('token_type')
+							.eq('model_id', model.model_id)
+							.like('token_type', '%_tier%')
+							.is('effective_until', null);
+
+						if (!tieredRecords || tieredRecords.length === 0) {
+							problematicModels.push(`${model.provider_name}/${model.model_name}`);
+						}
+					}
+				}
+
+				if (problematicModels.length > 0) {
+					console.warn(`⚠️ Models claiming tiered pricing but missing tiered records:`);
+					for (const model of problematicModels) {
+						console.warn(`  - ${model}`);
+					}
+					console.log('💡 These models will fallback to base pricing during usage');
+				}
+			}
+		} catch (error) {
+			console.error('❌ Error during pricing validation:', isError(error) ? error.message : error);
 		}
 	}
 
@@ -464,21 +601,21 @@ class ModelSyncer {
 		if (failed.length > 0) {
 			console.log('\n❌ Failed Models:');
 			for (const result of failed) {
-				console.log(`  - ${result.provider}/${result.modelId}: ${result.error}`);
+				console.log(`  - ${result.provider}/${result.modelName}: ${result.error}`);
 			}
 		}
 
 		if (created.length > 0) {
 			console.log('\n✅ Created Models:');
 			for (const result of created) {
-				console.log(`  + ${result.provider}/${result.modelId}`);
+				console.log(`  + ${result.provider}/${result.modelName}`);
 			}
 		}
 
 		if (updated.length > 0) {
 			console.log('\n🔄 Updated Models:');
 			for (const result of updated) {
-				console.log(`  ~ ${result.provider}/${result.modelId}`);
+				console.log(`  ~ ${result.provider}/${result.modelName}`);
 			}
 		}
 	}
@@ -487,7 +624,7 @@ class ModelSyncer {
 /**
  * Load environment-specific configuration
  */
-async function loadEnvironmentConfig(environment: string): Promise<{ authToken?: string; supabaseUrl?: string }> {
+async function loadEnvironmentConfig(environment: string): Promise<{ authToken?: string; supabaseConfigUrl?: string }> {
 	const scriptDir = dirname(fromFileUrl(import.meta.url));
 	const envFile = join(scriptDir, `.env.${environment}`);
 
@@ -509,7 +646,7 @@ async function loadEnvironmentConfig(environment: string): Promise<{ authToken?:
 			console.log(`📁 Loaded environment config from ${envFile}`);
 			return {
 				authToken: config.LLM_PROXY_AUTH_TOKEN,
-				supabaseUrl: config.SUPABASE_CONFIG_URL,
+				supabaseConfigUrl: config.SUPABASE_CONFIG_URL,
 			};
 		}
 	} catch (error) {
@@ -529,7 +666,7 @@ async function main() {
 
 	// Parse command line arguments
 	const args = parseArgs(Deno.args, {
-		string: ['input', 'environment', 'supabase-url', 'auth-token'],
+		string: ['input', 'environment', 'supabase-config-url', 'auth-token'],
 		boolean: ['dry-run', 'force'],
 		default: {
 			input: defaultInputPath,
@@ -552,7 +689,7 @@ async function main() {
 	const config: SyncConfig = {
 		inputPath: args.input,
 		environment: args.environment as 'staging' | 'production',
-		supabaseUrl: args['supabase-url'] || envConfig.supabaseUrl,
+		supabaseConfigUrl: args['supabase-config-url'] || envConfig.supabaseConfigUrl,
 		authToken: args['auth-token'] || envConfig.authToken || Deno.env.get('LLM_PROXY_AUTH_TOKEN'),
 		dryRun: args['dry-run'],
 		force: args.force,

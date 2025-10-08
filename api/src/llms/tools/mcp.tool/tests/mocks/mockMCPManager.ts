@@ -10,7 +10,11 @@ export class MockMCPManager {
 		this.errors.set(`${serverId}:${toolName}`, error);
 	}
 
-	async executeMCPTool(serverId: string, toolName: string, _args: any): Promise<any> {
+	async executeMCPTool(
+		serverId: string,
+		toolName: string,
+		_args: any,
+	): Promise<{ content: any; toolResponse?: string }> {
 		const key = `${serverId}:${toolName}`;
 
 		if (this.errors.has(key)) {
@@ -18,7 +22,13 @@ export class MockMCPManager {
 		}
 
 		if (this.responses.has(key)) {
-			return this.responses.get(key);
+			const response = this.responses.get(key);
+			// If response already has the new structure, return it as is
+			if (response && typeof response === 'object' && 'content' in response) {
+				return response;
+			}
+			// Otherwise, wrap in new structure for backward compatibility
+			return { content: response };
 		}
 
 		throw new Error(`No mock response configured for ${key}`);

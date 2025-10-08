@@ -13,7 +13,7 @@ export interface LLMToolMultiModelQueryResponseData {
 }
 
 export interface LLMToolMultiModelQueryResult {
-	toolResult: LLMToolRunResultContent;
+	toolResults: LLMToolRunResultContent;
 	bbResponse: LLMToolMultiModelQueryResponseData;
 }
 

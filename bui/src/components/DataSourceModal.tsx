@@ -6,9 +6,8 @@ import type { Signal } from '@preact/signals';
 import type { AppState } from '../hooks/useAppState.ts';
 import { CustomSelect, type SelectOption } from './CustomSelect.tsx';
 import { FileBrowser } from './FileBrowser.tsx';
-import { GoogleOAuthFlow } from './GoogleOAuthFlow.tsx';
 import { generateId } from 'shared/projectData.ts';
-import type { DataSourceProviderInfo } from 'shared/types/dataSource.ts';
+import type { DataSourceConfig, DataSourceProviderInfo } from 'shared/types/dataSource.ts';
 import type { AuthConfig } from 'api/dataSources/interfaces/authentication.ts';
 
 interface DataSourceModalProps {
@@ -67,25 +66,6 @@ export function DataSourceModal({ dsConnection, onClose, onSave, appState, dsPro
 			if (!formData.config.dataSourceRoot) {
 				newErrors.dataSourceRoot = 'Path is required';
 			}
-		} else if (formData.providerType === 'notion') {
-			if (!formData.auth.apiKey) {
-				newErrors.apiKey = 'API Key is required';
-			}
-			if (!formData.config.workspaceId) {
-				newErrors.workspaceId = 'Workspace is required';
-			}
-		} else if (formData.providerType === 'googledocs') {
-			//console.log('DataSourceModal: validate googledocs', formData.auth);
-			if (
-				!formData.auth?.oauth2?.accessToken || !formData.auth?.oauth2?.refreshToken ||
-				!formData.auth?.oauth2?.expiresAt
-			) {
-				newErrors.accessToken = 'Access Token is not valid';
-			}
-			// // We're not responsible ensuring tokens are current, that is handled by code that uses the tokens.
-			// if (formData.auth?.oauth2?.expiresAt && formData.auth.oauth2.expiresAt <= Date.now()) {
-			// 	newErrors.accessToken = 'Access Token has expired';
-			// }
 		}
 
 		setErrors(newErrors);
@@ -230,103 +210,6 @@ export function DataSourceModal({ dsConnection, onClose, onSave, appState, dsPro
 								When checked, restricts file access to your home directory and hides symlinks that point
 								outside it. When unchecked, allows following symlinks to any accessible location on the
 								system.
-							</div>
-						</div>
-					</div>
-				);
-
-			case 'notion':
-				return (
-					<div className='grid grid-cols-2 gap-4 col-span-2'>
-						<div className='space-y-2'>
-							<label className='block text-sm font-medium text-gray-700 dark:text-gray-300'>
-								Workspace
-							</label>
-							<input
-								type='text'
-								value={formData.config.workspaceId as string || ''}
-								onChange={(e) =>
-									handleConfigChange('workspaceId', (e.target as HTMLInputElement).value)}
-								className='w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-gray-100'
-							/>
-							{errors.workspaceId &&
-								<div className='text-red-500 text-xs mt-1'>{errors.workspaceId}</div>}
-						</div>
-						<div className='space-y-2'>
-							<label className='block text-sm font-medium text-gray-700 dark:text-gray-300'>
-								API Key
-							</label>
-							<input
-								type='password'
-								value={formData.auth.apiKey as string || ''}
-								onChange={(e) => handleAuthChange('apiKey', (e.target as HTMLInputElement).value)}
-								className='w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-gray-100'
-							/>
-							{errors.apiKey &&
-								<div className='text-red-500 text-xs mt-1'>{errors.apiKey}</div>}
-						</div>
-					</div>
-				);
-
-			case 'googledocs':
-				return (
-					<div className='space-y-4 col-span-2'>
-						{/* Google OAuth Authentication */}
-						<GoogleOAuthFlow
-							onAuth={(authConfig: AuthConfig) => {
-								//console.log('DataSourceModal: Saving googledocs config', authConfig);
-								setFormData((prev) => ({
-									...prev,
-									auth: {
-										...prev.auth,
-										...authConfig,
-									},
-								}));
-							}}
-							onError={(error: string) => {
-								setErrors((prev) => ({ ...prev, auth: error }));
-							}}
-							authConfig={formData.auth as AuthConfig}
-							className='mb-4'
-						/>
-						{errors.auth && <div className='text-red-500 text-xs mt-1'>{errors.auth}</div>}
-
-						{/* Optional Configuration Fields */}
-						<div className='grid grid-cols-2 gap-4'>
-							{
-								/*<div className='space-y-2'>
-								<label className='block text-sm font-medium text-gray-700 dark:text-gray-300'>
-									Display Name (Optional)
-								</label>
-								<input
-									type='text'
-									value={formData.config.displayName as string || ''}
-									onChange={(e) =>
-										handleConfigChange('displayName', (e.target as HTMLInputElement).value)}
-									placeholder='My Google Docs'
-									className='w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-gray-100'
-								/>
-								<div className='text-xs text-gray-500 dark:text-gray-400'>
-									Friendly name for this Google connection
-								</div>
-							</div>*/
-							}
-
-							<div className='space-y-2'>
-								<label className='block text-sm font-medium text-gray-700 dark:text-gray-300'>
-									Default Drive/Folder ID (Optional)
-								</label>
-								<input
-									type='text'
-									value={formData.config.defaultFolderId as string || ''}
-									onChange={(e) =>
-										handleConfigChange('defaultFolderId', (e.target as HTMLInputElement).value)}
-									placeholder='drive-id-xyz'
-									className='w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-gray-100'
-								/>
-								<div className='text-xs text-gray-500 dark:text-gray-400'>
-									Restrict access to a specific Drive folder (leave empty for full access)
-								</div>
 							</div>
 						</div>
 					</div>
@@ -534,6 +417,42 @@ export function DataSourceModal({ dsConnection, onClose, onSave, appState, dsPro
 							<h4 className='text-md font-medium text-gray-800 dark:text-gray-200 mb-4'>Configuration</h4>
 							<div className='grid grid-cols-2 gap-6'>
 								{renderConfigFields()}
+							</div>
+						</div>
+
+						{/* Suggestions Settings */}
+						<div className='pt-4 border-t border-gray-200 dark:border-gray-700'>
+							<h4 className='text-md font-medium text-gray-800 dark:text-gray-200 mb-4'>
+								Resource Suggestions
+							</h4>
+							<div className='space-y-4'>
+								<div className='flex items-center'>
+									<input
+										id='suggestions-enabled-checkbox'
+										type='checkbox'
+										checked={(formData.config as DataSourceConfig)?.suggestions?.enabled !== false}
+										onChange={(e) => {
+											const enabled = (e.target as HTMLInputElement).checked;
+											const currentConfig = formData.config as DataSourceConfig;
+											handleConfigChange('suggestions', {
+												...currentConfig?.suggestions,
+												enabled,
+											});
+										}}
+										className='h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded'
+									/>
+									<label
+										for='suggestions-enabled-checkbox'
+										className='ml-2 block text-sm font-medium text-gray-700 dark:text-gray-300'
+									>
+										Enable resource suggestions
+									</label>
+								</div>
+								<div className='text-xs text-gray-500 dark:text-gray-400 ml-6'>
+									When enabled, this data source will provide autocomplete suggestions and appear in
+									resource search results. Disabling this is useful for large or slow data sources
+									that should not appear in quick suggestions.
+								</div>
 							</div>
 						</div>
 					</div>

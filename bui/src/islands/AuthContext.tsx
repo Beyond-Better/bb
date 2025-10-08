@@ -5,6 +5,7 @@ import { IS_BROWSER } from '$fresh/runtime.ts';
 import { initializeAuthState, useAuthState } from '../hooks/useAuthState.ts';
 import type { BuiConfig } from 'shared/config/types.ts';
 import { AuthError, authError } from './auth/AuthError.tsx';
+import { setBuiConfig } from '../hooks/useAppState.ts';
 
 interface AuthContextProps {
 	children: ComponentChildren;
@@ -61,6 +62,7 @@ export default function AuthContext({ children, buiConfig }: AuthContextProps) {
 		// Initial auth check
 		const initialCheck = async () => {
 			initializeAuthState(buiConfig);
+			setBuiConfig(buiConfig);
 			await checkSession();
 			isLoading.value = false;
 		};

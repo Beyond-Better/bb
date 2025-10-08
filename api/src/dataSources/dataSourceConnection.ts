@@ -15,6 +15,8 @@ import type { DataSourceProvider } from 'api/dataSources/interfaces/dataSourcePr
 import type { AuthConfig } from 'api/dataSources/interfaces/authentication.ts';
 import type { DataSourceAccessMethod, DataSourceCapability, DataSourceProviderType } from 'shared/types/dataSource.ts';
 import type { ResourceAccessor } from 'api/dataSources/interfaces/resourceAccessor.ts';
+import type { ValidationMode } from 'shared/types/resourceValidation.ts';
+import type { ResourceSuggestionsOptions, ResourceSuggestionsResponse } from '../utils/resourceSuggestions.utils.ts';
 import { getDataSourceFactory } from 'api/dataSources/dataSourceFactory.ts';
 import {
 	//type DataSourceRegistry,
@@ -202,11 +204,13 @@ export class DataSourceConnection implements IDataSourceConnection {
 
 	/**
 	 * Check if resource path is within this data source
+	 * @param resourceUri URI to validate
+	 * @param mode Validation mode to use
 	 * @returns boolean
 	 */
-	async isResourceWithinDataSource(resourceUri: string): Promise<boolean> {
+	async isResourceWithinDataSource(resourceUri: string, mode?: ValidationMode): Promise<boolean> {
 		const accessor = await this.getResourceAccessor();
-		return await accessor.isResourceWithinDataSource(resourceUri);
+		return await accessor.isResourceWithinDataSource(resourceUri, mode);
 	}
 
 	/**
@@ -216,6 +220,23 @@ export class DataSourceConnection implements IDataSourceConnection {
 	async resourceExists(resourceUri: string, options?: { isFile?: boolean }): Promise<boolean> {
 		const accessor = await this.getResourceAccessor();
 		return await accessor.resourceExists(resourceUri, options);
+	}
+
+	/**
+	 * Suggest resources for autocomplete based on partial path
+	 * @param partialPath Partial path input from user
+	 * @param options Suggestion options (limit, filters, etc.)
+	 * @returns Resource suggestions for autocomplete
+	 */
+	async suggestResources(
+		partialPath: string,
+		options: ResourceSuggestionsOptions,
+	): Promise<ResourceSuggestionsResponse> {
+		const accessor = await this.getResourceAccessor();
+		if (!accessor.suggestResourcesForPath) {
+			return { suggestions: [], hasMore: false }; // Graceful fallback for unsupported accessors
+		}
+		return await accessor.suggestResourcesForPath(partialPath, options);
 	}
 
 	/**
@@ -252,8 +273,18 @@ export class DataSourceConnection implements IDataSourceConnection {
 	update(updates: Partial<DataSourceConnectionValues>): void {
 		// Don't allow changing id, providerType, or accessMethod
 		if (updates.name !== undefined) this.name = updates.name;
-		if (updates.config !== undefined) this.config = { ...updates.config };
-		if (updates.auth !== undefined) this.auth = { ...updates.auth };
+		if (updates.config !== undefined) {
+			this.config = { ...updates.config };
+			// Clear cached accessor to force recreation with new config
+			this._resourceAccessor = undefined;
+			logger.debug(`DataSourceConnection: Cleared cached accessor for ${this.id} due to config update`);
+		}
+		if (updates.auth !== undefined) {
+			this.auth = { ...updates.auth };
+			// Clear cached accessor to force recreation with new auth credentials
+			this._resourceAccessor = undefined;
+			logger.debug(`DataSourceConnection: Cleared cached accessor for ${this.id} due to auth update`);
+		}
 		if (updates.enabled !== undefined) this.enabled = updates.enabled;
 		if (updates.isPrimary !== undefined) this.isPrimary = updates.isPrimary;
 		if (updates.priority !== undefined) this.priority = updates.priority;

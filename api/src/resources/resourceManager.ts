@@ -16,6 +16,8 @@ import type { DataSourceConnection } from 'api/dataSources/interfaces/dataSource
 import { createError, ErrorType } from 'api/utils/error.ts';
 import type { DataSourceHandlingErrorOptions, ResourceHandlingErrorOptions } from 'api/errors/error.ts';
 import type { ResourceType } from 'api/types.ts';
+import type { PortableTextBlock } from 'api/types/portableText.ts';
+import type { TabularSheet } from 'api/types/tabular.ts';
 //import type { DataSourceAccessMethod } from 'shared/types/dataSource.ts';
 import type {
 	DatasourceLoadResult,
@@ -344,7 +346,7 @@ export class ResourceManager {
 	 */
 	async writeResource(
 		resourceUri: string,
-		content: string | Uint8Array,
+		content: string | Uint8Array | Array<PortableTextBlock> | Array<TabularSheet>,
 		options?: ResourceWriteOptions,
 	): Promise<ResourceWriteResult> {
 		try {

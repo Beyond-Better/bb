@@ -38,6 +38,6 @@ export interface LLMToolDelegateTasksResponseData {
 }
 
 export interface LLMToolDelegateTasksResult {
-	toolResult: LLMToolRunResultContent;
+	toolResults: LLMToolRunResultContent;
 	bbResponse: LLMToolDelegateTasksResponseData & LLMToolRunBbResponse;
 }

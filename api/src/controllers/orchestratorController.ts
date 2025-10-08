@@ -3,7 +3,7 @@ import { exists } from '@std/fs';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
 import type { ProjectInfo } from 'api/editor/projectEditor.ts';
 //import type InteractionManager from 'api/llms/interactionManager.ts';
-//import { interactionManager } from 'api/llms/interactionManager.ts';
+//import { InteractionManager } from 'api/llms/interactionManager.ts';
 //import type ProjectEditor from 'api/editor/projectEditor.ts';
 import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 //import type LLMTool from 'api/llms/llmTool.ts';
@@ -37,6 +37,8 @@ import type {
 	//TokenUsage,
 	//TokenUsageStatsForCollaboration,
 } from 'shared/types.ts';
+import type { SamplingCreateMessageParams, SamplingMessage } from 'api/types/mcp.ts';
+import type { LLMMessageContentPart, LLMMessageContentParts } from 'api/llms/llmMessage.ts';
 import { ApiStatus } from 'shared/types.ts';
 //import { ErrorType, isLLMError, type LLMError, type LLMErrorOptions } from 'api/errors/error.ts';
 import { isLLMError } from 'api/errors/error.ts';
@@ -730,6 +732,21 @@ class OrchestratorController extends BaseController {
 							(error as Error).message
 						}`,
 					);
+
+					// Emergency save on turn-level errors to preserve partial progress
+					try {
+						await this.saveInteractionEmergency(interaction);
+						logger.debug(
+							`OrchestratorController: Emergency save completed after turn ${loopTurnCount} error`,
+						);
+					} catch (saveError) {
+						logger.warn(
+							`OrchestratorController: Emergency save failed after turn error: ${
+								(saveError as Error).message
+							}`,
+						);
+					}
+
 					if (loopTurnCount === maxTurns - 1) {
 						throw error; // If it's the last turn, throw the error to be caught by the outer try-catch
 					}
@@ -871,6 +888,23 @@ class OrchestratorController extends BaseController {
 			logger.error(
 				`OrchestratorController: Error in handle statement: ${(error as Error).message}`,
 			);
+
+			// CRITICAL: Emergency save to preserve interaction state despite the error
+			// This ensures messages, token usage, tool metrics, etc. are not lost
+			try {
+				collaboration.updateLastInteraction(interaction);
+				await this.saveCollaboration(collaboration);
+				await this.saveInteractionEmergency(interaction);
+				logger.info(`OrchestratorController: Emergency save completed for interaction ${interaction.id}`);
+			} catch (saveError) {
+				logger.error(
+					`OrchestratorController: Emergency save failed for interaction ${interaction.id}: ${
+						(saveError as Error).message
+					}`,
+				);
+				// Continue - don't let save errors mask the original error
+			}
+
 			const statementAnswer: CollaborationResponse = {
 				logEntry: { entryType: 'answer', content: 'Error handling statement', thinking: '' },
 				collaborationId: collaborationId,
@@ -971,6 +1005,114 @@ class OrchestratorController extends BaseController {
 		// 		}
 		//
 		// 		logger.info('OrchestratorController: Delegated tasks completed', { results });
+	}
+
+	/**
+	 * Generate response for MCP sampling request
+	 * Similar to generateCollaborationTitle but for sampling requests
+	 */
+	async generateSamplingResponse(
+		params: SamplingCreateMessageParams,
+		collaboration: Collaboration,
+		interactionId: InteractionId,
+		mcpServerDetails: { name?: string; id: string },
+		speakOptions?: LLMSpeakWithOptions,
+	): Promise<LLMSpeakWithResponse> {
+		const serverName = mcpServerDetails.name || mcpServerDetails.id;
+		const chatTitle = `Sampling request for ${serverName}`;
+
+		// Create chat interaction for sampling
+		const chatInteraction = await this.createChatInteraction(
+			collaboration,
+			interactionId,
+			chatTitle,
+		);
+
+		// Convert SamplingMessage[] to BB format and handle system messages
+		const systemMessages: string[] = [];
+		const conversationMessages: { role: 'user' | 'assistant'; content: LLMMessageContentParts }[] = [];
+
+		// Convert MCP messages to BB format
+		for (const samplingMsg of params.messages) {
+			if (samplingMsg.role === 'system') {
+				// Collect system messages separately
+				if (samplingMsg.content.type === 'text') {
+					systemMessages.push(samplingMsg.content.text);
+				}
+			} else if (samplingMsg.role === 'user' || samplingMsg.role === 'assistant') {
+				// Convert content to BB format
+				const bbContent = this.convertSamplingContentToBB(samplingMsg.content);
+				conversationMessages.push({
+					role: samplingMsg.role,
+					content: [bbContent],
+				});
+			}
+		}
+
+		// Prepare speakOptions with system prompt
+		const finalSpeakOptions: LLMSpeakWithOptions = {
+			...speakOptions,
+			system: [
+				...(params.systemPrompt ? [params.systemPrompt] : []),
+				...systemMessages,
+				...(speakOptions?.system ? [speakOptions.system] : []),
+			].join('\n\n').trim() || undefined,
+		};
+
+		// Backfill all messages except the last one
+		for (let i = 0; i < conversationMessages.length - 1; i++) {
+			const msg = conversationMessages[i];
+			if (msg.role === 'user') {
+				chatInteraction.addMessageForUserRole(msg.content);
+			} else if (msg.role === 'assistant') {
+				chatInteraction.addMessageForAssistantRole(msg.content);
+			}
+		}
+
+		// Process the final message with chat()
+		const lastMessage = conversationMessages[conversationMessages.length - 1];
+		if (!lastMessage) {
+			throw new Error('No messages provided for sampling request');
+		}
+
+		// Call chat with the final message content (supporting multi-modal)
+		const finalPrompt = lastMessage.content.length === 1 ? lastMessage.content[0] : lastMessage.content;
+		const response = await chatInteraction.chat(finalPrompt, finalSpeakOptions);
+
+		return response;
+	}
+
+	/**
+	 * Convert SamplingContent to BB LLMMessageContentPart format
+	 * TODO: Switch to storeResourceRevision and use resource placeholder text for images/audio
+	 */
+	private convertSamplingContentToBB(content: any): LLMMessageContentPart {
+		switch (content.type) {
+			case 'text':
+				return {
+					type: 'text',
+					text: content.text,
+				};
+			case 'image':
+				// TODO: Use storeResourceRevision and resource placeholder
+				return {
+					type: 'image',
+					source: {
+						type: 'base64',
+						data: content.data,
+						media_type: content.mimeType as any,
+					},
+				};
+			case 'audio':
+				// TODO: Use storeResourceRevision and resource placeholder
+				// For now, convert to text representation since audio isn't directly supported
+				return {
+					type: 'text',
+					text: `[Audio content: ${content.mimeType}, ${content.data.length} bytes]`,
+				};
+			default:
+				throw new Error(`Unsupported sampling content type: ${content.type}`);
+		}
 	}
 }
 

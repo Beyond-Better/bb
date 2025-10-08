@@ -27,6 +27,7 @@ export type KVKey = string | string[];
  * kv.set<LLMSpeakWithResponse>(key, value);
  */
 export class KVManager<T = unknown> {
+	// deno-lint-ignore no-explicit-any
 	private static instances: Set<KVManager<any>> = new Set();
 	private static kvInstances = new Map<string, Deno.Kv>();
 	private static closing = false;
@@ -86,7 +87,7 @@ export class KVManager<T = unknown> {
 				return join(globalDir, this.filename);
 			}
 		} catch (error) {
-			logger.error('KVStorage: Failed to determine KV path:', error);
+			logger.error('KVManager: Failed to determine KV path:', error);
 			throw error;
 		}
 	}
@@ -97,34 +98,17 @@ export class KVManager<T = unknown> {
 
 	private ensureInitialized(): void {
 		if (!this.kv) {
-			throw new Error('KVStorage: not initialized. Call initialize() first.');
+			throw new Error('KVManager: not initialized. Call initialize() first.');
 		}
 	}
 
-	// // Remove the instance-level close method since we're managing KV lifecycle at the static level
-	// public async close(): Promise<void> {
-	// 	if (this.kv && this.kvPath) {
-	// 		logger.info(`KVManager: closing instance for path: ${this.kvPath}`);
-	// 		await this.kv.close();
-	// 		KVManager.kvInstances.delete(this.kvPath);
-	// 		KVManager.instances.delete(this);
-	// 	}
-	// }
-	// // tries to close file more than once
-	// public static async closeAll(): Promise<void> {
-	// 	try {
-	// 		await Promise.all([...KVManager.kvInstances.values()].map((kv) => kv.close()));
-	// 	} finally {
-	// 		KVManager.kvInstances.clear();
-	// 	}
-	// }
 	public static async closeAll(): Promise<void> {
 		if (this.closing) return;
 		this.closing = true;
 		try {
-			const closePromises = [...this.kvInstances.values()].map(async (kv) => {
+			const closePromises = [...this.kvInstances.values()].map((kv) => {
 				try {
-					await kv.close();
+					kv.close();
 				} catch (error) {
 					if (!(error instanceof Deno.errors.BadResource)) {
 						throw error;
@@ -180,6 +164,7 @@ export class KVManager<T = unknown> {
 		await atomic.commit();
 	}
 
+	// deno-lint-ignore require-await
 	public async list<K = T>(key?: KVKey): Promise<AsyncIterableIterator<Deno.KvEntry<K>>> {
 		this.ensureInitialized();
 		return this.kv!.list<K>({ prefix: this.normalizeKey(key ?? '') });

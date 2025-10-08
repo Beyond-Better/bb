@@ -2,6 +2,7 @@
  * FilesystemAccessor implementation for accessing filesystem resources.
  */
 import { basename, dirname, join, relative } from '@std/path';
+import { globToRegExp } from '@std/path';
 import {
 	ensureDir,
 	exists,
@@ -9,6 +10,11 @@ import {
 	walk,
 } from '@std/fs';
 import type { WalkOptions } from '@std/fs';
+import type {
+	ResourceSuggestion,
+	ResourceSuggestionsOptions,
+	ResourceSuggestionsResponse,
+} from '../../utils/resourceSuggestions.utils.ts';
 
 import { logger } from 'shared/logger.ts';
 import { BBResourceAccessor } from '../base/bbResourceAccessor.ts';
@@ -66,6 +72,8 @@ import type {
 	TextMatch,
 } from 'shared/types/dataSourceResource.ts';
 import type { DataSourceCapability, DataSourceMetadata } from 'shared/types/dataSource.ts';
+import type { PortableTextBlock } from 'api/types/portableText.ts';
+import type { TabularSheet } from 'api/types/tabular.ts';
 
 /**
  * FilesystemAccessor for accessing filesystem resources
@@ -208,6 +216,7 @@ export class FilesystemAccessor extends BBResourceAccessor {
 				const isBinaryMime = resourceMetadata.mimeType.startsWith('image/') ||
 					resourceMetadata.mimeType.startsWith('audio/') ||
 					resourceMetadata.mimeType.startsWith('video/') ||
+					resourceMetadata.mimeType.startsWith('application/pdf') ||
 					resourceMetadata.mimeType.startsWith('application/octet-stream');
 
 				// Handle range request if specified
@@ -692,7 +701,7 @@ export class FilesystemAccessor extends BBResourceAccessor {
 	 */
 	override async writeResource(
 		resourceUri: string,
-		content: string | Uint8Array,
+		content: string | Uint8Array, // | Array<PortableTextBlock> | Array<TabularSheet>,
 		options: ResourceWriteOptions = {},
 	): Promise<ResourceWriteResult> {
 		try {
@@ -1773,6 +1782,193 @@ export class FilesystemAccessor extends BBResourceAccessor {
 
 		// Default to text if unknown
 		return false;
+	}
+
+	/**
+	 * Suggest resources for autocomplete based on partial path
+	 * @param partialPath Partial path input from user
+	 * @param options Suggestion options (limit, filters, etc.)
+	 * @returns Resource suggestions for autocomplete
+	 */
+	override async suggestResourcesForPath(
+		partialPath: string,
+		options: ResourceSuggestionsOptions,
+	): Promise<ResourceSuggestionsResponse> {
+		const { limit = 50, caseSensitive = false, type = 'all', followSymlinks: optionsFollowSymlinks } = options;
+		logger.warn('FilesystemAccessor: Suggesting resources for', {
+			partialPath,
+			followSymlinks: optionsFollowSymlinks,
+		});
+
+		// Remove leading slash as it's just a trigger, not part of the pattern
+		const searchPath = partialPath.replace(/^\//, '');
+
+		// Get exclude patterns
+		const excludeOptions = await getExcludeOptions(this.rootPath);
+		const excludePatterns = createExcludeRegexPatterns(excludeOptions, this.rootPath);
+
+		// Generate patterns for matching
+		const patterns = this.createSuggestionPatterns(searchPath, { caseSensitive, type });
+		if (patterns.length === 0) {
+			logger.info('FilesystemAccessor: No valid patterns generated');
+			return { suggestions: [], hasMore: false };
+		}
+
+		// Collect matching files
+		const results: Array<ResourceSuggestion> = [];
+		let reachedLimit = false;
+
+		try {
+			for await (
+				const entry of walk(this.rootPath, {
+					includeDirs: true,
+					followSymlinks: this.followSymlinks,
+					match: patterns,
+					skip: excludePatterns,
+				})
+			) {
+				// Check limit before adding
+				if (results.length >= limit) {
+					reachedLimit = true;
+					break;
+				}
+
+				const stat = await Deno.stat(entry.path);
+				const relativePath = relative(this.rootPath, entry.path);
+
+				results.push({
+					dataSourceRoot: this.rootPath,
+					path: relativePath,
+					isDirectory: stat.isDirectory,
+					size: stat.size,
+					modified: stat.mtime?.toISOString(),
+					dataSourceName: this.connection.name,
+				});
+			}
+		} catch (error) {
+			logger.error('FilesystemAccessor: Error walking directory', error);
+			throw createError(
+				ErrorType.FileHandling,
+				`Error walking directory: ${(error as Error).message}`,
+			);
+		}
+
+		// Apply type filtering if specified
+		const filteredResults = results.filter((entry) => {
+			if (type === 'directory') return entry.isDirectory;
+			if (type === 'file') return !entry.isDirectory;
+			return true;
+		});
+
+		return {
+			suggestions: filteredResults,
+			hasMore: reachedLimit,
+		};
+	}
+
+	/**
+	 * Creates an array of RegExp patterns for matching file suggestions based on partial path input
+	 */
+	private createSuggestionPatterns(
+		partialPath: string,
+		options: { caseSensitive?: boolean; type?: 'all' | 'file' | 'directory' } = {},
+	): RegExp[] {
+		// Normalize path separators to forward slashes
+		partialPath = partialPath.replace(/\\/g, '/');
+
+		// Reject paths trying to escape root
+		if (partialPath.includes('../') || partialPath.includes('..\\')) {
+			logger.warn('FilesystemAccessor: Rejecting path that tries to escape root', { partialPath });
+			return [];
+		}
+
+		const patterns: RegExp[] = [];
+		const globOptions = {
+			flags: options.caseSensitive ? '' : 'i',
+			extended: true,
+			globstar: true,
+		};
+
+		// Helper to create regex with proper case sensitivity
+		const createRegex = (pattern: string) => {
+			const flags = options.caseSensitive ? '' : 'i';
+			return new RegExp(pattern, flags);
+		};
+
+		// Handle empty input
+		if (!partialPath) {
+			const rootPattern = '**/*';
+			patterns.push(globToRegExp(rootPattern, globOptions));
+
+			if (options.type !== 'file') {
+				const rootDirPattern = '*/';
+				patterns.push(globToRegExp(rootDirPattern, globOptions));
+			}
+			return patterns;
+		}
+
+		// Handle brace expansion and multiple patterns
+		const expandBraces = (pattern: string): string[] => {
+			const match = pattern.match(/{([^}]+)}/);
+			if (!match) return [pattern];
+
+			const [fullMatch, alternatives] = match;
+			const parts = alternatives.split(',').map((p) => p.trim());
+
+			// Create a regex-compatible OR group
+			const orGroup = `(${parts.join('|')})`;
+			return [pattern.replace(fullMatch, orGroup)];
+		};
+
+		// Split by | and handle brace expansion
+		const subPatterns = partialPath
+			.split('|')
+			.flatMap((pattern) => expandBraces(pattern));
+
+		for (const pattern of subPatterns) {
+			let singlePattern = pattern;
+
+			// Handle directory patterns
+			if (
+				singlePattern.endsWith('/') ||
+				(!singlePattern.includes('*') && !singlePattern.includes('.') && !singlePattern.includes('{') &&
+					!singlePattern.includes('('))
+			) {
+				singlePattern = singlePattern.slice(0, -1);
+				const dirPattern = singlePattern.includes('**') ? `${singlePattern}/**/*` : `**/${singlePattern}*/**/*`;
+				patterns.push(createRegex(globToRegExp(dirPattern, globOptions).source));
+			}
+
+			// Handle bare filename (no path, no wildcards)
+			if (!singlePattern.includes('/') && !singlePattern.includes('*')) {
+				const dirPattern = `**/${singlePattern}*/`;
+				patterns.push(globToRegExp(dirPattern, globOptions));
+
+				const filesPattern = `**/${singlePattern}*/**/*`;
+				patterns.push(globToRegExp(filesPattern, globOptions));
+			}
+
+			// Handle wildcard patterns
+			if (singlePattern.includes('*')) {
+				if (singlePattern.includes('**')) {
+					const prefixedPattern = singlePattern.startsWith('**/') ? singlePattern : `**/${singlePattern}`;
+					const pattern = globToRegExp(prefixedPattern, { ...globOptions, globstar: true });
+					patterns.push(pattern);
+				} else {
+					if (singlePattern.includes('.')) {
+						const prefixedPattern = `**/${singlePattern}`;
+						patterns.push(createRegex(globToRegExp(prefixedPattern, globOptions).source));
+					} else {
+						const dirPattern = `**/${singlePattern}`;
+						const contentsPattern = `**/${singlePattern}/**/*`;
+						patterns.push(globToRegExp(dirPattern, globOptions));
+						patterns.push(globToRegExp(contentsPattern, globOptions));
+					}
+				}
+			}
+		}
+
+		return patterns;
 	}
 
 	/**

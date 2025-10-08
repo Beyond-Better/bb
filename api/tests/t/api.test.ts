@@ -110,7 +110,7 @@ Deno.test("File operations in collaboration", async () => {
 
     // Add file to collaboration
     const addFileResponse = await request
-      .post("/api/v1/files")
+      .post("/api/v1/resources")
       .field("file", "test content")
       .field("filename", "test.txt")
       .expect(200)
@@ -124,11 +124,11 @@ Deno.test("File operations in collaboration", async () => {
 
     // List files in collaboration
     const listFilesResponse = await request
-      .get("/api/v1/files")
+      .get("/api/v1/resources")
       .expect(200)
       .expect("Content-Type", /json/);
 
-    assertObjectMatch(listFilesResponse.body, { files: Array });
+    assertObjectMatch(listFilesResponse.body, { resources: Array });
   });
 });
 */

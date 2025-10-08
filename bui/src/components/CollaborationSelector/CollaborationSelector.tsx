@@ -49,7 +49,7 @@ export function CollaborationSelector({
 
 		return sortedCollaborations.value.filter((collab) =>
 			collab.title?.toLowerCase().includes(query) ||
-			collab.id.toLowerCase().includes(query)
+			collab.id?.toLowerCase().includes(query)
 		);
 	});
 

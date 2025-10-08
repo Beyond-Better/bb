@@ -38,7 +38,7 @@ export type CollaborationLogEntryType =
 	| 'error'; //text_change
 
 export interface CollaborationLogEntryContentToolResult {
-	toolResult: LLMToolRunResultContent;
+	toolResults: LLMToolRunResultContent;
 	bbResponse: LLMToolRunBbResponse;
 }
 
@@ -362,7 +362,7 @@ export default class CollaborationLogger {
 		//parentInteractionId: InteractionId | null,
 		agentInteractionId: InteractionId | null,
 		toolName: string,
-		toolResult: LLMToolRunResultContent,
+		toolResults: LLMToolRunResultContent,
 		bbResponse: LLMToolRunBbResponse,
 	) {
 		try {
@@ -373,7 +373,7 @@ export default class CollaborationLogger {
 				agentInteractionId,
 				{
 					entryType: 'tool_result',
-					content: { toolResult, bbResponse },
+					content: { toolResults, bbResponse },
 					toolName,
 				},
 			);

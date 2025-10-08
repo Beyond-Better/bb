@@ -7,7 +7,7 @@ import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts
 import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 
 import type LLMTool from 'api/llms/llmTool.ts';
-import type LLMToolMCP from './tools/mcp.tool/tool.ts';
+import type LLMToolMCP from 'api/llms/tools/mcp.tool/tool.ts';
 import type {
 	LLMToolInputSchema,
 	LLMToolRunBbResponse,
@@ -16,14 +16,15 @@ import type {
 } from 'api/llms/llmTool.ts';
 
 import { createError, ErrorType } from 'api/utils/error.ts';
-import type { LLMToolMCPConfig } from './tools/mcp.tool/types.ts';
+import type { LLMToolMCPConfig } from 'api/llms/tools/mcp.tool/types.ts';
 import type { LLMValidationErrorOptions } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
 import type { ProjectConfig } from 'shared/config/types.ts';
 import { getBbDir, getGlobalConfigDir } from 'shared/dataDir.ts';
 import type { MCPManager } from 'api/mcp/mcpManager.ts';
 import { getMCPManager } from 'api/mcp/mcpManager.ts';
-import type { SessionManager } from 'api/auth/session.ts';
+import type { UserContext } from 'shared/types/app.ts';
+import { hasExternalToolsAccess } from 'api/utils/featureAccess.ts';
 
 import { CORE_TOOLS } from './tools_manifest.ts';
 
@@ -69,15 +70,15 @@ class LLMToolManager {
 	private globalConfigDir: string | undefined;
 	public toolSet: LLMToolManagerToolSetType | LLMToolManagerToolSetType[];
 	private mcpManager!: MCPManager;
-	private sessionManager: SessionManager;
+	private userContext: UserContext;
 
 	constructor(
 		projectConfig: ProjectConfig,
-		sessionManager: SessionManager,
+		userContext: UserContext,
 		toolSet: LLMToolManagerToolSetType | LLMToolManagerToolSetType[] = 'core',
 	) {
 		this.projectConfig = projectConfig;
-		this.sessionManager = sessionManager;
+		this.userContext = userContext;
 		this.toolSet = toolSet;
 	}
 
@@ -202,7 +203,7 @@ class LLMToolManager {
 			logger.debug(`LLMToolManager: Loading tools from ${serverIds.length} MCP servers`);
 
 			// Check if user has access to external MCP tools
-			const mcpAccessCheck = await this.sessionManager.hasExternalToolsAccess();
+			const mcpAccessCheck = await hasExternalToolsAccess(this.userContext);
 
 			if (!mcpAccessCheck) {
 				logger.info(`LLMToolManager: MCP tools access denied`);

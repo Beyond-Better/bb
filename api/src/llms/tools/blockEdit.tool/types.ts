@@ -51,7 +51,7 @@ export interface LLMToolBlockEditResponseData {
  * Result of a block_edit tool operation.
  */
 export interface LLMToolBlockEditResult {
-	toolResult: LLMToolRunResultContent;
+	toolResults: LLMToolRunResultContent;
 	bbResponse: string;
 	//bbResponse: LLMToolBlockEditResponseData;
 }

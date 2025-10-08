@@ -21,6 +21,8 @@ import type {
 } from 'shared/types/dataSourceResource.ts';
 import type { DataSourceCapability } from 'shared/types/dataSource.ts';
 import type { MCPManager } from 'api/mcp/mcpManager.ts';
+import type { PortableTextBlock } from 'api/types/portableText.ts';
+import type { TabularSheet } from 'api/types/tabular.ts';
 
 /**
  * Abstract base class for MCP-managed resource accessors
@@ -134,7 +136,7 @@ export abstract class MCPResourceAccessor extends BaseResourceAccessor {
 	 */
 	async writeResource?(
 		resourceUri: string,
-		_content: string | Uint8Array,
+		_content: string | Uint8Array | Array<PortableTextBlock> | Array<TabularSheet>,
 		_options?: ResourceWriteOptions,
 	): Promise<ResourceWriteResult> {
 		logger.debug(`MCPResourceAccessor: Writing to resource ${resourceUri} on server ${this.serverId}`);

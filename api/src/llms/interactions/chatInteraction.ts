@@ -5,6 +5,7 @@ import type { InteractionId } from 'shared/types.ts';
 import type { AuxiliaryChatContent } from 'api/logEntries/types.ts';
 import { DefaultModelsConfigDefaults } from 'shared/types/models.ts';
 import type LLMMessage from 'api/llms/llmMessage.ts';
+import type { LLMMessageContentPart, LLMMessageContentParts } from 'api/llms/llmMessage.ts';
 //import type { LLMMessageContentPartTextBlock } from 'api/llms/llmMessage.ts';
 import type LLMTool from 'api/llms/llmTool.ts';
 //import { extractTextFromContent } from 'api/utils/llms.ts';
@@ -29,7 +30,7 @@ class LLMChatInteraction extends LLMInteraction {
 	}
 
 	public async chat(
-		prompt: string,
+		prompt: string | LLMMessageContentPart | LLMMessageContentParts,
 		speakOptions?: LLMSpeakWithOptions | null,
 	): Promise<LLMSpeakWithResponse> {
 		if (!speakOptions) {
@@ -43,7 +44,17 @@ class LLMChatInteraction extends LLMInteraction {
 		this._statementTurnCount++;
 
 		//logger.debug(`chat - calling addMessageForUserRole for turn ${this._statementTurnCount}` );
-		const messageId = this.addMessageForUserRole({ type: 'text', text: prompt });
+		// Handle different prompt types for multi-modal support
+		let messageContent: LLMMessageContentParts;
+		if (typeof prompt === 'string') {
+			messageContent = [{ type: 'text', text: prompt }];
+		} else if (Array.isArray(prompt)) {
+			messageContent = prompt;
+		} else {
+			messageContent = [prompt];
+		}
+
+		const messageId = this.addMessageForUserRole(messageContent);
 
 		//this.collaborationLogger.logAuxiliaryMessage(messageId, null, null, prompt);
 
@@ -61,8 +72,17 @@ class LLMChatInteraction extends LLMInteraction {
 
 		//const msg = extractTextFromContent(response.messageResponse.answerContent);
 		//const msg = `<prompt>${prompt}</prompt>\n${response.messageResponse.answer}`;
+		// Convert prompt to string for logging
+		const promptText = typeof prompt === 'string'
+			? prompt
+			: Array.isArray(prompt)
+			? prompt.map((p) => p.type === 'text' ? p.text : `[${p.type}]`).join(' ')
+			: prompt.type === 'text'
+			? prompt.text
+			: `[${prompt.type}]`;
+
 		const auxiliaryContent: AuxiliaryChatContent = {
-			prompt,
+			prompt: promptText,
 			message: response.messageResponse.answer,
 			purpose: this.title || '',
 		};

@@ -310,7 +310,7 @@ export function useChatState(
 
 				// Update collaborations array with the loaded collaboration
 				const updatedCollaborations = [...collaborations];
-				if (collaboration) {
+				if (collaboration && !collaboration.error) { //{error: "Collaboration not found"}
 					//console.log(`useChatState: url/projectId effect[${effectId}]: initialize-collaboration`, collaboration);
 					const existingIndex = updatedCollaborations.findIndex((c) => c.id === collaboration.id);
 					if (existingIndex >= 0) {
@@ -1041,7 +1041,7 @@ export function useChatState(
 					// 	modelConfig: collaboration.lastInteractionMetadata?.modelConfig,
 					// 	interactionStats: collaboration.lastInteractionMetadata?.interactionStats,
 					// 	llmProviderName: collaboration.lastInteractionMetadata?.llmProviderName || 'anthropic',
-					// 	model: collaboration.lastInteractionMetadata?.model || 'claude-sonnet-4-20250514',
+					// 	model: collaboration.lastInteractionMetadata?.model || 'claude-sonnet-4-5-20250929',
 					// 	createdAt: collaboration.lastInteractionMetadata?.createdAt || new Date().toISOString(),
 					// 	updatedAt: collaboration.lastInteractionMetadata?.updatedAt || new Date().toISOString(),
 					// };
