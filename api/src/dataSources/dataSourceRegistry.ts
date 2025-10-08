@@ -16,8 +16,6 @@ import type { MCPManager } from 'api/mcp/mcpManager.ts';
 import { getMCPManager } from 'api/mcp/mcpManager.ts';
 // Dynamic imports - providers will be loaded conditionally
 // import { FilesystemProvider } from 'api/dataSources/filesystemProvider.ts';
-// import { GoogleDocsProvider } from 'api/dataSources/googledocsProvider.ts';
-// import { NotionProvider } from 'api/dataSources/notionProvider.ts';
 import { GenericMCPProvider } from 'api/dataSources/genericMCPProvider.ts';
 import { CORE_DATASOURCES, type DataSourceMetadata } from './dataSource_manifest.ts';
 import { exists } from '@std/fs';
@@ -330,11 +328,7 @@ export class DataSourceRegistry {
 	 */
 	private async detectProductVariant(): Promise<'opensource' | 'saas'> {
 		try {
-			// Check if saas-specific providers exist by attempting to import them
-			const notionExists = await this.checkProviderExists('api/dataSources/notion/notionProvider.ts');
-			const googleDocsExists = await this.checkProviderExists('api/dataSources/googledocs/googledocsProvider.ts');
-
-			return (notionExists || googleDocsExists) ? 'saas' : 'opensource';
+			return 'opensource';
 		} catch (error) {
 			logger.warn(`DataSourceRegistry: Error detecting product variant: ${(error as Error).message}`);
 			return 'opensource'; // Default to opensource if detection fails

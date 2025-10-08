@@ -69,7 +69,7 @@ export interface LLMToolImageProcessingResponseData {
 }
 
 export interface LLMToolImageProcessingResult {
-	toolResult: LLMToolRunResultContent;
+	toolResults: LLMToolRunResultContent;
 	toolResponse: string;
 	bbResponse: LLMToolImageProcessingResponseData;
 }

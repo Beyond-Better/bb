@@ -1,5 +1,5 @@
-import { useState } from 'preact/hooks';
-import { MCPServerConfig } from 'shared/config/types.ts';
+//import { useState } from 'preact/hooks';
+import type { MCPServerConfig } from 'shared/config/types.ts';
 
 interface MCPServersOverviewProps {
 	servers: MCPServerConfig[];

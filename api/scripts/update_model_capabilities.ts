@@ -28,6 +28,7 @@ import type {
 	PartialTokenPricing,
 	//TokenTypeEnum
 } from 'shared/types/models.ts';
+import type { TieredPricingConfig, CacheTypeConfig, ContentTypeConfig } from 'shared/utils/tieredPricing.ts';
 import type { ModelCapabilities } from 'api/types/modelCapabilities.types.ts';
 import { createClient } from '@supabase/supabase-js';
 import { fetchSupabaseConfig } from 'api/auth/config.ts';
@@ -57,12 +58,21 @@ interface SourceModel {
 		inputTokens: {
 			basePrice: number;
 			cachedPrice?: number;
-			tieredPricing?: Record<string, number>;
+			tieredPricing?: TieredPricingConfig;
+			cacheTypes?: Record<string, CacheTypeConfig>;
+			contentTypes?: Record<string, ContentTypeConfig>;
 			multimodal?: Record<string, number>;
 		};
 		outputTokens: {
 			basePrice: number;
-			tieredPricing?: Record<string, number>;
+			tieredPricing?: TieredPricingConfig;
+			cacheTypes?: Record<string, CacheTypeConfig>;
+			contentTypes?: Record<string, ContentTypeConfig>;
+		};
+		thoughtTokens?: {
+			basePrice: number;
+			tieredPricing?: TieredPricingConfig;
+			description?: string;
 		};
 		currency: string;
 		effectiveDate: string;
@@ -131,7 +141,7 @@ interface LLMProxyModel {
  */
 interface FetcherConfig {
 	environment: 'staging' | 'production';
-	supabaseUrl?: string;
+	supabaseConfigUrl?: string;
 	outputPath: string;
 	sourceDir: string;
 	providersToProcess: string[];
@@ -167,6 +177,8 @@ function generateFeatureKey(provider: string, modelId: string): string {
 			return 'models.openai.o4';
 		} else if (modelId.startsWith('o1')) {
 			return 'models.openai.o1';
+		} else if (modelId.includes('gpt-5') || modelId.includes('gpt5')) {
+			return 'models.openai.gpt5';
 		} else if (modelId.includes('gpt-4') || modelId.includes('gpt4')) {
 			return 'models.openai.gpt4';
 		} else if (modelId.includes('gpt-3') || modelId.includes('gpt3')) {
@@ -371,22 +383,29 @@ class ModelCapabilitiesFetcher {
 		sourceData: SourceModelData,
 	): ModelCapabilities & { hidden?: boolean } {
 		// Handle pricing - Ollama models are local/free
-		const token_pricing: Record<string, number> = { input: 0, output: 0 };
+		let token_pricing: Record<string, number> = { input: 0, output: 0 };
 		let currency = 'USD';
 		let effectiveDate = new Date().toISOString().split('T')[0];
+		
+		// Tiered pricing configuration (extracted from canonical conversion)
+		let canonicalPricing: any = {};
 
 		if (sourceModel.pricing && sourceModel.pricing.inputTokens && sourceModel.pricing.outputTokens) {
-			// Convert pricing to dynamic token_pricing structure
-			token_pricing.input = this.convertPricingToCentsPerMillionTokens(
-				sourceModel.pricing.inputTokens.basePrice,
-				sourceData.pricingUnit,
-			);
-			token_pricing.output = this.convertPricingToCentsPerMillionTokens(
-				sourceModel.pricing.outputTokens.basePrice,
-				sourceData.pricingUnit,
-			);
+			// Use new canonical conversion function
+			canonicalPricing = this.convertPricingToCanonical(sourceModel.pricing);
+			
+			// Set basic token pricing from canonical (already in cents)
+			token_pricing = {
+				input: canonicalPricing.input || 0,
+				output: canonicalPricing.output || 0,
+			};
+			
+			// Add thought tokens if present
+			if (canonicalPricing.thought) {
+				token_pricing.thought = canonicalPricing.thought;
+			}
 
-			// Add cached pricing if available (Anthropic-specific)
+			// Add cached pricing if available (legacy support)
 			if (sourceModel.pricing.inputTokens.cachedPrice !== undefined) {
 				if (provider === 'anthropic') {
 					token_pricing.anthropic_cache_read = this.convertPricingToCentsPerMillionTokens(
@@ -398,8 +417,6 @@ class ModelCapabilitiesFetcher {
 						sourceModel.pricing.inputTokens.basePrice * 1.25,
 						sourceData.pricingUnit,
 					);
-				//} else if (provider === 'google') {
-				//    // [TODO] add support for google tiered pricing
 				} else {
 					token_pricing.cache_read = this.convertPricingToCentsPerMillionTokens(
 						sourceModel.pricing.inputTokens.cachedPrice,
@@ -425,6 +442,28 @@ class ModelCapabilitiesFetcher {
 				effectiveDate: effectiveDate,
 			},
 			featureKey: featureKey, // Add feature key for access control
+			// NEW: Tiered pricing configuration fields
+			...(canonicalPricing.inputTokensTieredConfig && { 
+				inputTokensTieredConfig: canonicalPricing.inputTokensTieredConfig 
+			}),
+			...(canonicalPricing.inputTokensCacheTypes && { 
+				inputTokensCacheTypes: canonicalPricing.inputTokensCacheTypes 
+			}),
+			...(canonicalPricing.inputTokensContentTypes && { 
+				inputTokensContentTypes: canonicalPricing.inputTokensContentTypes 
+			}),
+			...(canonicalPricing.outputTokensTieredConfig && { 
+				outputTokensTieredConfig: canonicalPricing.outputTokensTieredConfig 
+			}),
+			...(canonicalPricing.outputTokensCacheTypes && { 
+				outputTokensCacheTypes: canonicalPricing.outputTokensCacheTypes 
+			}),
+			...(canonicalPricing.outputTokensContentTypes && { 
+				outputTokensContentTypes: canonicalPricing.outputTokensContentTypes 
+			}),
+			...(canonicalPricing.thoughtTokensConfig && { 
+				thoughtTokensConfig: canonicalPricing.thoughtTokensConfig 
+			}),
 			supportedFeatures: {
 				functionCalling: sourceModel.supportedFeatures.functionCalling,
 				json: sourceModel.supportedFeatures.json,
@@ -489,6 +528,131 @@ class ModelCapabilitiesFetcher {
 	// 	// This maintains accuracy for billing while keeping JSON clean
 	// 	//return Math.round(result * 1e12) / 1e12;
 	// }
+
+	/**
+	 * Convert pricing from provider JSON to canonical format
+	 * IMPORTANT: This is the ONLY place where dollars -> cents conversion should happen!
+	 * All downstream code (sync script, edge function, handler) should work with cents values.
+	 */
+	private convertPricingToCanonical(providerPricing: any): any {
+		const canonicalPricing: any = {};
+		
+		// Handle input tokens
+		if (providerPricing.inputTokens) {
+			if (providerPricing.inputTokens.tieredPricing) {
+				// New tiered format - create simple token_pricing entry (base tier price)
+				canonicalPricing.input = providerPricing.inputTokens.tieredPricing.tiers[0].price * 100; // Convert to cents
+				
+				// Store full tiered config for settings field (convert all prices to cents)
+				canonicalPricing.inputTokensTieredConfig = this.convertTieredPricingToCents(providerPricing.inputTokens.tieredPricing);
+			} else {
+				// Legacy/non-tiered format
+				canonicalPricing.input = providerPricing.inputTokens.basePrice * 100; // Convert to cents
+			}
+			
+			// Handle cache types (regardless of whether tiered pricing is present)
+			if (providerPricing.inputTokens.cacheTypes) {
+				canonicalPricing.inputTokensCacheTypes = this.convertCacheTypesToCents(providerPricing.inputTokens.cacheTypes);
+			}
+			
+			// Handle content types (regardless of whether tiered pricing is present)
+			if (providerPricing.inputTokens.contentTypes) {
+				canonicalPricing.inputTokensContentTypes = this.convertContentTypesToCents(providerPricing.inputTokens.contentTypes);
+			}
+		}
+		
+		// Handle output tokens
+		if (providerPricing.outputTokens) {
+			if (providerPricing.outputTokens.tieredPricing) {
+				canonicalPricing.output = providerPricing.outputTokens.tieredPricing.tiers[0].price * 100;
+				
+				// Store full tiered config for settings field (convert all prices to cents)
+				canonicalPricing.outputTokensTieredConfig = this.convertTieredPricingToCents(providerPricing.outputTokens.tieredPricing);
+			} else {
+				// Legacy/non-tiered format
+				canonicalPricing.output = providerPricing.outputTokens.basePrice * 100;
+			}
+			
+			// Handle cache types (regardless of whether tiered pricing is present)
+			if (providerPricing.outputTokens.cacheTypes) {
+				canonicalPricing.outputTokensCacheTypes = this.convertCacheTypesToCents(providerPricing.outputTokens.cacheTypes);
+			}
+			
+			// Handle content types (regardless of whether tiered pricing is present)
+			if (providerPricing.outputTokens.contentTypes) {
+				canonicalPricing.outputTokensContentTypes = this.convertContentTypesToCents(providerPricing.outputTokens.contentTypes);
+			}
+		}
+		
+		// Handle thought tokens (standardized terminology)
+		if (providerPricing.thoughtTokens) {
+			canonicalPricing.thought = providerPricing.thoughtTokens.basePrice * 100;
+			canonicalPricing.thoughtTokensConfig = {
+				basePrice: providerPricing.thoughtTokens.basePrice * 100, // Convert to cents
+				description: providerPricing.thoughtTokens.description,
+				tieredPricing: providerPricing.thoughtTokens.tieredPricing ? 
+					this.convertTieredPricingToCents(providerPricing.thoughtTokens.tieredPricing) : undefined,
+			};
+		}
+		
+		return canonicalPricing;
+	}
+
+	/**
+	 * Convert tiered pricing structure from dollars to cents
+	 */
+	private convertTieredPricingToCents(tieredPricing: any): any {
+		return {
+			...tieredPricing,
+			tiers: tieredPricing.tiers.map((tier: any) => ({
+				...tier,
+				price: tier.price * 100 // Convert to cents
+			})),
+			basePrice: tieredPricing.basePrice ? tieredPricing.basePrice * 100 : undefined
+		};
+	}
+
+	/**
+	 * Convert cache types pricing from dollars to cents
+	 */
+	private convertCacheTypesToCents(cacheTypes: any): any {
+		const converted: any = {};
+		
+		for (const [cacheType, config] of Object.entries(cacheTypes)) {
+			converted[cacheType] = {
+				...config as any,
+				explicitPricing: (config as any).explicitPricing ? {
+					tiers: (config as any).explicitPricing.tiers.map((tier: any) => ({
+						...tier,
+						price: tier.price * 100 // Convert to cents
+					}))
+				} : undefined
+			};
+		}
+		
+		return converted;
+	}
+
+	/**
+	 * Convert content types pricing from dollars to cents
+	 */
+	private convertContentTypesToCents(contentTypes: any): any {
+		const converted: any = {};
+		
+		for (const [contentType, config] of Object.entries(contentTypes)) {
+			converted[contentType] = {
+				...config as any,
+				explicitPricing: (config as any).explicitPricing ? {
+					tiers: (config as any).explicitPricing.tiers.map((tier: any) => ({
+						...tier,
+						price: tier.price * 100 // Convert to cents
+					}))
+				} : undefined
+			};
+		}
+		
+		return converted;
+	}
 
 	/**
 	 * Convert pricing from source unit to per-million-tokens
@@ -710,7 +874,7 @@ class ModelCapabilitiesFetcher {
 		try {
 			console.log('🔍 Fetching available models from llm-proxy...');
 			const config = await fetchSupabaseConfig({
-				supabaseConfigUrl: this.config.supabaseUrl,
+				supabaseConfigUrl: this.config.supabaseConfigUrl,
 			});
 			const supabaseClient = createClient(config.url, config.anonKey);
 
@@ -805,7 +969,7 @@ class ModelCapabilitiesFetcher {
 /**
  * Load environment-specific configuration
  */
-async function loadEnvironmentConfig(environment: string): Promise<{ authToken?: string; supabaseUrl?: string }> {
+async function loadEnvironmentConfig(environment: string): Promise<{ authToken?: string; supabaseConfigUrl?: string }> {
 	const scriptDir = dirname(fromFileUrl(import.meta.url));
 	const envFile = join(scriptDir, `.env.${environment}`);
 
@@ -827,7 +991,7 @@ async function loadEnvironmentConfig(environment: string): Promise<{ authToken?:
 			console.log(`📁 Loaded environment config from ${envFile}`);
 			return {
 				authToken: config.LLM_PROXY_AUTH_TOKEN,
-				supabaseUrl: config.SUPABASE_CONFIG_URL,
+				supabaseConfigUrl: config.SUPABASE_CONFIG_URL,
 			};
 		}
 	} catch (error) {
@@ -848,7 +1012,7 @@ async function main() {
 
 	// Parse command line arguments
 	const args = parseArgs(Deno.args, {
-		string: ['output', 'providers', 'source-dir', 'environment', 'supabase-url'],
+		string: ['output', 'providers', 'source-dir', 'environment', 'supabase-config-url'],
 		boolean: ['validate-only', 'use-api-validation', 'skip-llm-proxy-check'],
 		default: {
 			environment: 'staging',
@@ -873,7 +1037,7 @@ async function main() {
 	// Setup configuration
 	const config: FetcherConfig = {
 		environment: args.environment as 'staging' | 'production',
-		supabaseUrl: args['supabase-url'] || envConfig.supabaseUrl,
+		supabaseConfigUrl: args['supabase-config-url'] || envConfig.supabaseConfigUrl,
 		outputPath: args.output,
 		sourceDir: args['source-dir'],
 		providersToProcess: args.providers.split(',').map((p) => p.trim()),

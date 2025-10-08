@@ -1,6 +1,7 @@
 import { JSX } from 'preact';
 import { useMemo } from 'preact/hooks';
-import { getExternalClickHandler, getExternalHref, isDuiEnvironment } from 'shared/externalLinkHelper.ts';
+import { isDuiEnvironment } from 'shared/environmentHelper.ts';
+import { getExternalClickHandler, getExternalHref } from 'shared/externalLinkHelper.ts';
 
 /**
  * Props for the ExternalLink component

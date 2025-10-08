@@ -35,7 +35,12 @@ import type {
 	//LLMRolesModelConfig
 } from 'api/types/llms.ts';
 import type { CollaborationParams } from 'shared/types/collaboration.ts';
-import type { InteractionResourcesMetadata } from 'shared/types/dataSourceResource.ts';
+import type {
+	InteractionResourcesMetadata,
+	//ResourceMetadata,
+	ResourceRevisionMetadata,
+} from 'shared/types/dataSourceResource.ts';
+import { generateResourceRevisionKey } from 'shared/dataSource.ts';
 import { logger } from 'shared/logger.ts';
 import TokenUsagePersistence from './tokenUsagePersistence.ts';
 import LLMRequestPersistence from './llmRequestPersistence.ts';
@@ -53,7 +58,6 @@ import type { ProjectInfo } from 'api/llms/conversationInteraction.ts';
 import type LLMTool from 'api/llms/llmTool.ts';
 //import { ModelRegistryService } from 'api/llms/modelRegistryService.ts';
 //import { DefaultModelsConfigDefaults } from 'shared/types/models.ts';
-import { generateResourceRevisionKey } from 'shared/dataSource.ts';
 //import { getConfigManager } from 'shared/config/configManager.ts';
 import { stripIndents } from 'common-tags';
 //import type { ProjectConfig } from 'shared/config/types.ts';
@@ -1419,25 +1423,43 @@ class InteractionPersistence {
 		}
 	}
 
-	async storeResourceRevision(resourceUri: string, revisionId: string, content: string | Uint8Array): Promise<void> {
+	async storeResourceRevision(
+		resourceUri: string,
+		revisionId: string,
+		content: string | Uint8Array,
+		resourceMetadata: ResourceRevisionMetadata | undefined,
+	): Promise<void> {
 		await this.ensureInitialized();
 		const resourceKey = generateResourceRevisionKey(resourceUri, revisionId);
 		const revisionResourcePath = join(this.resourceRevisionsDir, resourceKey);
 		await this.ensureDirectory(this.resourceRevisionsDir);
 
-		logger.info(`InteractionPersistence: Writing revision resource: ${revisionResourcePath}`);
+		if (resourceMetadata) await this.saveResourcesMetadata({ [resourceKey]: resourceMetadata });
 
-		if (typeof content === 'string') {
-			await Deno.writeTextFile(revisionResourcePath, content);
+		// Check MIME type to properly handle binary formats like PDFs
+		const isText = resourceMetadata
+			? (resourceMetadata.contentType === 'text' && resourceMetadata.mimeType !== 'application/pdf')
+			: typeof content === 'string';
+
+		logger.info(
+			`InteractionPersistence: Writing revision resource: ${revisionResourcePath} as ${
+				isText ? 'text' : 'binary'
+			}`,
+		);
+
+		if (isText) {
+			await Deno.writeTextFile(revisionResourcePath, content as string);
+			//logger.info(`InteractionPersistence: Wrote revision resource: ${revisionResourcePath} as text`);
 		} else {
-			await Deno.writeFile(revisionResourcePath, content);
+			await Deno.writeFile(revisionResourcePath, content as Uint8Array);
+			//logger.info(`InteractionPersistence: Wrote revision resource: ${revisionResourcePath} as binary`);
 		}
 
 		// // Also store at the project level for future access
 		// try {
 		// 	const resourceMetadata = {
 		// 		type: 'file',
-		// 		contentType: resourceUri.toLowerCase().match(/\.(jpg|jpeg|png|gif|bmp|webp|svg)$/) ? 'image' : 'text',
+		// 		contentType: resourceUri.toLowerCase().match(/\.(jpg|jpeg|png|gif|bmp|webp|svg|pdf)$/) ? 'image' : 'text',
 		// 		name: resourceUri,
 		// 		uri: resourceUri,
 		// 		mimeType: 'text/plain', // This is just a placeholder - would be better to detect properly
@@ -1451,20 +1473,35 @@ class InteractionPersistence {
 		// }
 	}
 
-	async getResourceRevision(resourceUri: string, revisionId: string): Promise<string | Uint8Array> {
+	async getResourceRevision(
+		resourceUri: string,
+		revisionId: string,
+		resourceMetadata: ResourceRevisionMetadata | undefined,
+	): Promise<string | Uint8Array> {
 		await this.ensureInitialized();
 		const resourceKey = generateResourceRevisionKey(resourceUri, revisionId);
 		const revisionResourcePath = join(this.resourceRevisionsDir, resourceKey);
 
-		logger.info(`InteractionPersistence: Reading revision resource: ${revisionResourcePath}`);
+		//const resourcesMetadata = await this.getResourcesMetadata();
+
+		// Check MIME type to properly handle binary formats like PDFs
+		const isText = resourceMetadata
+			? (resourceMetadata.contentType === 'text' && resourceMetadata.mimeType !== 'application/pdf')
+			: !resourceUri.toLowerCase().match(/\.(jpg|jpeg|png|gif|bmp|webp|svg|pdf)$/);
+
+		logger.info(
+			`InteractionPersistence: Reading revision resource: ${revisionResourcePath} as ${
+				isText ? 'text' : 'binary'
+			}`,
+		);
 
 		if (await exists(revisionResourcePath)) {
 			const resourceInfo = await Deno.stat(revisionResourcePath);
 			if (resourceInfo.isFile) {
-				if (resourceUri.toLowerCase().match(/\.(jpg|jpeg|png|gif|bmp|webp|svg)$/)) {
-					return await Deno.readFile(revisionResourcePath);
-				} else {
+				if (isText) {
 					return await Deno.readTextFile(revisionResourcePath);
+				} else {
+					return await Deno.readFile(revisionResourcePath);
 				}
 			}
 		}

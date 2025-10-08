@@ -5,22 +5,20 @@ import type {
 	UsageBlockList,
 	UsageBlockPurchase,
 	UsageBlockResponse,
-} from '../../types/billing.ts';
-import type { SessionManager } from 'api/auth/session.ts';
+} from '../../types/billing.types.ts';
 import { logger } from 'shared/logger.ts';
 
 export async function createPaymentIntent(ctx: Context) {
 	try {
-		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
-		if (!sessionManager) {
-			logger.warn(
-				`BillingHandler: createPaymentIntent: No session manager configured`,
-			);
+		const userContext = ctx.state.userContext;
+		if (!userContext) {
+			logger.warn('BillingHandler: No user context configured');
 			ctx.response.status = 400;
-			ctx.response.body = { error: 'No session manager configured' };
+			ctx.response.body = { error: 'No user context configured' };
 			return;
 		}
-		const supabaseClient = sessionManager.getClient();
+
+		const supabaseClient = userContext.userAuthSession.getClient();
 
 		const body = await ctx.request.body.json();
 		const { amount, stripe_payment_method_id, metadata = {} } = body;
@@ -61,16 +59,15 @@ export async function createPaymentIntent(ctx: Context) {
 
 export async function createCustomerSession(ctx: Context) {
 	try {
-		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
-		if (!sessionManager) {
-			logger.warn(
-				`BillingHandler: createCustomerSession: No session manager configured`,
-			);
+		const userContext = ctx.state.userContext;
+		if (!userContext) {
+			logger.warn('BillingHandler: No user context configured');
 			ctx.response.status = 400;
-			ctx.response.body = { error: 'No session manager configured' };
+			ctx.response.body = { error: 'No user context configured' };
 			return;
 		}
-		const supabaseClient = sessionManager.getClient();
+
+		const supabaseClient = userContext.userAuthSession.getClient();
 
 		//const body = await ctx.request.body.json();
 
@@ -95,16 +92,15 @@ export async function createCustomerSession(ctx: Context) {
 
 export async function getBillingConfig(ctx: Context) {
 	try {
-		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
-		if (!sessionManager) {
-			logger.warn(
-				`BillingHandler: getBillingConfig: No session manager configured`,
-			);
+		const userContext = ctx.state.userContext;
+		if (!userContext) {
+			logger.warn('BillingHandler: No user context configured');
 			ctx.response.status = 400;
-			ctx.response.body = { error: 'No session manager configured' };
+			ctx.response.body = { error: 'No user context configured' };
 			return;
 		}
-		const supabaseClient = sessionManager.getClient();
+
+		const supabaseClient = userContext.userAuthSession.getClient();
 
 		const { data, error } = await supabaseClient.functions.invoke('billing-config', {
 			method: 'GET',
@@ -127,16 +123,15 @@ export async function getBillingConfig(ctx: Context) {
 
 export async function createSetupIntent(ctx: Context) {
 	try {
-		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
-		if (!sessionManager) {
-			logger.warn(
-				`BillingHandler: createSetupIntent: No session manager configured`,
-			);
+		const userContext = ctx.state.userContext;
+		if (!userContext) {
+			logger.warn('BillingHandler: No user context configured');
 			ctx.response.status = 400;
-			ctx.response.body = { error: 'No session manager configured' };
+			ctx.response.body = { error: 'No user context configured' };
 			return;
 		}
-		const supabaseClient = sessionManager.getClient();
+
+		const supabaseClient = userContext.userAuthSession.getClient();
 
 		const { data, error } = await supabaseClient.functions.invoke('payment-setup', {
 			method: 'POST',
@@ -158,16 +153,15 @@ export async function createSetupIntent(ctx: Context) {
 
 export async function listPaymentMethods(ctx: Context) {
 	try {
-		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
-		if (!sessionManager) {
-			logger.warn(
-				`BillingHandler: listPaymentMethods: No session manager configured`,
-			);
+		const userContext = ctx.state.userContext;
+		if (!userContext) {
+			logger.warn('BillingHandler: No user context configured');
 			ctx.response.status = 400;
-			ctx.response.body = { error: 'No session manager configured' };
+			ctx.response.body = { error: 'No user context configured' };
 			return;
 		}
-		const supabaseClient = sessionManager.getClient();
+
+		const supabaseClient = userContext.userAuthSession.getClient();
 
 		const { data, error } = await supabaseClient.functions.invoke('payment-methods', {
 			method: 'GET',
@@ -190,16 +184,15 @@ export async function listPaymentMethods(ctx: Context) {
 
 export async function setDefaultPaymentMethod(ctx: Context) {
 	try {
-		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
-		if (!sessionManager) {
-			logger.warn(
-				`BillingHandler: setDefaultPaymentMethod: No session manager configured`,
-			);
+		const userContext = ctx.state.userContext;
+		if (!userContext) {
+			logger.warn('BillingHandler: No user context configured');
 			ctx.response.status = 400;
-			ctx.response.body = { error: 'No session manager configured' };
+			ctx.response.body = { error: 'No user context configured' };
 			return;
 		}
-		const supabaseClient = sessionManager.getClient();
+
+		const supabaseClient = userContext.userAuthSession.getClient();
 
 		const body = await ctx.request.body.json();
 		const paymentMethodId = body.paymentMethodId;
@@ -234,16 +227,15 @@ export async function setDefaultPaymentMethod(ctx: Context) {
 
 export async function purchaseUsageBlock(ctx: Context) {
 	try {
-		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
-		if (!sessionManager) {
-			logger.warn(
-				`BillingHandler: purchaseUsageBlock: No session manager configured`,
-			);
+		const userContext = ctx.state.userContext;
+		if (!userContext) {
+			logger.warn('BillingHandler: No user context configured');
 			ctx.response.status = 400;
-			ctx.response.body = { error: 'No session manager configured' };
+			ctx.response.body = { error: 'No user context configured' };
 			return;
 		}
-		const supabaseClient = sessionManager.getClient();
+
+		const supabaseClient = userContext.userAuthSession.getClient();
 
 		const body = await ctx.request.body.json();
 		const { amount, paymentMethodId } = body as UsageBlockPurchase;
@@ -283,16 +275,15 @@ export async function purchaseUsageBlock(ctx: Context) {
 
 export async function listUsageBlocks(ctx: Context) {
 	try {
-		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
-		if (!sessionManager) {
-			logger.warn(
-				`BillingHandler: listUsageBlocks: No session manager configured`,
-			);
+		const userContext = ctx.state.userContext;
+		if (!userContext) {
+			logger.warn('BillingHandler: No user context configured');
 			ctx.response.status = 400;
-			ctx.response.body = { error: 'No session manager configured' };
+			ctx.response.body = { error: 'No user context configured' };
 			return;
 		}
-		const supabaseClient = sessionManager.getClient();
+
+		const supabaseClient = userContext.userAuthSession.getClient();
 
 		const { data, error } = await supabaseClient.functions.invoke('usage-purchase', {
 			method: 'GET',
@@ -317,21 +308,20 @@ export async function listUsageBlocks(ctx: Context) {
 }
 
 export const removePaymentMethod = async (
-	{ params, response, app }: RouterContext<'/payment-methods/:id', { id: string }>,
+	{ params, response, state }: RouterContext<'/payment-methods/:id', { id: string }>,
 ) => {
 	const { id: paymentMethodId } = params;
 
 	try {
-		const sessionManager: SessionManager = app.state.auth.sessionManager;
-		if (!sessionManager) {
-			logger.warn(
-				`BillingHandler: removePaymentMethod: No session manager configured`,
-			);
+		const userContext = state.userContext;
+		if (!userContext) {
+			logger.warn('BillingHandler: No user context configured');
 			response.status = 400;
-			response.body = { error: 'No session manager configured' };
+			response.body = { error: 'No user context configured' };
 			return;
 		}
-		const supabaseClient = sessionManager.getClient();
+
+		const supabaseClient = userContext.userAuthSession.getClient();
 
 		if (!paymentMethodId) {
 			response.status = 400;
@@ -364,16 +354,15 @@ export const removePaymentMethod = async (
 // Auto Top-up handlers
 export async function getAutoTopupStatus(ctx: Context) {
 	try {
-		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
-		if (!sessionManager) {
-			logger.warn(
-				`BillingHandler: getAutoTopupStatus: No session manager configured`,
-			);
+		const userContext = ctx.state.userContext;
+		if (!userContext) {
+			logger.warn('BillingHandler: No user context configured');
 			ctx.response.status = 400;
-			ctx.response.body = { error: 'No session manager configured' };
+			ctx.response.body = { error: 'No user context configured' };
 			return;
 		}
-		const supabaseClient = sessionManager.getClient();
+
+		const supabaseClient = userContext.userAuthSession.getClient();
 
 		const { data, error } = await supabaseClient.functions.invoke('auto-topup', {
 			method: 'GET',
@@ -395,16 +384,15 @@ export async function getAutoTopupStatus(ctx: Context) {
 
 export async function updateAutoTopupSettings(ctx: Context) {
 	try {
-		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
-		if (!sessionManager) {
-			logger.warn(
-				`BillingHandler: updateAutoTopupSettings: No session manager configured`,
-			);
+		const userContext = ctx.state.userContext;
+		if (!userContext) {
+			logger.warn('BillingHandler: No user context configured');
 			ctx.response.status = 400;
-			ctx.response.body = { error: 'No session manager configured' };
+			ctx.response.body = { error: 'No user context configured' };
 			return;
 		}
-		const supabaseClient = sessionManager.getClient();
+
+		const supabaseClient = userContext.userAuthSession.getClient();
 
 		const body = await ctx.request.body.json();
 		const { enabled, min_balance_cents, purchase_amount_cents, max_per_day_cents } = body;
@@ -442,16 +430,15 @@ export async function updateAutoTopupSettings(ctx: Context) {
 
 export async function triggerAutoTopup(ctx: Context) {
 	try {
-		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
-		if (!sessionManager) {
-			logger.warn(
-				`BillingHandler: triggerAutoTopup: No session manager configured`,
-			);
+		const userContext = ctx.state.userContext;
+		if (!userContext) {
+			logger.warn('BillingHandler: No user context configured');
 			ctx.response.status = 400;
-			ctx.response.body = { error: 'No session manager configured' };
+			ctx.response.body = { error: 'No user context configured' };
 			return;
 		}
-		const supabaseClient = sessionManager.getClient();
+
+		const supabaseClient = userContext.userAuthSession.getClient();
 
 		const { data, error } = await supabaseClient.functions.invoke('auto-topup', {
 			method: 'POST',
@@ -480,16 +467,15 @@ export async function triggerAutoTopup(ctx: Context) {
  */
 export async function getUsageAnalytics(ctx: Context) {
 	try {
-		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
-		if (!sessionManager) {
-			logger.warn(
-				`BillingHandler: getUsageAnalytics: No session manager configured`,
-			);
+		const userContext = ctx.state.userContext;
+		if (!userContext) {
+			logger.warn('BillingHandler: No user context configured');
 			ctx.response.status = 400;
-			ctx.response.body = { error: 'No session manager configured' };
+			ctx.response.body = { error: 'No user context configured' };
 			return;
 		}
-		const supabaseClient = sessionManager.getClient();
+
+		const supabaseClient = userContext.userAuthSession.getClient();
 
 		// Extract query parameters
 		const url = new URL(ctx.request.url);
@@ -556,16 +542,15 @@ export async function getUsageAnalytics(ctx: Context) {
  */
 export async function getEnhancedPurchaseHistory(ctx: Context) {
 	try {
-		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
-		if (!sessionManager) {
-			logger.warn(
-				`BillingHandler: getEnhancedPurchaseHistory: No session manager configured`,
-			);
+		const userContext = ctx.state.userContext;
+		if (!userContext) {
+			logger.warn('BillingHandler: No user context configured');
 			ctx.response.status = 400;
-			ctx.response.body = { error: 'No session manager configured' };
+			ctx.response.body = { error: 'No user context configured' };
 			return;
 		}
-		const supabaseClient = sessionManager.getClient();
+
+		const supabaseClient = userContext.userAuthSession.getClient();
 
 		// Extract query parameters
 		const url = new URL(ctx.request.url);

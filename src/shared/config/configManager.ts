@@ -787,7 +787,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 	private async loadGlobalConfig(): Promise<GlobalConfig> {
 		const configDir = await getGlobalConfigDir();
 		const configPath = join(configDir, 'config.yaml');
-		// console.log('ConfigManager: configPath', configPath);
+		// logger.info('ConfigManager: configPath', configPath);
 
 		try {
 			const content = await Deno.readTextFile(configPath);
@@ -1495,7 +1495,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 				}
 			}
 			if (config.api.dataSourceProviders) {
-				const validProviders = ['filesystem', 'notion', 'googledocs'];
+				const validProviders = ['filesystem', 'notion', 'google'];
 				for (const [provider, providerConfig] of Object.entries(config.api.dataSourceProviders)) {
 					if (!validProviders.includes(provider)) {
 						result.errors.push({
@@ -1691,7 +1691,7 @@ class ConfigManagerV2 implements IConfigManagerV2 {
 				}
 			}
 			if (config.api.dataSourceProviders) {
-				const validProviders = ['filesystem', 'notion', 'googledocs'];
+				const validProviders = ['filesystem', 'notion', 'google'];
 				for (const [provider, providerConfig] of Object.entries(config.api.dataSourceProviders)) {
 					if (!validProviders.includes(provider)) {
 						result.errors.push({

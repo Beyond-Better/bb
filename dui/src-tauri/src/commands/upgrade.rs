@@ -1,6 +1,7 @@
 use dirs;
 #[cfg(not(target_os = "windows"))]
 use flate2::read::GzDecoder;
+
 use log::{debug, error, info, warn};
 use reqwest;
 use serde::{Deserialize, Serialize};
@@ -174,57 +175,113 @@ pub async fn perform_atomic_update(app: AppHandle) -> Result<(), String> {
             )
             .map_err(|e| format!("Failed to emit progress: {}", e))?;
             
-            // Download and install the DUI update
-            let mut downloaded = 0;
+            // For macOS, download first without installing to avoid in-place replacement issues
+            #[cfg(target_os = "macos")]
+            let downloaded_path = {
+                let temp_dir = std::env::temp_dir().join("bb-update");
+                std::fs::create_dir_all(&temp_dir)
+                    .map_err(|e| format!("Failed to create temp directory: {}", e))?;
+                
+                let archive_path = temp_dir.join(format!("update-{}.tar.gz", update.version));
+                
+                // Download the update archive
+                let response = reqwest::get(update.download_url.as_str()).await
+                    .map_err(|e| format!("Failed to download update: {}", e))?;
+                
+                if !response.status().is_success() {
+                    return Err(format!("Download failed with status: {}", response.status()));
+                }
+                
+                let _total_size = response.content_length();
+                let downloaded;
+                let mut file = std::fs::File::create(&archive_path)
+                    .map_err(|e| format!("Failed to create update file: {}", e))?;
+                
+                // Read response body in chunks
+                let bytes = response.bytes().await
+                    .map_err(|e| format!("Failed to read response body: {}", e))?;
+                
+                use std::io::Write;
+                file.write_all(&bytes)
+                    .map_err(|e| format!("Failed to write update file: {}", e))?;
+                
+                downloaded = bytes.len();
+                let progress = 90.0;
+                let _ = emit_progress(
+                    &app,
+                    "downloading-dui",
+                    progress,
+                    Some(format!(
+                        "Downloaded {} bytes",
+                        downloaded
+                    )),
+                );
+                
+                info!("Application download completed to: {:?}", archive_path);
+                let _ = emit_progress(
+                    &app,
+                    "installing-dui",
+                    90.0,
+                    Some("Preparing to install application update...".to_string()),
+                );
+                
+                archive_path.to_string_lossy().to_string()
+            };
             
-            // On Windows, we need to handle the before-exit callback
-            #[cfg(target_os = "windows")]
-            let update_builder = app.updater_builder().on_before_exit(|| {
-                info!("Beyond Better app is about to exit on Windows for update installation");
-            });
-            
-            #[cfg(not(target_os = "windows"))]
-            let update_builder = app.updater_builder();
-            
-            let updater = update_builder.build().map_err(|e| {
-                error!("Failed to build updater: {}", e);
-                format!("Failed to build updater: {}", e)
-            })?;
-            
-            let update = updater.check().await.map_err(|e| {
-                error!("Failed to re-check for updates: {}", e);
-                format!("Failed to re-check for updates: {}", e)
-            })?.ok_or("Update disappeared during download")?;
-            
-            update.download_and_install(
-                |chunk_length, total_length| {
-                    downloaded += chunk_length;
-                    if let Some(total) = total_length {
-                        let progress = 60.0 + (30.0 * downloaded as f32 / total as f32);
+            #[cfg(not(target_os = "macos"))]
+            {
+                let mut downloaded = 0;
+                
+                // On Windows, we need to handle the before-exit callback
+                #[cfg(target_os = "windows")]
+                let update_builder = app.updater_builder().on_before_exit(|| {
+                    info!("Beyond Better app is about to exit on Windows for update installation");
+                });
+                
+                #[cfg(not(target_os = "windows"))]
+                let update_builder = app.updater_builder();
+                
+                let updater = update_builder.build().map_err(|e| {
+                    error!("Failed to build updater: {}", e);
+                    format!("Failed to build updater: {}", e)
+                })?;
+                
+                let update = updater.check().await.map_err(|e| {
+                    error!("Failed to re-check for updates: {}", e);
+                    format!("Failed to re-check for updates: {}", e)
+                })?.ok_or("Update disappeared during download")?;
+                
+                // Use standard Tauri updater for non-macOS platforms
+                update.download_and_install(
+                    |chunk_length, total_length| {
+                        downloaded += chunk_length;
+                        if let Some(total) = total_length {
+                            let progress = 60.0 + (30.0 * downloaded as f32 / total as f32);
+                            let _ = emit_progress(
+                                &app,
+                                "downloading-dui",
+                                progress,
+                                Some(format!(
+                                    "Downloaded {} of {} bytes",
+                                    downloaded, total
+                                )),
+                            );
+                        }
+                    },
+                    || {
+                        info!("Application download completed, installing...");
                         let _ = emit_progress(
                             &app,
-                            "downloading-dui",
-                            progress,
-                            Some(format!(
-                                "Downloaded {} of {} bytes",
-                                downloaded, total
-                            )),
+                            "installing-dui",
+                            90.0,
+                            Some("Installing application update...".to_string()),
                         );
-                    }
-                },
-                || {
-                    info!("Application download completed, installing...");
-                    let _ = emit_progress(
-                        &app,
-                        "installing-dui",
-                        90.0,
-                        Some("Installing application update...".to_string()),
-                    );
-                },
-            ).await.map_err(|e| {
-                error!("Application update failed: {}", e);
-                format!("Application update failed: {}", e)
-            })?;
+                    },
+                ).await.map_err(|e| {
+                    error!("Application update failed: {}", e);
+                    format!("Application update failed: {}", e)
+                })?;
+            }
             
             emit_progress(
                 &app,
@@ -240,6 +297,10 @@ pub async fn perform_atomic_update(app: AppHandle) -> Result<(), String> {
             tokio::time::sleep(std::time::Duration::from_millis(2000)).await;
             
             // Attempt graceful restart with error handling
+            #[cfg(target_os = "macos")]
+            restart_application_safely_two_stage(&app, &downloaded_path).await?;
+            
+            #[cfg(not(target_os = "macos"))]
             restart_application_safely(&app).await?;
             
             // Note: restart_application_safely initiates restart asynchronously
@@ -305,35 +366,91 @@ pub async fn perform_dui_update_only(app: AppHandle) -> Result<(), String> {
                 format!("Failed to re-check for updates: {}", e)
             })?.ok_or("Update disappeared during download")?;
             
-            update.download_and_install(
-                |chunk_length, total_length| {
-                    downloaded += chunk_length;
-                    if let Some(total) = total_length {
-                        let progress = 20.0 + (60.0 * downloaded as f32 / total as f32);
+            // For macOS, download first without installing to avoid in-place replacement issues
+            #[cfg(target_os = "macos")]
+            let downloaded_path = {
+                let temp_dir = std::env::temp_dir().join("bb-update");
+                std::fs::create_dir_all(&temp_dir)
+                    .map_err(|e| format!("Failed to create temp directory: {}", e))?;
+                
+                let archive_path = temp_dir.join(format!("update-{}.tar.gz", update.version));
+                
+                // Download the update archive
+                let response = reqwest::get(update.download_url.as_str()).await
+                    .map_err(|e| format!("Failed to download update: {}", e))?;
+                
+                if !response.status().is_success() {
+                    return Err(format!("Download failed with status: {}", response.status()));
+                }
+                
+                let _total_size = response.content_length();
+                let downloaded;
+                let mut file = std::fs::File::create(&archive_path)
+                    .map_err(|e| format!("Failed to create update file: {}", e))?;
+                
+                // Read response body in chunks
+                let bytes = response.bytes().await
+                    .map_err(|e| format!("Failed to read response body: {}", e))?;
+                
+                use std::io::Write;
+                file.write_all(&bytes)
+                    .map_err(|e| format!("Failed to write update file: {}", e))?;
+                
+                downloaded = bytes.len();
+                let progress = 80.0;
+                let _ = emit_progress(
+                    &app,
+                    "downloading-dui",
+                    progress,
+                    Some(format!(
+                        "Downloaded {} bytes",
+                        downloaded
+                    )),
+                );
+                
+                info!("Application download completed to: {:?}", archive_path);
+                let _ = emit_progress(
+                    &app,
+                    "installing-dui",
+                    90.0,
+                    Some("Preparing to install application update...".to_string()),
+                );
+                
+                archive_path.to_string_lossy().to_string()
+            };
+            
+            #[cfg(not(target_os = "macos"))]
+            {
+                update.download_and_install(
+                    |chunk_length, total_length| {
+                        downloaded += chunk_length;
+                        if let Some(total) = total_length {
+                            let progress = 20.0 + (60.0 * downloaded as f32 / total as f32);
+                            let _ = emit_progress(
+                                &app,
+                                "downloading-dui",
+                                progress,
+                                Some(format!(
+                                    "Downloaded {} of {} bytes",
+                                    downloaded, total
+                                )),
+                            );
+                        }
+                    },
+                    || {
+                        info!("Application download completed, installing...");
                         let _ = emit_progress(
                             &app,
-                            "downloading-dui",
-                            progress,
-                            Some(format!(
-                                "Downloaded {} of {} bytes",
-                                downloaded, total
-                            )),
+                            "installing-dui",
+                            90.0,
+                            Some("Installing application update...".to_string()),
                         );
-                    }
-                },
-                || {
-                    info!("Application download completed, installing...");
-                    let _ = emit_progress(
-                        &app,
-                        "installing-dui",
-                        90.0,
-                        Some("Installing application update...".to_string()),
-                    );
-                },
-            ).await.map_err(|e| {
-                error!("Application update failed: {}", e);
-                format!("Application update failed: {}", e)
-            })?;
+                    },
+                ).await.map_err(|e| {
+                    error!("Application update failed: {}", e);
+                    format!("Application update failed: {}", e)
+                })?;
+            }
             
             emit_progress(
                 &app,
@@ -349,6 +466,10 @@ pub async fn perform_dui_update_only(app: AppHandle) -> Result<(), String> {
             tokio::time::sleep(std::time::Duration::from_millis(2000)).await;
             
             // Attempt graceful restart with error handling
+            #[cfg(target_os = "macos")]
+            restart_application_safely_two_stage(&app, &downloaded_path).await?;
+            
+            #[cfg(not(target_os = "macos"))]
             restart_application_safely(&app).await?;
             
             // Note: restart_application_safely initiates restart asynchronously
@@ -999,93 +1120,87 @@ pub async fn open_external_url(url: String, _app: AppHandle) -> Result<(), Strin
     }
 }
 
-async fn restart_application_safely(app: &AppHandle) -> Result<(), String> {
-    info!("Attempting safe application restart after update");
+async fn restart_application_safely_two_stage(_app: &AppHandle, _update_archive_path: &str) -> Result<(), String> {
+    info!("Attempting two-stage application restart after update");
     
-    // On macOS, verify the current executable exists and is accessible
     #[cfg(target_os = "macos")]
     {
-        if let Ok(current_exe) = std::env::current_exe() {
-            info!("Verifying updated executable at: {:?}", current_exe);
-            
-            // Check if the executable file exists and is readable
-            if !current_exe.exists() {
-                error!("Updated executable not found at: {:?}", current_exe);
-                return Err("Updated executable file missing".to_string());
-            }
-            
-            // Try to verify code signature using codesign command
-            match std::process::Command::new("codesign")
-                .args(["-v", "--verbose", current_exe.to_str().unwrap_or("")])
-                .output()
-            {
-                Ok(output) => {
-                    if output.status.success() {
-                        info!("Code signature verification passed");
-                    } else {
-                        let stderr = String::from_utf8_lossy(&output.stderr);
-                        warn!("Code signature verification failed: {}", stderr);
-                        // Don't fail the restart for signature issues, but log the warning
-                    }
-                }
-                Err(e) => {
-                    warn!("Could not run codesign verification: {}", e);
-                }
-            }
-            
-            // Additional delay to ensure filesystem stability
-            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
-        }
+        // Get current app bundle path
+        let current_exe = std::env::current_exe()
+            .map_err(|e| format!("Failed to get current executable: {}", e))?;
+        
+        // Navigate up to the .app bundle
+        let app_bundle = current_exe
+            .ancestors()
+            .find(|p| p.extension().map_or(false, |ext| ext == "app"))
+            .ok_or("Could not find .app bundle")?;
+        
+        info!("Found app bundle at: {:?}", app_bundle);
+        
+        // Create helper script in temp directory
+        let temp_dir = std::env::temp_dir();
+        let helper_script = temp_dir.join("bb-update-helper.sh");
+        
+        // Embed the helper script content
+        let script_content = include_str!("../../../update-helper.sh");
+        
+        std::fs::write(&helper_script, script_content)
+            .map_err(|e| format!("Failed to write helper script: {}", e))?;
+        
+        // Make script executable
+        std::process::Command::new("chmod")
+            .args(["+x", helper_script.to_str().unwrap_or("")])
+            .output()
+            .map_err(|e| format!("Failed to make helper script executable: {}", e))?;
+        
+        // Get current process ID
+        let current_pid = std::process::id();
+        
+        info!("Launching update helper script from: {:?}", helper_script);
+        
+        // Launch the helper script with proper detachment
+        std::process::Command::new(&helper_script)
+            .args([
+                _update_archive_path,
+                app_bundle.to_str().unwrap_or(""),
+                &current_pid.to_string(),
+            ])
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .spawn()
+            .map_err(|e| format!("Failed to launch update helper: {}", e))?;
+        
+        info!("Update helper launched, current process will exit");
+        
+        // Give the helper script a moment to start
+        tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
+        
+        // Exit this process cleanly - this will not return
+        std::process::exit(0);
     }
     
-    // Attempt to restart with better error handling
-    info!("Initiating application restart...");
+    #[cfg(not(target_os = "macos"))]
+    {
+        // For other platforms, fall back to Tauri's built-in restart
+        info!("Using Tauri built-in restart for non-macOS platform");
+        _app.restart();
+        // Note: restart() doesn't return, so this point should not be reached
+    }
+}
+
+// Keep the original function for non-update restarts
+#[allow(dead_code)]
+async fn restart_application_safely(app: &AppHandle) -> Result<(), String> {
+    info!("Attempting safe application restart (non-update)");
     
-    // Use a spawn to handle the restart in a separate task
-    // This helps avoid any issues with the current execution context
+    // For simple restarts without updates, use Tauri's built-in method
     let app_clone = app.clone();
     tokio::spawn(async move {
         tokio::time::sleep(std::time::Duration::from_millis(100)).await;
-        
-        // Try direct restart first
-        info!("Attempting direct application restart...");
-        
-        // On macOS, try alternative restart method first as it's more reliable
-        #[cfg(target_os = "macos")]
-        {
-            if let Ok(current_exe) = std::env::current_exe() {
-                info!("Using external restart via 'open' command for better reliability");
-                match std::process::Command::new("open")
-                    .arg("-n")
-                    .arg(&current_exe)
-                    .spawn()
-                {
-                    Ok(_) => {
-                        info!("External restart command launched successfully");
-                        // Give it a moment then exit current process
-                        tokio::time::sleep(std::time::Duration::from_millis(1000)).await;
-                        std::process::exit(0);
-                    }
-                    Err(e) => {
-                        warn!("External restart failed: {}, trying direct restart", e);
-                        app_clone.restart(); // This doesn't return on success
-                    }
-                }
-            } else {
-                warn!("Could not get current executable path, trying direct restart");
-                app_clone.restart(); // This doesn't return on success
-            }
-        }
-        
-        // For non-macOS platforms, use direct restart
-        #[cfg(not(target_os = "macos"))]
-        {
-            app_clone.restart(); // This doesn't return on success
-        }
+        app_clone.restart();
     });
     
-    // Note: This function initiates restart but doesn't wait for completion
-    // The actual restart happens asynchronously
     Ok(())
 }
 

@@ -4,7 +4,7 @@
  */
 import { logger } from 'shared/logger.ts';
 import { errorMessage } from 'shared/error.ts';
-import type { MCPManager, MCPToolResult } from './mcpManager.ts';
+import type { MCPManager, MCPToolResult } from 'api/mcp/mcpManager.ts';
 import type {
 	ResourceDeleteOptions,
 	ResourceDeleteResult,

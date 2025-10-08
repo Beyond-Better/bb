@@ -3,9 +3,8 @@ import { logger } from 'shared/logger.ts';
 import { ModelRegistryService } from 'api/llms/modelRegistryService.ts';
 import { type LLMProvider, LLMProviderLabel } from 'api/types/llms.ts';
 import type { ModelInfo } from 'api/types/modelCapabilities.ts';
-import { getConfigManager } from 'shared/config/configManager.ts';
-import { SupabaseClientFactory } from 'api/auth/session.ts';
-import { ModelAccess } from 'shared/features.ts';
+import { SupabaseClientFactory } from 'api/auth/supabaseClientFactory.ts';
+import { ModelAccess } from 'shared/featureAccess.ts';
 
 /**
  * @openapi
@@ -91,7 +90,7 @@ export const listModels = async (
 ) => {
 	const { request, response } = ctx;
 	try {
-		logger.info('ModelHandler: listModels called');
+		//logger.info('ModelHandler: listModels called');
 
 		// Initialize the model registry service
 		// [TODO] Ideally we pass projectConfig to getInstance since project may have different llmProviders
@@ -106,6 +105,7 @@ export const listModels = async (
 
 		// Get all available models from the registry service
 		let allModels = registryService.getAllModels();
+		//logger.info('ModelHandler: listModels called', allModels);
 
 		// Filter out local-only models when not in local mode
 		if (!ctx.state.localMode) {
@@ -127,7 +127,7 @@ export const listModels = async (
 		const session = ctx.state?.session;
 		//logger.info('ModelHandler: session', session);
 
-		let userHasAccess: Record<string, boolean> = {};
+		const userHasAccess: Record<string, boolean> = {};
 
 		// Perform feature access checks if user is authenticated
 		if (ctx.state.localMode) {
@@ -156,6 +156,7 @@ export const listModels = async (
 						return { modelId: model.id, hasAccess };
 					}),
 				);
+				//logger.info('ModelHandler: accessChecks', accessChecks);
 
 				// Process results
 				accessChecks.forEach((result, index) => {
@@ -199,6 +200,15 @@ export const listModels = async (
 			source: model.source,
 			featureKey: model.capabilities.featureKey,
 			userHasAccess: userHasAccess[model.id] ?? false,
+			// Include pricing information for BUI
+			pricing: {
+				token_pricing: model.capabilities.token_pricing,
+				inputTokensTieredConfig: model.capabilities.inputTokensTieredConfig,
+				outputTokensTieredConfig: model.capabilities.outputTokensTieredConfig,
+				inputTokensCacheTypes: model.capabilities.inputTokensCacheTypes,
+				inputTokensContentTypes: model.capabilities.inputTokensContentTypes,
+				pricing_metadata: model.capabilities.pricing_metadata,
+			},
 		}));
 
 		// Apply pagination
@@ -330,7 +340,18 @@ export const getModelCapabilities = async (
 				provider: modelInfo.provider,
 				providerLabel: LLMProviderLabel[modelInfo.provider as LLMProvider] || 'Unknown',
 				source: modelInfo.source,
-				capabilities: modelInfo.capabilities,
+				capabilities: {
+					...modelInfo.capabilities,
+					// Ensure pricing information is included
+					pricing: {
+						token_pricing: modelInfo.capabilities.token_pricing,
+						inputTokensTieredConfig: modelInfo.capabilities.inputTokensTieredConfig,
+						outputTokensTieredConfig: modelInfo.capabilities.outputTokensTieredConfig,
+						inputTokensCacheTypes: modelInfo.capabilities.inputTokensCacheTypes,
+						inputTokensContentTypes: modelInfo.capabilities.inputTokensContentTypes,
+						pricing_metadata: modelInfo.capabilities.pricing_metadata,
+					},
+				},
 				featureKey: modelInfo.capabilities.featureKey,
 				userHasAccess,
 			},

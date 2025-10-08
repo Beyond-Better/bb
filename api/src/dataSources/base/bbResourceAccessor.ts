@@ -24,7 +24,16 @@ import type {
 	ResourceWriteOptions,
 	ResourceWriteResult,
 } from 'shared/types/dataSourceResource.ts';
+import type { ResourceSuggestionsOptions, ResourceSuggestionsResponse } from '../../utils/resourceSuggestions.utils.ts';
 import type { PortableTextBlock } from 'api/types/portableText.ts';
+import type { TabularSheet } from 'api/types/tabular.ts';
+import type {
+	EnhancedURIParseResult,
+	URIConstructionOptions,
+	URIContext,
+	ValidationMode,
+	ValidationResult,
+} from 'shared/types/resourceValidation.ts';
 
 /**
  * Abstract base class for BB-managed resource accessors
@@ -100,7 +109,7 @@ export abstract class BBResourceAccessor extends BaseResourceAccessor {
 	 */
 	writeResource?(
 		resourceUri: string,
-		content: string | Uint8Array | PortableTextBlock[],
+		content: string | Uint8Array | Array<PortableTextBlock> | Array<TabularSheet>,
 		options?: ResourceWriteOptions,
 	): Promise<ResourceWriteResult>;
 
@@ -140,6 +149,45 @@ export abstract class BBResourceAccessor extends BaseResourceAccessor {
 	 * @returns Result of the delete operation
 	 */
 	deleteResource?(resourceUri: string, options?: ResourceDeleteOptions): Promise<ResourceDeleteResult>;
+
+	/**
+	 * Build a resource URI for this datasource with context awareness
+	 * Default implementation delegates to provider if available
+	 * @param partialPath Partial path or resource identifier
+	 * @param options Construction options with context
+	 * @returns Properly formatted URI for this datasource
+	 */
+	buildResourceUri?(partialPath: string, options: URIConstructionOptions): Promise<string>;
+
+	/**
+	 * Parse and validate a resource URI with enhanced context
+	 * Default implementation provides basic validation
+	 * @param resourceUri URI to parse and validate
+	 * @param mode Validation mode to use
+	 * @returns Enhanced parsing result with validation context
+	 */
+	parseResourceUri?(resourceUri: string, mode?: ValidationMode): Promise<EnhancedURIParseResult>;
+
+	/**
+	 * Validate a resource URI with detailed feedback
+	 * Default implementation provides basic validation
+	 * @param resourceUri URI to validate
+	 * @param mode Validation mode to use
+	 * @returns Detailed validation result
+	 */
+	validateResourceUri?(resourceUri: string, mode?: ValidationMode): Promise<ValidationResult>;
+
+	/**
+	 * Suggest resources for autocomplete based on partial path
+	 * Optional capability - implement in subclasses if supported
+	 * @param partialPath Partial path input from user
+	 * @param options Suggestion options (limit, filters, etc.)
+	 * @returns Resource suggestions for autocomplete
+	 */
+	suggestResourcesForPath?(
+		partialPath: string,
+		options: ResourceSuggestionsOptions,
+	): Promise<ResourceSuggestionsResponse>;
 
 	/**
 	 * Check if this accessor has a specific capability

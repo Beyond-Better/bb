@@ -33,12 +33,12 @@ export const formatLogEntryToolUse = (toolInput: LLMToolInputSchema): LLMToolLog
 export const formatLogEntryToolResult = (
 	resultContent: CollaborationLogEntryContentToolResult,
 ): LLMToolLogEntryFormattedResult => {
-	const { toolResult, bbResponse } = resultContent as LLMToolFetchWebScreenshotResult;
+	const { toolResults, bbResponse } = resultContent as LLMToolFetchWebScreenshotResult;
 
 	if (typeof bbResponse === 'object' && 'data' in bbResponse) {
 		const { url } = bbResponse.data;
 		const filename = 'Screenshot.png';
-		const content = getImageContent(toolResult as LLMMessageContentParts);
+		const content = getImageContent(toolResults as LLMMessageContentParts);
 
 		const formattedContent = stripIndents`
 			${LLMTool.TOOL_STYLES_CONSOLE.base.label('BB has captured screenshot from')} ${

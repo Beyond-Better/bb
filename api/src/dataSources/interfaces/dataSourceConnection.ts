@@ -3,10 +3,16 @@
  * DataSourceConnection represents a specific configured instance of a data source.
  */
 import type { DataSourceProvider } from 'api/dataSources/interfaces/dataSourceProvider.ts';
-import type { DataSourceAccessMethod, DataSourceCapability, DataSourceProviderType } from 'shared/types/dataSource.ts';
+import type {
+	DataSourceAccessMethod,
+	DataSourceCapability,
+	DataSourceConfig,
+	DataSourceProviderType,
+} from 'shared/types/dataSource.ts';
 import type { AuthConfig } from 'api/dataSources/interfaces/authentication.ts';
 import type { ResourceAccessor } from 'api/dataSources/interfaces/resourceAccessor.ts';
 import type { ProjectConfig } from 'shared/config/types.ts';
+import type { ValidationMode } from 'shared/types/resourceValidation.ts';
 
 /**
  * DataSourceConnection interface
@@ -56,7 +62,7 @@ export interface DataSourceConnection {
 	/**
 	 * Provider-specific configuration
 	 */
-	config: Record<string, unknown>;
+	config: DataSourceConfig;
 
 	/**
 	 * Authentication details (optional)
@@ -84,6 +90,12 @@ export interface DataSourceConnection {
 	update(updates: Partial<DataSourceConnectionValues>): void;
 
 	/**
+	 * Get the URI for this data source
+	 * @returns The URI to use for resources from this data source
+	 */
+	getUriForResource(resourceUri: string): string;
+
+	/**
 	 * Get a ResourceAccessor for a data source connection
 	 * @returns A ResourceAccessor instance
 	 */
@@ -91,8 +103,10 @@ export interface DataSourceConnection {
 
 	/**
 	 * Is resource path within the data source - not an exists test, just valid path within data source
+	 * @param resourceUri URI to validate
+	 * @param mode Validation mode to use (strict, lenient, or partial)
 	 */
-	isResourceWithinDataSource(resourceUri: string): Promise<boolean>;
+	isResourceWithinDataSource(resourceUri: string, mode?: ValidationMode): Promise<boolean>;
 
 	/**
 	 * Does resource exist in the data source
@@ -132,7 +146,7 @@ export interface DataSourceConnectionValues {
 	providerType: DataSourceProviderType;
 	accessMethod: DataSourceAccessMethod;
 	name: string;
-	config: Record<string, unknown>;
+	config: DataSourceConfig;
 	auth?: AuthConfig;
 	enabled: boolean;
 	isPrimary: boolean;
@@ -151,7 +165,7 @@ export interface DataSourceConnectionSystemPrompt {
 	providerType: DataSourceProviderType;
 	accessMethod: DataSourceAccessMethod;
 	name: string;
-	config: Record<string, unknown>;
+	config: DataSourceConfig;
 	capabilities: DataSourceCapability[];
 	description?: string;
 	isPrimary: boolean;

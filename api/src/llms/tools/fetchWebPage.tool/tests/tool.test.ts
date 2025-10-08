@@ -32,7 +32,7 @@ Deno.test({
 			const tool = await toolManager.getTool('fetch_web_page');
 			assert(tool, 'Failed to get tool');
 
-			const url = 'https://google.com';
+			const url = 'https://www.google.com';
 			const toolUse: LLMAnswerToolUse = {
 				toolValidation: { validated: true, results: '' },
 				toolUseId: 'test-id',
@@ -61,10 +61,14 @@ Deno.test({
 			);
 
 			if (isFetchWebPageResponse(result.bbResponse)) {
-				assert(result.bbResponse.data.html.startsWith('<style>'), 'HTML should start with <style>');
-				assertEquals(result.bbResponse.data.url, 'https://google.com', 'URL should be google.com');
+				assert(
+					result.bbResponse.data.html.startsWith('<div id="ZnpjSd">') ||
+						result.bbResponse.data.html.startsWith('<style>'),
+					'HTML should start with <div> or <style>',
+				);
+				assertEquals(result.bbResponse.data.url, 'https://www.google.com', 'URL should be www.google.com');
 			} else {
-				assert(false, 'bbResponse does not have the expected structure for MultiModelQueryTool');
+				assert(false, 'bbResponse does not have the expected structure for FetchWebPageTool');
 			}
 
 			assertStringIncludes(result.toolResponse, `Successfully fetched and cleaned content from ${url}`);

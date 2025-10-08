@@ -4,7 +4,7 @@ import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts
 import type { ProjectInfo as BaseProjectInfo } from 'api/llms/conversationInteraction.ts';
 //import type { LLMMessageContentPartImageBlockSourceMediaType } from 'api/llms/llmMessage.ts';
 import OrchestratorController from 'api/controllers/orchestratorController.ts';
-import type { SessionManager } from 'api/auth/session.ts';
+import type { UserContext } from 'shared/types/app.ts';
 import { logger } from 'shared/logger.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
 import type { ProjectHandlingErrorOptions } from 'api/errors/error.ts';
@@ -28,6 +28,8 @@ import type {
 import type { ProjectConfig } from 'shared/config/types.ts';
 import type { StatementParams } from 'shared/types/collaboration.ts';
 import type { CollaborationId, CollaborationResponse, InteractionId, ProjectId } from 'shared/types.ts';
+import type { SamplingCreateMessageParams } from 'api/types/mcp.ts';
+import type { LLMSpeakWithResponse } from 'api/types.ts';
 //import type { LLMRequestParams } from 'api/types/llms.ts';
 import type { LLMToolManagerToolSetType } from '../llms/llmToolManager.ts';
 import { getBbDir, resolveDataSourceFilePath } from 'shared/dataDir.ts';
@@ -53,7 +55,7 @@ class ProjectEditor {
 	public eventManager!: EventManager;
 	public mcpManager!: MCPManager;
 	public resourceManager!: ResourceManager;
-	public sessionManager: SessionManager;
+	public userContext: UserContext;
 	public projectId: ProjectId;
 	public toolSet: LLMToolManagerToolSetType = 'coding';
 
@@ -66,11 +68,11 @@ class ProjectEditor {
 		//tier: null,
 	};
 
-	constructor(projectId: ProjectId, sessionManager: SessionManager) {
+	constructor(projectId: ProjectId, userContext: UserContext) {
 		this.projectId = projectId;
 		this._projectInfo.projectId = projectId;
-		this.sessionManager = sessionManager;
-		//logger.info('ProjectEditor: sessionManager', sessionManager);
+		this.userContext = userContext;
+		//logger.info('ProjectEditor: userContext', userContext);
 	}
 
 	public async init(): Promise<ProjectEditor> {
@@ -245,6 +247,7 @@ class ProjectEditor {
 		this._projectInfo = projectInfo;
 	}
 
+	// deno-lint-ignore require-await
 	public async updateProjectInfo(): Promise<void> {
 		// If we've already generated the metadata, skip regeneration
 		if (this.projectInfo.type === 'metadata') {
@@ -371,6 +374,37 @@ class ProjectEditor {
 		return statementAnswer;
 	}
 
+	/**
+	 * Handle MCP sampling request
+	 * Similar to handleStatement but for MCP sampling requests
+	 */
+	async handleSamplingRequest(
+		params: SamplingCreateMessageParams,
+		collaborationId: CollaborationId,
+		mcpServerDetails: { name?: string; id: string },
+		statementParams?: StatementParams,
+	): Promise<LLMSpeakWithResponse> {
+		const interaction = await this.initInteraction(collaborationId);
+		logger.info(
+			`ProjectEditor: Initialized collaboration with ID: ${collaborationId} using interaction with ID ${interaction.id}, handling sampling request for server ${
+				mcpServerDetails.name || mcpServerDetails.id
+			}`,
+		);
+
+		// Convert statementParams to speakOptions if provided
+		const speakOptions = statementParams?.rolesModelConfig?.orchestrator || undefined;
+
+		const samplingResponse = await this.orchestratorController.generateSamplingResponse(
+			params,
+			interaction.collaboration,
+			interaction.id,
+			mcpServerDetails,
+			speakOptions,
+		);
+
+		return samplingResponse;
+	}
+
 	// prepareResourcesForInteraction is called by load_resources tool
 	// only existing resources can be prepared and added, otherwise call write_resource tools with createIfMissing:true
 	async prepareResourcesForInteraction(
@@ -384,9 +418,11 @@ class ProjectEditor {
 				// Always load from original source to ensure we have the latest version
 				logger.info(`ProjectEditor: Get resource for: ${resourceUri}`);
 				const resource = await this.resourceManager.loadResource(resourceUri, options);
+				//logger.info(`ProjectEditor: Got resource for: ${resourceUri}`);
 
 				// Store at project level for future reference
 				await this.projectData.storeProjectResource(resourceUri, resource.content, resource.metadata);
+				//logger.info(`ProjectEditor: Stored resource for: ${resourceUri}`);
 
 				// Extract resource name from metadata or use URI as fallback
 				const resourceName = resource.metadata?.name || resourceUri;

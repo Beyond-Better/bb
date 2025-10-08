@@ -1,7 +1,9 @@
 {
 	"name": "fetch_web_screenshot",
-	"description": "Captures a screenshot of a specified web page. Use this for visual content, layout analysis, or when text extraction isn't sufficient. Returns an image of the rendered page. Some sites may block automated access or require authentication. For text content, use fetch_web_page instead.",
+	"description": "Captures screenshots using a full headless browser for complete page rendering including JavaScript, CSS animations, and dynamic content. Returns visual representation of the rendered page. Use this when you need to see how content appears visually (e.g., GitHub repository pages, web apps, dashboards). For static image files or direct downloads, use download_resource instead. For text content extraction, use fetch_web_page.",
 	"version": "1.0.0",
 	"author": "BB Team",
-	"license": "MIT"
+	"license": "MIT",
+	"enabled": true,
+	"category": "data-retrieval"
 }

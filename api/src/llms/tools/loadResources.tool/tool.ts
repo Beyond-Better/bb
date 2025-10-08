@@ -22,6 +22,7 @@ import { createError, ErrorType } from 'api/utils/error.ts';
 //import type { ResourceType } from 'api/types.ts';
 //import { extractResourceName } from 'api/utils/resource.ts';
 import { logger } from 'shared/logger.ts';
+import { enhanceDatasourceError } from '../../../utils/datasourceErrorEnhancement.ts';
 
 export default class LLMToolLoadResources extends LLMTool {
 	get inputSchema(): LLMToolInputSchema {
@@ -66,8 +67,21 @@ export default class LLMToolLoadResources extends LLMTool {
 					type: 'string',
 					enum: ['plainText', 'structured', 'both'],
 					default: 'plainText',
-					description:
-						'Content representation format. plainText=human-readable (markdown for structured sources), structured=raw blocks for editing, both=comprehensive access. Parameter ignored for filesystem sources which always return native content.',
+					description: `Content representation format:
+
+**For Google Sheets:**
+- plainText: Returns CSV format (ideal for reading/analysis)
+- structured: Returns tabular arrays with cell values, formulas, and formatting (REQUIRED for cell operations)
+- both: Returns both formats for comprehensive access
+
+**For Google Docs:**
+- plainText: Returns markdown format (human-readable)
+- structured: Returns Portable Text blocks (REQUIRED for range operations)
+
+**For Filesystem:**
+- Parameter ignored (always returns native file content)
+
+**IMPORTANT:** For precise editing operations (cell/range), always use structured format first to see current indices and structure.`,
 				},
 			},
 		};
@@ -109,11 +123,19 @@ export default class LLMToolLoadResources extends LLMTool {
 		// 	templateResources?: Array<Record<string, string>>;
 		// 	directUris?: string[];
 
+		// Declare variables outside try block for catch block access
+		let primaryDsConnection: any = null;
+		let dsConnections: any[] = [];
+		let dsConnectionToUse: any = null;
+
 		try {
-			const { primaryDsConnection, dsConnections, notFound } = this.getDsConnectionsById(
+			const dsConnectionResult = this.getDsConnectionsById(
 				projectEditor,
 				dataSourceId ? [dataSourceId] : undefined,
 			);
+			primaryDsConnection = dsConnectionResult.primaryDsConnection;
+			dsConnections = dsConnectionResult.dsConnections;
+			const notFound = dsConnectionResult.notFound;
 			if (!primaryDsConnection) {
 				throw createError(ErrorType.DataSourceHandling, `No primary data source`, {
 					name: 'datasource',
@@ -121,7 +143,7 @@ export default class LLMToolLoadResources extends LLMTool {
 				} as DataSourceHandlingErrorOptions);
 			}
 
-			const dsConnectionToUse = dsConnections[0] || primaryDsConnection;
+			dsConnectionToUse = dsConnections[0] || primaryDsConnection;
 			const dsConnectionToUseId = dsConnectionToUse.id;
 			if (!dsConnectionToUseId) {
 				throw createError(ErrorType.DataSourceHandling, `No data source id`, {
@@ -288,11 +310,33 @@ export default class LLMToolLoadResources extends LLMTool {
 			} else {
 				errorMessage = (error as Error).message;
 			}
-			logger.error(`LLMToolLoadResources: Error adding resources to conversation: ${errorMessage}`, toolInput);
 
-			const toolResults = `⚠️  ${errorMessage}`;
-			const bbResponse = `BB failed to add resources. Error: ${errorMessage}`;
-			const toolResponse = `Failed to add resources. Error: ${errorMessage}`;
+			// Enhance error message with datasource-specific guidance
+			// Note: dsConnectionToUse may not be available in catch block, so we use primaryDsConnection
+			const providerToUse = (dsConnections && dsConnections.length > 0)
+				? dsConnections[0].provider
+				: primaryDsConnection?.provider;
+
+			// Only enhance if we have a provider
+			let enhancedErrorMessage = errorMessage;
+			if (providerToUse) {
+				enhancedErrorMessage = enhanceDatasourceError(
+					errorMessage,
+					providerToUse,
+					'load',
+					undefined, // no specific resource path in load failures
+					interaction,
+				);
+			}
+
+			logger.error(
+				`LLMToolLoadResources: Error adding resources to conversation: ${enhancedErrorMessage}`,
+				toolInput,
+			);
+
+			const toolResults = `⚠️  ${enhancedErrorMessage}`;
+			const bbResponse = `BB failed to add resources. Error: ${enhancedErrorMessage}`;
+			const toolResponse = `Failed to add resources. Error: ${enhancedErrorMessage}`;
 			return { toolResults, toolResponse, bbResponse };
 
 			// 			logger.error(`LLMToolLoadResources: Error adding resources to conversation: ${error.message}`);

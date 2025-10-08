@@ -12,10 +12,12 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		'metadata': {
 			'name': 'fetch_web_screenshot',
 			'description':
-				"Captures a screenshot of a specified web page. Use this for visual content, layout analysis, or when text extraction isn't sufficient. Returns an image of the rendered page. Some sites may block automated access or require authentication. For text content, use fetch_web_page instead.",
+				'Captures screenshots using a full headless browser for complete page rendering including JavaScript, CSS animations, and dynamic content. Returns visual representation of the rendered page. Use this when you need to see how content appears visually (e.g., GitHub repository pages, web apps, dashboards). For static image files or direct downloads, use download_resource instead. For text content extraction, use fetch_web_page.',
 			'version': '1.0.0',
 			'author': 'BB Team',
 			'license': 'MIT',
+			'enabled': true,
+			'category': 'data-retrieval',
 			'protocolType': 'bb',
 		},
 	},
@@ -156,10 +158,12 @@ export const CORE_TOOLS: Array<CoreTool> = [
 		'metadata': {
 			'name': 'fetch_web_page',
 			'description':
-				'Fetches the content of a specified web page. Returns the text content of HTML pages, stripping scripts and styles. For visual content, use fetch_web_screenshot instead. Some sites may block automated access or require authentication. Response size may be limited.',
+				'Fetches web page content using a full headless browser for complete content hydration including JavaScript, dynamic loading, and complex authentication flows. Returns clean text content with scripts and styles removed. Use this when pages require browser context (e.g., GitHub pages, SPAs, dynamic content). For static resources, direct API calls, or raw files, use download_resource instead. For visual content, use fetch_web_screenshot.',
 			'version': '1.0.0',
 			'author': 'BB Team',
 			'license': 'MIT',
+			'enabled': true,
+			'category': 'data-retrieval',
 			'protocolType': 'bb',
 		},
 	},
@@ -379,6 +383,35 @@ export const CORE_TOOLS: Array<CoreTool> = [
 				'data-browsing',
 			],
 			'enabled': true,
+			'author': 'BB Team',
+			'license': 'MIT',
+			'protocolType': 'bb',
+		},
+	},
+	{
+		'toolNamePath': 'downloadResource.tool',
+		'metadata': {
+			'name': 'download_resource',
+			'description':
+				'Download resources using direct HTTP requests (like curl) and save to data sources. Use for static resources, API endpoints, raw files, or when you need custom authentication/headers. Does NOT use a browser - no JavaScript execution or dynamic content loading. For pages requiring browser context (GitHub pages, SPAs, dynamic content), use fetch_web_page or fetch_web_screenshot instead. Supports all HTTP methods, authentication, and saves directly to datasources.',
+			'version': '1.0.0',
+			'enabled': true,
+			'category': 'data-retrieval',
+			'capabilities': [
+				'resource-download',
+			],
+			'author': 'BB Team',
+			'license': 'MIT',
+			'protocolType': 'bb',
+		},
+	},
+	{
+		'toolNamePath': 'searchWeb.tool',
+		'metadata': {
+			'name': 'search_web',
+			'description':
+				'Searches the web using the Brave Search API. Returns comprehensive search results including web pages, news articles, videos, locations, discussions, and knowledge panels. Supports advanced search parameters and filtering options. Can use either user-provided API keys or the proxied service for seamless operation.',
+			'version': '1.0.0',
 			'author': 'BB Team',
 			'license': 'MIT',
 			'protocolType': 'bb',

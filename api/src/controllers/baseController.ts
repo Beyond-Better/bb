@@ -1,7 +1,6 @@
 import * as diff from 'diff';
 
-import type InteractionManager from 'api/llms/interactionManager.ts';
-import { interactionManager } from 'api/llms/interactionManager.ts';
+import { InteractionManager } from 'api/llms/interactionManager.ts';
 import type CollaborationManager from 'api/collaborations/collaborationManager.ts';
 import { collaborationManager } from 'api/collaborations/collaborationManager.ts';
 import Collaboration from 'api/collaborations/collaboration.ts';
@@ -84,13 +83,13 @@ class BaseController {
 		this._controllerType = 'base';
 		this.projectEditorRef = new WeakRef(projectEditor);
 		this.collaborationManager = collaborationManager;
-		this.interactionManager = interactionManager;
+		this.interactionManager = InteractionManager.getInstance();
 	}
 
 	async init(): Promise<BaseController> {
 		const configManager = await getConfigManager();
 		this.projectConfig = await configManager.getProjectConfig(this.projectEditor.projectId);
-		this.toolManager = await new LLMToolManager(this.projectConfig, this.projectEditor.sessionManager, 'core')
+		this.toolManager = await new LLMToolManager(this.projectConfig, this.projectEditor.userContext, 'core')
 			.init();
 		this.eventManager = EventManager.getInstance();
 		this.promptManager = await new PromptManager().init(this.projectEditor.projectId);
@@ -390,7 +389,7 @@ class BaseController {
 		interactionId: InteractionId,
 	): Promise<LLMConversationInteraction> {
 		logger.info(`BaseController: Creating new interaction: ${interactionId}`);
-		const interactionModel = this.projectConfig.defaultModels?.orchestrator ?? 'claude-sonnet-4-20250514';
+		const interactionModel = this.projectConfig.defaultModels?.orchestrator ?? 'claude-sonnet-4-5-20250929';
 		const interaction = await this.interactionManager.createInteraction(
 			collaboration,
 			'conversation',
@@ -505,6 +504,31 @@ class BaseController {
 		} catch (error) {
 			logger.error(`BaseController: Error persisting the interaction:`, error);
 			throw error;
+		}
+	}
+
+	/**
+	 * Emergency save for interaction state when no currentResponse is available.
+	 * Used in error scenarios to preserve interaction state even when processing fails.
+	 */
+	async saveInteractionEmergency(
+		interaction: LLMConversationInteraction,
+	): Promise<void> {
+		try {
+			const persistence = await new InteractionPersistence(
+				interaction.collaboration.id,
+				interaction.id,
+				this.projectEditor,
+			).init();
+
+			// Save interaction state without requiring currentResponse
+			// This preserves messages, token usage, tool metrics, etc.
+			await persistence.saveInteraction(interaction);
+
+			logger.info(`BaseController: Emergency save completed for interaction: ${interaction.id}`);
+		} catch (error) {
+			logger.error(`BaseController: Error in emergency save for interaction ${interaction.id}:`, error);
+			// Don't re-throw - we don't want to mask the original error
 		}
 	}
 

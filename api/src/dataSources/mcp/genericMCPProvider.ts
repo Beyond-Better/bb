@@ -18,6 +18,7 @@ import type {
 	DataSourceSearchCapability,
 } from 'shared/types/dataSource.ts';
 import type { AcceptedContentType, AcceptedEditType, ContentTypeGuidance } from 'shared/types/dataSource.ts';
+import { generateWorkflowInstructions } from 'api/utils/datasourceInstructions.ts';
 
 /**
  * GenericMCPProvider for MCP-managed data sources
@@ -143,6 +144,56 @@ export class GenericMCPProvider extends MCPDataSourceProvider {
 		this.configRequirements = [...requiredConfigFields];
 
 		logger.debug(`GenericMCPProvider: Created provider for MCP server ${serverId}`);
+	}
+
+	/**
+	 * Get detailed editing instructions for MCP data source
+	 * @returns Comprehensive instruction text with examples specific to MCP capabilities
+	 */
+	getDetailedInstructions(): string {
+		const instructions = [
+			`# MCP Data Source Instructions\n`,
+			`## Provider: ${this.name} (MCP Server: ${this.serverId})\n`,
+			`This data source is managed by an external Model Context Protocol (MCP) server.\n`,
+			`Operations and capabilities are determined by the MCP server implementation.\n\n`,
+			`## MCP-Specific Notes\n\n`,
+			`- **External Management**: Data operations are handled by the MCP server at \"${this.serverId}\"\n`,
+			`- **Server-Dependent Capabilities**: Available operations depend on server implementation\n`,
+			`- **Tool-Based Operations**: Use the \"mcp\" tool for interacting with this data source\n`,
+			`- **Server Capabilities**: Current capabilities include: [${this.getServerCapabilities().join(', ')}]\n\n`,
+			`### Using MCP Tools\n\n`,
+			`MCP data sources are accessed using the dedicated MCP tool:\n\n`,
+			`\`\`\`json\n`,
+			`{\n`,
+			`  "tool": "mcp",\n`,
+			`  "serverName": "${this.serverId}",\n`,
+			`  "toolName": "server-specific-tool-name",\n`,
+			`  "toolInput": {\n`,
+			`    // Parameters specific to the MCP server's tool\n`,
+			`  }\n`,
+			`}\n`,
+			`\`\`\`\n\n`,
+			`### Server-Specific Documentation\n\n`,
+			`- **Check Server Documentation**: Each MCP server has its own tools and parameters\n`,
+			`- **Available Tools**: Use MCP discovery to find available tools for this server\n`,
+			`- **Tool Schemas**: Each tool defines its own input/output schema\n`,
+			`- **Error Handling**: Server-specific error messages and handling\n\n`,
+			`### Common MCP Operations\n\n`,
+			`Most MCP servers support these general patterns:\n\n`,
+			`- **Resource Listing**: Tools to list available resources\n`,
+			`- **Resource Reading**: Tools to read/fetch resource content\n`,
+			`- **Search Operations**: Tools to search within the data source\n`,
+			`- **Custom Operations**: Server-specific business logic and workflows\n\n`,
+			generateWorkflowInstructions(),
+			'\n',
+			`### MCP-Specific Workflow\n\n`,
+			`1. **Discover Available Tools**: Use MCP discovery to find server capabilities\n`,
+			`2. **Check Tool Schemas**: Review input/output requirements for each tool\n`,
+			`3. **Use MCP Tool**: Call tools via the \"mcp\" tool with proper parameters\n`,
+			`4. **Handle Server Responses**: Process server-specific response formats\n\n`,
+		].join('');
+
+		return instructions;
 	}
 
 	/**

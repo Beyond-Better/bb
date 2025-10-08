@@ -16,6 +16,7 @@ import type {
 import { createError, ErrorType } from 'api/utils/error.ts';
 import { isResourceNotFoundError } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
+import { checkDatasourceAccess } from 'api/utils/featureAccess.ts';
 
 import type {
 	LLMToolRemoveResourcesConfig,
@@ -61,7 +62,7 @@ export default class LLMToolRemoveResources extends LLMTool {
 				dataSourceId: {
 					type: 'string',
 					description:
-						"Data source ID to operate on. Defaults to the primary data source if omitted. Examples: 'primary', 'filesystem-1', 'db-staging'. Data sources are identified by their name (e.g., 'primary', 'local-2', 'supabase').",
+						"Data source ID to operate on. Defaults to the primary data source if omitted. Examples: 'primary', 'filesystem-1', 'db-staging'. Data sources are identified by their name (e.g., 'primary', 'local-2', 'supabase'). **IMPORTANT: Different data sources have different path format requirements - use loadDataSource with returnType='instructions' and operations=['utility'] to get provider-specific removal guidance before using this tool.**",
 				},
 				sources: {
 					type: 'array',
@@ -328,6 +329,23 @@ export default class LLMToolRemoveResources extends LLMTool {
 		}
 
 		const dataSourceRoot = dsConnectionToUse.getDataSourceRoot();
+
+		// Check datasource write access
+		const hasWriteAccess = await checkDatasourceAccess(
+			projectEditor.userContext,
+			dsConnectionToUse.providerType,
+			'write',
+		);
+		if (!hasWriteAccess) {
+			throw createError(
+				ErrorType.ToolHandling,
+				'Datasource write access not available on your current plan',
+				{
+					toolName: 'remove_resources',
+					operation: 'capability-check',
+				} as ToolHandlingErrorOptions,
+			);
+		}
 
 		try {
 			// Validate number of resources

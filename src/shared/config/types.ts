@@ -86,9 +86,104 @@ export interface MCPServerConfig {
 	id: string;
 	name?: string;
 	description?: string;
-	command: string;
+	transport: 'stdio' | 'http';
+
+	// STDIO transport configuration
+	command?: string;
 	args?: string[];
 	env?: Record<string, string>;
+
+	// HTTP transport configuration
+	url?: string;
+	oauth?: MCPOAuthConfig;
+
+	// Health check configuration (primarily for HTTP transport)
+	/** Enable periodic health checks using ping (default: true for HTTP, false for STDIO) */
+	healthCheckEnabled?: boolean;
+	/** Minutes of idle time before performing health check (default: 5) */
+	healthCheckIdleMinutes?: number;
+}
+
+export interface MCPOAuthConfig {
+	/** OAuth 2.1 grant type */
+	grantType: 'authorization_code' | 'client_credentials';
+
+	/**
+	 * Client ID for OAuth application
+	 * Optional - can be obtained via Dynamic Client Registration (RFC7591)
+	 * If not provided, system will attempt automatic registration
+	 */
+	clientId?: string;
+
+	/**
+	 * Client secret for OAuth application
+	 * Optional - can be obtained via Dynamic Client Registration (RFC7591)
+	 * If not provided, system will attempt automatic registration
+	 */
+	clientSecret?: string;
+
+	/**
+	 * Authorization endpoint URL (for authorization_code flow)
+	 * Optional - will be discovered from /.well-known/oauth-authorization-server
+	 * If not discovered, falls back to /authorize relative to server URL
+	 */
+	authorizationEndpoint?: string;
+
+	/**
+	 * Token endpoint URL
+	 * Optional - will be discovered from /.well-known/oauth-authorization-server
+	 * If not discovered, falls back to /token relative to server URL
+	 */
+	tokenEndpoint?: string;
+
+	/** OAuth scopes to request */
+	scopes?: string[];
+
+	/**
+	 * Redirect URI (for authorization_code flow)
+	 * If not provided, uses default BB redirect URIs
+	 */
+	redirectUri?: string;
+
+	/** Additional OAuth parameters */
+	additionalParams?: Record<string, string>;
+
+	/**
+	 * Enable PKCE for authorization code flow
+	 * Defaults to true (required by MCP spec)
+	 */
+	usePKCE?: boolean;
+
+	// ============================================================================
+	// System-managed fields (not user-configurable)
+	// ============================================================================
+
+	/** Stored access token (managed by system) */
+	accessToken?: string;
+
+	/** Stored refresh token (managed by system) */
+	refreshToken?: string;
+
+	/** Token expiration timestamp (managed by system) */
+	expiresAt?: number;
+
+	/** Registration endpoint discovered from server (managed by system) */
+	registrationEndpoint?: string;
+
+	/**
+	 * Registration access token from Dynamic Client Registration
+	 * Used to update client registration if supported (managed by system)
+	 */
+	registrationAccessToken?: string;
+
+	/**
+	 * Registration client URI from Dynamic Client Registration
+	 * Used to update client registration if supported (managed by system)
+	 */
+	registrationClientUri?: string;
+
+	/** Timestamp when client was dynamically registered (managed by system) */
+	registrationTimestamp?: number;
 }
 
 export interface LLMProviderConfig {
@@ -106,9 +201,11 @@ export interface LLMProviderConfig {
 }
 
 export interface GoogleOauth {
-	redirectUri: string;
 	clientId: string | null;
 	clientSecret: string | null;
+	redirectUri: string;
+	configUri?: string;
+	refreshExchangeUri?: string;
 }
 
 /**
@@ -389,9 +486,11 @@ export const BuiConfigDefaults: Readonly<BuiConfig> = {
 	localMode: false,
 	kvSessionPath: 'auth.kv',
 	googleOauth: {
-		redirectUri: 'https://chat.beyondbetter.app/oauth/google/callback',
 		clientId: null,
 		clientSecret: null,
+		redirectUri: 'https://chat.beyondbetter.app/oauth/google/callback',
+		configUri: 'https://chat.beyondbetter.app/api/v1/oauth/google/config',
+		refreshExchangeUri: 'https://chat.beyondbetter.app/api/v1/oauth/google/token',
 	},
 };
 

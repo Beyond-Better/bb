@@ -18,6 +18,7 @@ export interface LLMToolMCPConfig extends LLMToolConfig {
 export interface LLMToolMCPResultData {
 	toolName: string;
 	serverId: string;
+	response: string | null;
 	result: unknown;
 }
 
@@ -26,6 +27,6 @@ export interface LLMToolMCPResponseData {
 }
 
 export interface LLMToolMCPResult {
-	toolResult: LLMToolRunResultContent;
+	toolResults: LLMToolRunResultContent;
 	bbResponse: LLMToolMCPResponseData & LLMToolRunBbResponse;
 }

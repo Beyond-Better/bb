@@ -10,9 +10,7 @@ import type { CollaborationValues } from 'shared/types/collaboration.ts';
 import CollaborationPersistence from 'api/storage/collaborationPersistence.ts';
 //import InteractionPersistence from 'api/storage/interactionPersistence.ts';
 import CollaborationLogger from 'api/storage/collaborationLogger.ts';
-import type { SessionManager } from 'api/auth/session.ts';
 import { errorMessage } from 'shared/error.ts';
-//import { getLLMModelToProvider } from 'api/types/llms.ts';
 import { generateInteractionId, shortenInteractionId } from 'shared/generateIds.ts';
 
 /**
@@ -165,7 +163,11 @@ export const listCollaborations = async (
  *         description: Internal server error
  */
 export const createCollaboration = async (
-	{ request, response, app }: { request: Context['request']; response: Context['response']; app: Context['app'] },
+	{ request, response, state }: {
+		request: Context['request'];
+		response: Context['response'];
+		state: Context['state'];
+	},
 ) => {
 	logger.debug('CollaborationHandler: createCollaboration called');
 
@@ -173,11 +175,11 @@ export const createCollaboration = async (
 		const body = await request.body.json();
 		const { title, type = 'project', projectId } = body;
 
-		const sessionManager: SessionManager = app.state.auth.sessionManager;
-		if (!sessionManager) {
-			logger.warn('CollaborationHandler: No session manager configured');
+		const userContext = state.userContext;
+		if (!userContext) {
+			logger.warn('CollaborationHandler: No user context configured');
 			response.status = 400;
-			response.body = { error: 'No session manager configured' };
+			response.body = { error: 'No user context configured' };
 			return;
 		}
 
@@ -196,7 +198,7 @@ export const createCollaboration = async (
 		}
 
 		const collaborationId = shortenInteractionId(generateInteractionId());
-		const projectEditor = await projectEditorManager.getOrCreateEditor(projectId, collaborationId, sessionManager);
+		const projectEditor = await projectEditorManager.getOrCreateEditor(projectId, collaborationId, userContext);
 
 		const collaborationPersistence = new CollaborationPersistence(collaborationId, projectEditor);
 		await collaborationPersistence.init();
@@ -253,7 +255,7 @@ export const createCollaboration = async (
  *         description: Internal server error
  */
 export const getCollaboration = async (
-	{ params, request, response, app }: RouterContext<
+	{ params, request, response, state }: RouterContext<
 		'/v1/collaborations/:collaborationId',
 		{ collaborationId: string }
 	>,
@@ -264,11 +266,11 @@ export const getCollaboration = async (
 
 		logger.info(`CollaborationHandler: getCollaboration for: ${collaborationId}`);
 
-		const sessionManager: SessionManager = app.state.auth.sessionManager;
-		if (!sessionManager) {
-			logger.warn('CollaborationHandler: No session manager configured');
+		const userContext = state.userContext;
+		if (!userContext) {
+			logger.warn('CollaborationHandler: No user context configured');
 			response.status = 400;
-			response.body = { error: 'No session manager configured' };
+			response.body = { error: 'No user context configured' };
 			return;
 		}
 
@@ -278,7 +280,7 @@ export const getCollaboration = async (
 			return;
 		}
 
-		const projectEditor = await projectEditorManager.getOrCreateEditor(projectId, collaborationId, sessionManager);
+		const projectEditor = await projectEditorManager.getOrCreateEditor(projectId, collaborationId, userContext);
 		const collaborationPersistence = new CollaborationPersistence(collaborationId, projectEditor);
 		await collaborationPersistence.init();
 
@@ -340,7 +342,7 @@ export const getCollaboration = async (
  *         description: Internal server error
  */
 export const deleteCollaboration = async (
-	{ params, request, response, app }: RouterContext<
+	{ params, request, response, state }: RouterContext<
 		'/v1/collaborations/:collaborationId',
 		{ collaborationId: string }
 	>,
@@ -349,11 +351,11 @@ export const deleteCollaboration = async (
 		const { collaborationId } = params;
 		const projectId = request.url.searchParams.get('projectId') || '';
 
-		const sessionManager: SessionManager = app.state.auth.sessionManager;
-		if (!sessionManager) {
-			logger.warn('CollaborationHandler: No session manager configured');
+		const userContext = state.userContext;
+		if (!userContext) {
+			logger.warn('CollaborationHandler: No user context configured');
 			response.status = 400;
-			response.body = { error: 'No session manager configured' };
+			response.body = { error: 'No user context configured' };
 			return;
 		}
 
@@ -363,7 +365,7 @@ export const deleteCollaboration = async (
 			return;
 		}
 
-		const projectEditor = await projectEditorManager.getOrCreateEditor(projectId, collaborationId, sessionManager);
+		const projectEditor = await projectEditorManager.getOrCreateEditor(projectId, collaborationId, userContext);
 		const collaborationPersistence = new CollaborationPersistence(collaborationId, projectEditor);
 		await collaborationPersistence.init();
 
@@ -422,7 +424,7 @@ export const deleteCollaboration = async (
  *         description: Internal server error
  */
 export const updateCollaborationTitle = async (
-	{ params, request, response, app }: RouterContext<
+	{ params, request, response, state }: RouterContext<
 		'/v1/collaborations/:collaborationId/title',
 		{ collaborationId: string }
 	>,
@@ -435,11 +437,11 @@ export const updateCollaborationTitle = async (
 
 		logger.info(`CollaborationHandler: updateCollaborationTitle for: ${collaborationId}, title: ${title}`);
 
-		const sessionManager: SessionManager = app.state.auth.sessionManager;
-		if (!sessionManager) {
-			logger.warn('CollaborationHandler: No session manager configured');
+		const userContext = state.userContext;
+		if (!userContext) {
+			logger.warn('CollaborationHandler: No user context configured');
 			response.status = 400;
-			response.body = { error: 'No session manager configured' };
+			response.body = { error: 'No user context configured' };
 			return;
 		}
 
@@ -461,7 +463,7 @@ export const updateCollaborationTitle = async (
 			return;
 		}
 
-		const projectEditor = await projectEditorManager.getOrCreateEditor(projectId, collaborationId, sessionManager);
+		const projectEditor = await projectEditorManager.getOrCreateEditor(projectId, collaborationId, userContext);
 		const collaborationPersistence = new CollaborationPersistence(collaborationId, projectEditor);
 		await collaborationPersistence.init();
 
@@ -536,7 +538,7 @@ export const updateCollaborationTitle = async (
  *         description: Internal server error
  */
 export const toggleCollaborationStar = async (
-	{ params, request, response, app }: RouterContext<
+	{ params, request, response, state }: RouterContext<
 		'/v1/collaborations/:collaborationId/star',
 		{ collaborationId: string }
 	>,
@@ -549,11 +551,11 @@ export const toggleCollaborationStar = async (
 
 		logger.info(`CollaborationHandler: toggleCollaborationStar for: ${collaborationId}, starred: ${starred}`);
 
-		const sessionManager: SessionManager = app.state.auth.sessionManager;
-		if (!sessionManager) {
-			logger.warn('CollaborationHandler: No session manager configured');
+		const userContext = state.userContext;
+		if (!userContext) {
+			logger.warn('CollaborationHandler: No user context configured');
 			response.status = 400;
-			response.body = { error: 'No session manager configured' };
+			response.body = { error: 'No user context configured' };
 			return;
 		}
 
@@ -569,7 +571,7 @@ export const toggleCollaborationStar = async (
 			return;
 		}
 
-		const projectEditor = await projectEditorManager.getOrCreateEditor(projectId, collaborationId, sessionManager);
+		const projectEditor = await projectEditorManager.getOrCreateEditor(projectId, collaborationId, userContext);
 		const collaborationPersistence = new CollaborationPersistence(collaborationId, projectEditor);
 		await collaborationPersistence.init();
 
@@ -637,7 +639,7 @@ export const toggleCollaborationStar = async (
  *         description: Internal server error
  */
 export const createInteraction = async (
-	{ params, request, response, app }: RouterContext<
+	{ params, request, response, app, state }: RouterContext<
 		'/v1/collaborations/:collaborationId/interactions',
 		{ collaborationId: string }
 	>,
@@ -647,11 +649,11 @@ export const createInteraction = async (
 		const body = await request.body.json();
 		const { parentInteractionId, projectId } = body;
 
-		const sessionManager: SessionManager = app.state.auth.sessionManager;
-		if (!sessionManager) {
-			logger.warn('CollaborationHandler: No session manager configured');
+		const userContext = state.userContext;
+		if (!userContext) {
+			logger.warn('CollaborationHandler: No user context configured');
 			response.status = 400;
-			response.body = { error: 'No session manager configured' };
+			response.body = { error: 'No user context configured' };
 			return;
 		}
 
@@ -661,7 +663,7 @@ export const createInteraction = async (
 			return;
 		}
 
-		const projectEditor = await projectEditorManager.getOrCreateEditor(projectId, collaborationId, sessionManager);
+		const projectEditor = await projectEditorManager.getOrCreateEditor(projectId, collaborationId, userContext);
 		const collaborationPersistence = new CollaborationPersistence(collaborationId, projectEditor);
 		await collaborationPersistence.init();
 
@@ -718,7 +720,7 @@ export const createInteraction = async (
  *         description: Internal server error
  */
 export const getInteraction = async (
-	{ params, request, response, app }: RouterContext<
+	{ params, request, response, state }: RouterContext<
 		'/v1/collaborations/:collaborationId/interactions/:interactionId',
 		{ collaborationId: string; interactionId: string }
 	>,
@@ -727,11 +729,11 @@ export const getInteraction = async (
 		const { collaborationId, interactionId } = params;
 		const projectId = request.url.searchParams.get('projectId') || '';
 
-		const sessionManager: SessionManager = app.state.auth.sessionManager;
-		if (!sessionManager) {
-			logger.warn('CollaborationHandler: No session manager configured');
+		const userContext = state.userContext;
+		if (!userContext) {
+			logger.warn('CollaborationHandler: No user context configured');
 			response.status = 400;
-			response.body = { error: 'No session manager configured' };
+			response.body = { error: 'No user context configured' };
 			return;
 		}
 
@@ -741,7 +743,7 @@ export const getInteraction = async (
 			return;
 		}
 
-		const projectEditor = await projectEditorManager.getOrCreateEditor(projectId, collaborationId, sessionManager);
+		const projectEditor = await projectEditorManager.getOrCreateEditor(projectId, collaborationId, userContext);
 		const collaborationPersistence = new CollaborationPersistence(collaborationId, projectEditor);
 		await collaborationPersistence.init();
 
@@ -810,7 +812,7 @@ export const getInteraction = async (
  *         description: Internal server error
  */
 export const chatInteraction = async (
-	{ params, request, response, app }: RouterContext<
+	{ params, request, response, state }: RouterContext<
 		'/v1/collaborations/:collaborationId/interactions/:interactionId',
 		{ collaborationId: string; interactionId: string }
 	>,
@@ -829,11 +831,11 @@ export const chatInteraction = async (
 			}..."`,
 		);
 
-		const sessionManager: SessionManager = app.state.auth.sessionManager;
-		if (!sessionManager) {
-			logger.warn('CollaborationHandler: No session manager configured');
+		const userContext = state.userContext;
+		if (!userContext) {
+			logger.warn('CollaborationHandler: No user context configured');
 			response.status = 400;
-			response.body = { error: 'No session manager configured' };
+			response.body = { error: 'No user context configured' };
 			return;
 		}
 
@@ -860,7 +862,7 @@ export const chatInteraction = async (
 		logger.debug(
 			`CollaborationHandler: Creating ProjectEditor for interactionId: ${interactionId} using projectId: ${projectId}`,
 		);
-		const projectEditor = await projectEditorManager.getOrCreateEditor(projectId, collaborationId, sessionManager);
+		const projectEditor = await projectEditorManager.getOrCreateEditor(projectId, collaborationId, userContext);
 
 		const result: CollaborationResponse = await projectEditor.handleStatement(
 			statement,
@@ -929,7 +931,7 @@ export const chatInteraction = async (
  *         description: Internal server error
  */
 export const deleteInteraction = async (
-	{ params, request, response, app }: RouterContext<
+	{ params, request, response, state }: RouterContext<
 		'/v1/collaborations/:collaborationId/interactions/:interactionId',
 		{ collaborationId: string; interactionId: string }
 	>,
@@ -939,11 +941,11 @@ export const deleteInteraction = async (
 			params;
 		const projectId = request.url.searchParams.get('projectId') || '';
 
-		const sessionManager: SessionManager = app.state.auth.sessionManager;
-		if (!sessionManager) {
-			logger.warn('CollaborationHandler: No session manager configured');
+		const userContext = state.userContext;
+		if (!userContext) {
+			logger.warn('CollaborationHandler: No user context configured');
 			response.status = 400;
-			response.body = { error: 'No session manager configured' };
+			response.body = { error: 'No user context configured' };
 			return;
 		}
 
@@ -956,7 +958,7 @@ export const deleteInteraction = async (
 		const projectEditor = await projectEditorManager.getOrCreateEditor(
 			projectId,
 			collaborationId,
-			sessionManager,
+			userContext,
 		);
 
 		if (!projectEditor.orchestratorController) {

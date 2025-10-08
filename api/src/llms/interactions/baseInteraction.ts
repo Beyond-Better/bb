@@ -38,7 +38,8 @@ import type {
 	LLMMessageContentPartToolUseBlock,
 	LLMMessageProviderResponse,
 } from 'api/llms/llmMessage.ts';
-import { getLLMModelToProvider, type LLMProviderMessageResponseRole } from 'api/types/llms.ts';
+import type { LLMProviderMessageResponseRole } from 'api/types/llms.ts';
+import { getLLMModelToProvider } from 'api/utils/model.ts';
 import LLMMessage from 'api/llms/llmMessage.ts';
 import type LLMTool from 'api/llms/llmTool.ts';
 import type { LLMToolRunResultContent } from 'api/llms/llmTool.ts';
@@ -145,7 +146,7 @@ class LLMInteraction {
 			this._llmProvider = LLMFactory.getProvider(
 				this._interactionCallbacks,
 				this._localMode
-					//? this._llmModelToProvider[this.projectConfig.defaultModels?.orchestrator ?? 'claude-sonnet-4-20250514']
+					//? this._llmModelToProvider[this.projectConfig.defaultModels?.orchestrator ?? 'claude-sonnet-4-5-20250929']
 					? this._llmModelToProvider[this._model]
 					: LLMProviderEnum.BB,
 				//globalConfig.api.localMode ? LLMProviderEnum.OPENAI : LLMProviderEnum.BB,
@@ -624,19 +625,23 @@ class LLMInteraction {
 			case 'redacted_thinking':
 				return typeof (part as LLMMessageContentPartRedactedThinkingBlock).data === 'string' &&
 					(part as LLMMessageContentPartRedactedThinkingBlock).data.trim().length > 0;
-			case 'tool_use':
+			case 'tool_use': {
 				const toolUsePart = part as LLMMessageContentPartToolUseBlock;
 				return !!(toolUsePart.id && toolUsePart.name && toolUsePart.input);
-			case 'tool_result':
+			}
+			case 'tool_result': {
 				const toolResultPart = part as LLMMessageContentPartToolResultBlock;
 				return !!(toolResultPart.tool_use_id &&
 					(toolResultPart.content || toolResultPart.is_error !== undefined));
-			case 'image':
+			}
+			case 'image': {
 				const imagePart = part as LLMMessageContentPartImageBlock;
 				return !!(imagePart.source?.data && imagePart.source?.media_type);
-			case 'audio':
+			}
+			case 'audio': {
 				const audioPart = part as LLMMessageContentPartAudioBlock;
 				return !!(audioPart.id);
+			}
 			default:
 				return false;
 		}
@@ -724,24 +729,47 @@ class LLMInteraction {
 		toolRunResultContent: LLMToolRunResultContent,
 		isError: boolean = false,
 	): string {
+		// Prepare the content array for the tool result
+		// Note: tool_result content can only contain text and image blocks
+		let rawContentArray: LLMMessageContentParts;
+		if (Array.isArray(toolRunResultContent)) {
+			rawContentArray = toolRunResultContent;
+		} else if (typeof toolRunResultContent === 'string') {
+			rawContentArray = [{
+				'type': 'text',
+				'text': toolRunResultContent,
+			} as LLMMessageContentPartTextBlock];
+		} else {
+			rawContentArray = [toolRunResultContent];
+		}
+
+		// Filter to only include text and image blocks (tool_result content requirement)
+		const contentArray: Array<LLMMessageContentPartTextBlock | LLMMessageContentPartImageBlock> = rawContentArray
+			.filter((part): part is LLMMessageContentPartTextBlock | LLMMessageContentPartImageBlock =>
+				part.type === 'text' || part.type === 'image'
+			);
+
+		// If this is an error, prepend an error message to the content array
+		// This keeps the error message within the tool_result block instead of creating
+		// a separate text block, which is required by Anthropic's API (all tool_result
+		// blocks must come before any text blocks in the message content array)
+		if (isError) {
+			const errorMessage = typeof toolRunResultContent === 'string'
+				? toolRunResultContent
+				: JSON.stringify(toolRunResultContent);
+			contentArray.unshift({
+				type: 'text',
+				text: `The tool run failed: ${errorMessage}`,
+			} as LLMMessageContentPartTextBlock);
+		}
+
 		const toolResult = {
 			type: 'tool_result',
 			tool_use_id: toolUseId,
-			content: Array.isArray(toolRunResultContent) ? toolRunResultContent : [
-				typeof toolRunResultContent !== 'string' ? toolRunResultContent : {
-					'type': 'text',
-					'text': toolRunResultContent,
-				} as LLMMessageContentPartTextBlock,
-			],
+			content: contentArray,
 			is_error: isError,
 		} as LLMMessageContentPartToolResultBlock;
 		// logger.debug('LLMInteraction: Adding tool result', toolResult);
-		const bbResult = isError
-			? {
-				type: 'text',
-				text: `The tool run failed: ${toolRunResultContent}`,
-			} as LLMMessageContentPartTextBlock
-			: null;
 
 		const lastMessage = this.getLastMessage();
 		if (lastMessage && lastMessage.role === 'user') {
@@ -779,23 +807,26 @@ class LLMInteraction {
 				return lastMessage.id;
 			} else {
 				// Add new tool result to existing user message
+				// Note: Error messages are now included in the tool_result's content array
+				// to comply with Anthropic's requirement that all tool_result blocks must
+				// come before any text blocks in the message content array
 				logger.debug(
 					'LLMInteraction: Adding new tool result to existing user message',
 					JSON.stringify(toolResult, null, 2),
 				);
 				lastMessage.content.push(toolResult);
-				if (bbResult) lastMessage.content.push(bbResult);
 				return lastMessage.id;
 			}
 		} else {
 			// Add a new user message with the tool result
+			// Note: Error messages are now included in the tool_result's content array
+			// to comply with Anthropic's requirement that all tool_result blocks must
+			// come before any text blocks in the message content array
 			logger.debug(
 				'LLMInteraction: Adding new user message with tool result',
 				JSON.stringify(toolResult, null, 2),
 			);
-			const newMessageContent: LLMMessageContentParts = [toolResult];
-			if (bbResult) newMessageContent.push(bbResult);
-			const newMessage = new LLMMessage('user', newMessageContent, this.interactionStats);
+			const newMessage = new LLMMessage('user', [toolResult], this.interactionStats);
 			this.addMessage(newMessage);
 			return newMessage.id;
 		}

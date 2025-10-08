@@ -20,6 +20,7 @@ pub mod bui;
 pub mod commands; // Make commands module public
 pub mod config; // Make config module public
 pub mod logging;
+pub mod oauth; // OAuth authentication module
 pub mod proxy;
 pub mod window_state;
 
@@ -44,6 +45,9 @@ pub use crate::config::{
 };
 pub use crate::window_state::{
     apply_window_state, load_window_state, save_window_state, setup_window_state_handler,
+};
+pub use crate::oauth::{
+    close_oauth_window, complete_oauth_flow, get_oauth_windows, start_oauth_flow,
 };
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -530,7 +534,11 @@ pub fn run() {
             load_window_state,
             save_window_state,
             setup_window_state_handler,
-            apply_window_state
+            apply_window_state,
+            start_oauth_flow,
+            complete_oauth_flow,
+            get_oauth_windows,
+            close_oauth_window
         ])
         .manage(proxy_state)
         //.plugin(tauri_plugin_shell::init())

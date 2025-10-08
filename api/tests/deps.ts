@@ -2,12 +2,22 @@ import {
 	assert,
 	assertEquals,
 	assertExists,
+	assertFalse,
 	assertObjectMatch,
 	assertRejects,
 	assertStringIncludes,
 	assertThrows,
 } from '@std/assert';
-export { assert, assertEquals, assertExists, assertObjectMatch, assertRejects, assertStringIncludes, assertThrows };
+export {
+	assert,
+	assertEquals,
+	assertExists,
+	assertFalse,
+	assertObjectMatch,
+	assertRejects,
+	assertStringIncludes,
+	assertThrows,
+};
 
 import { assertSpyCalls, stub } from '@std/testing/mock';
 export { assertSpyCalls, stub };

@@ -39,7 +39,7 @@ export async function getWorkingRoot(projectId: ProjectId): Promise<string> {
 export async function getWorkingRootFromStartDir(startDir: string): Promise<string> {
 	let currentDir = resolve(startDir);
 	while (true) {
-		//logger.log(`Looking for .bb in: ${currentDir}`);
+		//logger.info(`Looking for .bb in: ${currentDir}`);
 		const bbDir = join(currentDir, '.bb');
 		if (await exists(bbDir)) {
 			return currentDir;
@@ -48,7 +48,7 @@ export async function getWorkingRootFromStartDir(startDir: string): Promise<stri
 		if (parentDir === currentDir) { // if current is same as parent, then must be at top, nowhere else to go.
 			break; // Reached root without finding .bb
 		}
-		//logger.log(`Moving up to parent: ${parentDir}`);
+		//logger.info(`Moving up to parent: ${parentDir}`);
 		currentDir = parentDir;
 	}
 	throw new Error('No .bb directory found in project hierarchy');

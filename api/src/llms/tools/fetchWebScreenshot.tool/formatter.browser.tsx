@@ -35,11 +35,11 @@ export const formatLogEntryToolUse = (toolInput: LLMToolInputSchema): LLMToolLog
 export const formatLogEntryToolResult = (
 	resultContent: CollaborationLogEntryContentToolResult,
 ): LLMToolLogEntryFormattedResult => {
-	const { toolResult, bbResponse } = resultContent as LLMToolFetchWebScreenshotResult;
+	const { toolResults, bbResponse } = resultContent as LLMToolFetchWebScreenshotResult;
 
 	if (typeof bbResponse === 'object' && 'data' in bbResponse) {
 		const { url } = bbResponse.data;
-		const content = getImageContent(toolResult as LLMMessageContentParts);
+		const content = getImageContent(toolResults as LLMMessageContentParts);
 
 		const contentElement = LLMTool.TOOL_TAGS_BROWSER.base.container(
 			<>

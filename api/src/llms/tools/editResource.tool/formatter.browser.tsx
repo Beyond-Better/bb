@@ -278,8 +278,8 @@ export const formatLogEntryToolUse = (toolInput: LLMToolInputSchema): LLMToolLog
 export const formatLogEntryToolResult = (
 	resultContent: CollaborationLogEntryContentToolResult,
 ): LLMToolLogEntryFormattedResult => {
-	const { toolResult, bbResponse } = resultContent as LLMToolEditResourceResult;
-	const results = getContentArrayFromToolResult(toolResult);
+	const { toolResults, bbResponse } = resultContent as LLMToolEditResourceResult;
+	const results = getContentArrayFromToolResult(toolResults);
 
 	// Safely access bbResponse.data with fallbacks
 	const responseData = bbResponse?.data;

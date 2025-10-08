@@ -1,6 +1,6 @@
 {
 	"name": "bb",
-	"version": "0.9.0-oss",
+	"version": "0.9.10-oss",
 	"license": "AGPL-3.0-or-later",
 	"copyright": "2025 - Beyond Better <charlie@beyondbetter.app>",
 	"exports": "./cli/src/main.ts",
@@ -33,9 +33,9 @@
 		"test:api": "deno task -c ./api/deno.jsonc test",
 		"test:bui": "deno task -c ./bui/deno.jsonc test",
 		"test:cli": "deno task -c ./cli/deno.jsonc test",
-		"test:config": "deno test --allow-read --allow-write --allow-env src/shared/config/tests/",
-		"test:config:watch": "deno test --allow-read --allow-write --allow-env --watch src/shared/config/tests/",
-		"test:config:coverage": "deno test --allow-read --allow-write --allow-env --coverage=coverage src/shared/config/tests/ && deno coverage coverage",
+		"test:config": "deno test --allow-read --allow-write --allow-env --unstable-kv src/shared/config/tests/",
+		"test:config:watch": "deno test --allow-read --allow-write --allow-env --unstable-kv --watch src/shared/config/tests/",
+		"test:config:coverage": "deno test --allow-read --allow-write --allow-env --unstable-kv --coverage=coverage src/shared/config/tests/ && deno coverage coverage",
 		"update-deps": "deno task -c ./cli/deno.jsonc update-deps && deno task -c ./bui/deno.jsonc update-deps && deno task -c ./api/deno.jsonc update-deps",
 		"install-deps": "deno task -c ./cli/deno.jsonc install-deps && deno task -c ./bui/deno.jsonc install-deps && deno task -c ./api/deno.jsonc install-deps",
 		"update-version": "deno run --allow-read --allow-write --allow-run ./scripts/update_version.ts",
@@ -43,6 +43,11 @@
 	},
 	"lock": false,
 	"importMap": "./import_map.json",
+	"compilerOptions": {
+		"jsx": "react-jsx",
+		"jsxImportSource": "preact"
+	},
+	"nodeModulesDir": "auto",
 	"fmt": {
 		"useTabs": true,
 		"lineWidth": 120,

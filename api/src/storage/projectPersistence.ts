@@ -1222,6 +1222,7 @@ class ProjectPersistence implements ProjectData {
 			// Create a safe filename from the URI
 			const safeFilename = resourceUri.replace(/[^a-zA-Z0-9]/g, '_');
 			const resourcePath = join(this.projectResourcesDir, safeFilename);
+			logger.info(`ProjectPersistence: Storing project resource: ${resourceUri} to ${resourcePath}`);
 
 			// Ensure the resources directory exists
 			await ensureDir(dirname(resourcePath));
@@ -1235,7 +1236,7 @@ class ProjectPersistence implements ProjectData {
 
 			await this.storeProjectResourceMetadata(resourceUri, metadata);
 
-			logger.debug(`ProjectPersistence: Stored project resource: ${resourceUri}`);
+			//logger.info(`ProjectPersistence: Stored project resource: ${resourceUri}`);
 		} catch (error) {
 			logger.error(
 				`ProjectPersistence: Error storing project resource: ${resourceUri} - ${(error as Error).message}`,
@@ -1269,16 +1270,27 @@ class ProjectPersistence implements ProjectData {
 				return null;
 			}
 
-			// Read the content based on file type
-			let content: string | Uint8Array;
-			if (resourceUri.toLowerCase().match(/\.(jpg|jpeg|png|gif|bmp|webp|svg)$/)) {
-				content = await Deno.readFile(resourcePath);
-			} else {
-				content = await Deno.readTextFile(resourcePath);
-			}
-
 			// Get metadata if available
 			const metadata = await this.getProjectResourceMetadata(resourceUri);
+			// logger.info(
+			// 	`ProjectPersistence: Getting resource: ${resourceUri}`, {metadata}
+			// );
+
+			const isText = metadata
+				? (metadata.contentType === 'text' && metadata.mimeType !== 'application/pdf')
+				: !resourceUri.toLowerCase().match(/\.(jpg|jpeg|png|gif|bmp|webp|svg|pdf)$/);
+
+			logger.info(
+				`ProjectPersistence: Getting resource: ${resourceUri} as ${isText ? 'text' : 'binary'}`,
+			);
+
+			// Read the content based on file type
+			let content: string | Uint8Array;
+			if (isText) {
+				content = await Deno.readTextFile(resourcePath);
+			} else {
+				content = await Deno.readFile(resourcePath);
+			}
 
 			return { content, metadata };
 		} catch (error) {

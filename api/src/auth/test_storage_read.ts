@@ -1,4 +1,4 @@
-import { KVStorage } from '../../shared/storage/kvStorage.ts';
+import { KVStorage } from 'shared/kvStorage.ts';
 
 const key = 'test_storage';
 

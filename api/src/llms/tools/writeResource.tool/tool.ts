@@ -12,13 +12,17 @@ import type {
 	isBinaryContent,
 	isPlainTextContent,
 	isStructuredContent,
+	isTabularContent,
 	LLMToolWriteResourceInput,
 	PlainTextContent,
 	StructuredContent,
+	TabularContent,
 } from './types.ts';
 import LLMTool from 'api/llms/llmTool.ts';
 import type { LLMToolInputSchema, LLMToolLogEntryFormattedResult, LLMToolRunResult } from 'api/llms/llmTool.ts';
 import type { CollaborationLogEntryContentToolResult } from 'shared/types.ts';
+import type { PortableTextBlock } from 'api/types/portableText.ts';
+import type { TabularSheet } from 'api/types/tabular.ts';
 import type { LLMAnswerToolUse } from 'api/llms/llmMessage.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type ProjectEditor from 'api/editor/projectEditor.ts';
@@ -30,6 +34,8 @@ import type {
 } from 'api/errors/error.ts';
 import { isResourceNotFoundError } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
+import { checkDatasourceAccess } from 'api/utils/featureAccess.ts';
+import { enhanceDatasourceError } from '../../../utils/datasourceErrorEnhancement.ts';
 
 const ACKNOWLEDGMENT_STRING =
 	'I have checked for existing resource contents and confirm this is the complete resource content with no omissions or placeholders';
@@ -90,16 +96,6 @@ export default class LLMToolWriteResource extends LLMTool {
 	private extractResourceIdFromUri(uri: string, providerType: string): string {
 		try {
 			switch (providerType) {
-				case 'notion': {
-					// notion://page/page-123 -> page-123
-					const match = uri.match(/notion:\/\/page\/(.+)$/);
-					return match ? match[1] : uri;
-				}
-				case 'googledocs': {
-					// googledocs://document/doc-456 -> doc-456
-					const match = uri.match(/googledocs:\/\/document\/(.+)$/);
-					return match ? match[1] : uri;
-				}
 				case 'filesystem':
 				default: {
 					// filesystem-local:./path/to/file.txt -> file.txt
@@ -233,6 +229,73 @@ export default class LLMToolWriteResource extends LLMTool {
 					},
 					required: ['data', 'mimeType'],
 				},
+				tabularContent: {
+					type: 'object',
+					description: 'Tabular content for spreadsheets and structured data sources.',
+					properties: {
+						sheets: {
+							type: 'array',
+							description: 'Array of sheets/tables with their data.',
+							items: {
+								type: 'object',
+								properties: {
+									name: {
+										type: 'string',
+										description: 'Name of the sheet/table',
+									},
+									data: {
+										type: 'array',
+										description: '2D array of cell values',
+										items: {
+											type: 'array',
+											items: {
+												type: ['string', 'number', 'boolean', 'null'],
+												description: 'Cell value (string, number, boolean, or null)',
+											},
+										},
+									},
+									metadata: {
+										type: 'object',
+										description: 'Optional metadata about the sheet',
+										properties: {
+											headers: {
+												type: 'array',
+												items: { type: 'string' },
+												description: 'Column headers (if first row contains headers)',
+											},
+											dataRange: {
+												type: 'string',
+												description: 'Data range in A1 notation (e.g., "A1:C10")',
+											},
+											formulas: {
+												type: 'object',
+												description: 'Named cell formulas (key: cell range, value: formula)',
+											},
+											namedRanges: {
+												type: 'object',
+												description:
+													'Named ranges defined in the sheet (key: name, value: range)',
+											},
+										},
+									},
+								},
+								required: ['name', 'data'],
+							},
+						},
+						allowEmptyContent: {
+							type: 'boolean',
+							description: 'Whether to allow empty content. Default is false.',
+							default: false,
+						},
+						acknowledgement: {
+							type: 'string',
+							description:
+								'Required confirmation string acknowledging tabular content creation. Must be exactly: "' +
+								ACKNOWLEDGMENT_STRING + '" (case insensitive, may include final punctuation)',
+						},
+					},
+					required: ['sheets', 'acknowledgement'],
+				},
 			},
 			required: ['resourcePath'],
 		};
@@ -268,15 +331,16 @@ export default class LLMToolWriteResource extends LLMTool {
 			plainTextContent,
 			structuredContent,
 			binaryContent,
+			tabularContent,
 			dataSourceId = undefined,
 		} = toolInput as LLMToolWriteResourceInput;
 
 		// Validate exactly one content type is provided
-		const contentTypes = [plainTextContent, structuredContent, binaryContent].filter(Boolean);
+		const contentTypes = [plainTextContent, structuredContent, binaryContent, tabularContent].filter(Boolean);
 		if (contentTypes.length === 0) {
 			throw createError(
 				ErrorType.ToolHandling,
-				'No content type provided. Must provide exactly one of: plainTextContent, structuredContent, or binaryContent',
+				'No content type provided. Must provide exactly one of: plainTextContent, structuredContent, binaryContent, or tabularContent',
 				{
 					toolName: 'write_resource',
 					operation: 'tool-run',
@@ -286,7 +350,7 @@ export default class LLMToolWriteResource extends LLMTool {
 		if (contentTypes.length > 1) {
 			throw createError(
 				ErrorType.ToolHandling,
-				'Multiple content types provided. Must provide exactly one of: plainTextContent, structuredContent, or binaryContent',
+				'Multiple content types provided. Must provide exactly one of: plainTextContent, structuredContent, binaryContent, or tabularContent',
 				{
 					toolName: 'write_resource',
 					operation: 'tool-run',
@@ -316,6 +380,23 @@ export default class LLMToolWriteResource extends LLMTool {
 			} as DataSourceHandlingErrorOptions);
 		}
 
+		// Check datasource write access
+		const hasWriteAccess = await checkDatasourceAccess(
+			projectEditor.userContext,
+			dsConnectionToUse.providerType,
+			'write',
+		);
+		if (!hasWriteAccess) {
+			throw createError(
+				ErrorType.ToolHandling,
+				`Write access for ${dsConnectionToUse.providerType} not available on your current plan`,
+				{
+					toolName: 'write_resource',
+					operation: 'capability-check',
+				} as ToolHandlingErrorOptions,
+			);
+		}
+
 		// Get resource accessor
 		const resourceAccessor = await dsConnectionToUse.getResourceAccessor();
 		//logger.info(`LLMToolWriteResource: resourceAccessor`, resourceAccessor);
@@ -327,8 +408,12 @@ export default class LLMToolWriteResource extends LLMTool {
 		}
 
 		// Determine content type and validate compatibility
-		let contentTypeUsed: 'plain-text' | 'structured' | 'binary';
-		let contentToWrite: string | Uint8Array;
+		let contentTypeUsed: 'plain-text' | 'structured' | 'binary' | 'tabular';
+		let contentToWrite:
+			| string
+			| Uint8Array
+			| Array<PortableTextBlock>
+			| Array<TabularSheet>;
 		let actualLineCount = 0;
 		let lineCountErrorMessage = '';
 
@@ -412,7 +497,7 @@ export default class LLMToolWriteResource extends LLMTool {
 
 			// For structured content, pass the blocks directly
 			// The individual data source accessors will handle conversion as needed
-			contentToWrite = structuredContent.blocks as any; // Type assertion needed for mixed content types
+			contentToWrite = structuredContent.blocks; // as any; // Type assertion needed for mixed content types
 		} else if (binaryContent) {
 			contentTypeUsed = 'binary';
 
@@ -432,6 +517,43 @@ export default class LLMToolWriteResource extends LLMTool {
 			} else {
 				contentToWrite = binaryContent.data;
 			}
+		} else if (tabularContent) {
+			contentTypeUsed = 'tabular';
+
+			// Validate acknowledgment for tabular content
+			if (!validateAcknowledgment(tabularContent.acknowledgement)) {
+				throw createError(
+					ErrorType.ResourceHandling,
+					'Invalid acknowledgement string for tabular content. Must be exactly: "' +
+						ACKNOWLEDGMENT_STRING +
+						'" (case insensitive, may include final punctuation)',
+					{
+						name: 'write-resource',
+						filePath: resourcePath,
+						operation: 'write',
+					} as ResourceHandlingErrorOptions,
+				);
+			}
+
+			// Check empty content
+			if (
+				(!tabularContent.sheets || tabularContent.sheets.length === 0) &&
+				!tabularContent.allowEmptyContent
+			) {
+				throw createError(
+					ErrorType.ResourceHandling,
+					'Empty content provided and allowEmptyContent is false. To create an empty resource, set allowEmptyContent: true',
+					{
+						name: 'write-resource',
+						filePath: resourcePath,
+						operation: 'write',
+					} as ResourceHandlingErrorOptions,
+				);
+			}
+
+			// For tabular content, pass the sheets array directly
+			// The data source accessors will handle conversion as needed
+			contentToWrite = tabularContent.sheets;
 		} else {
 			// This should never happen due to earlier validation, but added for type safety
 			throw createError(ErrorType.ToolHandling, 'Invalid content type detected', {
@@ -502,6 +624,7 @@ export default class LLMToolWriteResource extends LLMTool {
 				overwrite: overwriteExisting,
 				createMissingDirectories,
 				resourceName,
+				contentFormat: contentTypeUsed,
 			});
 
 			if (!results.success) {
@@ -572,10 +695,20 @@ export default class LLMToolWriteResource extends LLMTool {
 			if ((error as Error).name === 'write-resource') {
 				throw error;
 			}
-			const errorMessage = `Failed to create resource ${resourcePath}: ${(error as Error).message}`;
-			logger.error(`LLMToolWriteResource: ${errorMessage}`);
+			const originalErrorMessage = `Failed to create resource ${resourcePath}: ${(error as Error).message}`;
 
-			throw createError(ErrorType.ResourceHandling, errorMessage, {
+			// Enhance error message with datasource-specific guidance
+			const enhancedErrorMessage = enhanceDatasourceError(
+				originalErrorMessage,
+				dsConnectionToUse.provider,
+				'write',
+				resourcePath,
+				interaction,
+			);
+
+			logger.error(`LLMToolWriteResource: ${enhancedErrorMessage}`);
+
+			throw createError(ErrorType.ResourceHandling, enhancedErrorMessage, {
 				name: 'write-resource',
 				filePath: resourcePath,
 				operation: 'write',

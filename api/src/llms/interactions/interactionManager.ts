@@ -7,7 +7,8 @@ import type { InteractionId, InteractionType } from 'shared/types.ts';
 import { logger } from 'shared/logger.ts';
 import type { LLMCallbacks } from 'api/types.ts';
 
-class InteractionManager {
+export class InteractionManager {
+	private static instance: InteractionManager;
 	private interactionResults: Map<string, unknown>;
 	private interactions: Map<string, LLMInteraction>;
 	private interactionHierarchy: Map<string, string>; // child ID to parent ID
@@ -16,6 +17,13 @@ class InteractionManager {
 		this.interactions = new Map();
 		this.interactionHierarchy = new Map();
 		this.interactionResults = new Map();
+	}
+
+	static getInstance(): InteractionManager {
+		if (!InteractionManager.instance) {
+			InteractionManager.instance = new InteractionManager();
+		}
+		return InteractionManager.instance;
 	}
 
 	async createInteraction(
@@ -163,6 +171,5 @@ class InteractionManager {
 	}
 }
 
-export default InteractionManager;
-
-export const interactionManager: InteractionManager = new InteractionManager();
+// Export the InteractionManager class so consumers can call InteractionManager.getInstance()
+// This avoids circular dependency issues caused by top-level instantiation

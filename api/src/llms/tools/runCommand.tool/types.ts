@@ -48,6 +48,6 @@ export interface LLMToolRunCommandResponseData {
 }
 
 export interface LLMToolRunCommandResult {
-	toolResult: LLMToolRunResultContent;
+	toolResults: LLMToolRunResultContent;
 	bbResponse: LLMToolRunCommandResponseData;
 }

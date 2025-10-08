@@ -55,8 +55,8 @@ export const formatLogEntryToolUse = (toolInput: LLMToolInputSchema): LLMToolLog
 export const formatLogEntryToolResult = (
 	resultContent: CollaborationLogEntryContentToolResult,
 ): LLMToolLogEntryFormattedResult => {
-	const { toolResult, bbResponse } = resultContent;
-	const content = getContentFromToolResult(toolResult);
+	const { toolResults, bbResponse } = resultContent;
+	const content = getContentFromToolResult(toolResults);
 
 	// Check if bbResponse is structured (new format)
 	if (typeof bbResponse === 'object' && bbResponse && 'data' in bbResponse) {

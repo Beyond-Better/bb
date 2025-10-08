@@ -54,8 +54,35 @@ export const formatLogEntryToolResult = (
 		const { data } = bbResponse as LLMToolLoadDatasourceResponseData;
 		const resources = data.resources || [];
 		const metadata = data.metadata;
+		const instructions = data.instructions;
 
-		// Handle metadata display (for 'metadata' or 'both' modes)
+		// Handle instructions-only display (for 'instructions' mode)
+		if (instructions && !metadata && (!resources || resources.length === 0)) {
+			const content = LLMTool.TOOL_TAGS_BROWSER.base.container(
+				<>
+					<div className='datasource-info'>
+						{LLMTool.TOOL_TAGS_BROWSER.base.label('Data Source:')} {data.dataSource.dsConnectionName}
+						{' | '}
+						{LLMTool.TOOL_TAGS_BROWSER.base.label('Type:')} {data.dataSource.dsProviderType}
+					</div>
+					<div className='instructions-container'>
+						{LLMTool.TOOL_TAGS_BROWSER.content.status('completed', '📚 Detailed Editing Instructions')}
+						<div className='instructions-content'>
+							<pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}>{instructions}</pre>
+						</div>
+					</div>
+				</>,
+			);
+
+			return {
+				title: LLMTool.TOOL_TAGS_BROWSER.content.title('Tool Result', 'Load Data Source'),
+				subtitle: LLMTool.TOOL_TAGS_BROWSER.content.subtitle('Detailed Editing Instructions'),
+				content,
+				preview: `Detailed editing instructions for ${data.dataSource.dsConnectionName}`,
+			};
+		}
+
+		// Handle metadata display (for 'metadata', 'both', or 'combined' modes)
 		if (metadata) {
 			const content = LLMTool.TOOL_TAGS_BROWSER.base.container(
 				<>
@@ -140,24 +167,6 @@ export const formatLogEntryToolResult = (
 										)}
 									</div>
 								)}
-							</div>
-						)}
-
-						{/* Notion-specific details */}
-						{metadata.notion && (
-							<div className='notion-details'>
-								{LLMTool.TOOL_TAGS_BROWSER.base.label('Notion Details:')}
-								<div className='notion-stats'>
-									{metadata.notion.workspaceInfo && (
-										<div>🏢 Workspace: {metadata.notion.workspaceInfo.name || 'Unknown'}</div>
-									)}
-									{metadata.notion.totalPages !== undefined && (
-										<div>📄 Pages: {metadata.notion.totalPages}</div>
-									)}
-									{metadata.notion.totalDatabases !== undefined && (
-										<div>🗃️ Databases: {metadata.notion.totalDatabases}</div>
-									)}
-								</div>
 							</div>
 						)}
 
@@ -252,7 +261,7 @@ export const formatLogEntryToolResult = (
 						)}
 					</div>
 
-					{/* Show sample resources if present (for 'both' mode) */}
+					{/* Show sample resources if present (for 'both' or 'combined' mode) */}
 					{resources && resources.length > 0 && (
 						<div className='resources-container'>
 							{LLMTool.TOOL_TAGS_BROWSER.content.status(
@@ -282,6 +291,22 @@ export const formatLogEntryToolResult = (
 									</span>
 								</div>
 							)}
+						</div>
+					)}
+
+					{/* Show detailed instructions if present (for 'combined' mode) */}
+					{instructions && (
+						<div className='instructions-container'>
+							{LLMTool.TOOL_TAGS_BROWSER.content.status(
+								'completed',
+								'😨 IMPORTANT: Detailed Editing Instructions',
+							)}
+							<div className='instructions-warning'>
+								<strong>READ THESE INSTRUCTIONS BEFORE PERFORMING ANY EDIT OPERATIONS</strong>
+							</div>
+							<div className='instructions-content'>
+								<pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}>{instructions}</pre>
+							</div>
 						</div>
 					)}
 				</>,

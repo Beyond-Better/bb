@@ -1,25 +1,353 @@
 {
-	"lastUpdated": "2025-06-04T04:30:00.000Z",
-	"source": "Official Anthropic documentation research",
+	"lastUpdated": "2025-08-13T01:54:00.000Z",
+	"source": "Official Anthropic documentation research - Added Claude Sonnet 4 with tiered pricing and updated cache structure",
 	"pricingUnit": "per_1M_tokens",
-	"notes": "All pricing verified from official docs as of June 2025. Extended thinking tokens charge for full thinking, not summarized output. Image tokens calculated as (width × height)/750.",
+	"notes": "All pricing verified from official Anthropic docs as of August 2025. Added Claude Sonnet 4 with tiered pricing based on context usage (≤200K vs >200K tokens). Updated cache pricing structure with 5-minute vs 1-hour TTL. Image tokens calculated as (width × height)/750. Claude Sonnet 4 supports 1M context window in beta.",
 	"models": [
 		{
-			"modelId": "claude-sonnet-4-20250514",
-			"displayName": "Claude Sonnet 4.0",
+			"modelId": "claude-sonnet-4-5-20250929",
+			"displayName": "Claude Sonnet 4.5",
 			"family": "Claude-4",
-			"contextWindow": 200000,
-			"maxOutputTokens": 64000,
+			"contextWindow": 1000000,
+			"maxOutputTokens": 128000,
 			"pricing": {
 				"inputTokens": {
 					"basePrice": 3.00,
-					"cachedPrice": 0.3
+					"tieredPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"name": "base",
+								"threshold": { "min": 0, "max": 200000 },
+								"price": 3.00
+							},
+							{
+								"tier": 1,
+								"name": "extended",
+								"threshold": { "min": 200000, "max": null },
+								"price": 6.00
+							}
+						],
+						"tierDeterminedBy": "totalInputTokens"
+					},
+					"cacheTypes": {
+						"read": {
+							"description": "Cache read operations",
+							"inheritsTiers": true,
+							"multiplier": 0.1,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 0.30 },
+									{ "tier": 1, "price": 0.60 }
+								]
+							}
+						},
+						"write_time1": {
+							"description": "Short-term cache write (5min TTL)",
+							"inheritsTiers": true,
+							"multiplier": 1.25,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 3.75 },
+									{ "tier": 1, "price": 7.50 }
+								]
+							}
+						},
+						"write_time2": {
+							"description": "Long-term cache write (60min TTL)",
+							"inheritsTiers": true,
+							"multiplier": 2.0,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 6.00 },
+									{ "tier": 1, "price": 12.00 }
+								]
+							}
+						}
+					}
 				},
 				"outputTokens": {
-					"basePrice": 15.00
+					"basePrice": 15.00,
+					"tieredPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"name": "base",
+								"threshold": { "min": 0, "max": 200000 },
+								"price": 15.00
+							},
+							{
+								"tier": 1,
+								"name": "extended",
+								"threshold": { "min": 200000, "max": null },
+								"price": 22.50
+							}
+						],
+						"tierDeterminedBy": "totalInputTokens"
+					}
 				},
 				"currency": "USD",
-				"effectiveDate": "2025-05-23"
+				"effectiveDate": "2025-05-14"
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": true,
+				"promptCaching": true,
+				"extendedThinking": true
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 16384,
+				"extendedThinking": false
+			},
+			"constraints": {
+				"temperature": { "min": 0.0, "max": 1.0 }
+			},
+			"systemPromptBehavior": "optional",
+			"trainingCutoff": "2025-03-01",
+			"releaseDate": "2025-05-14",
+			"responseSpeed": "fast",
+			"cost": "medium",
+			"intelligence": "high",
+			"modality": "text-and-vision",
+			"description": "High-performance model with exceptional reasoning capabilities and tiered pricing for large contexts",
+			"deprecated": false
+		},
+		{
+			"modelId": "claude-sonnet-4-20250514",
+			"displayName": "Claude Sonnet 4",
+			"family": "Claude-4",
+			"contextWindow": 1000000,
+			"maxOutputTokens": 128000,
+			"pricing": {
+				"inputTokens": {
+					"basePrice": 3.00,
+					"tieredPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"name": "base",
+								"threshold": { "min": 0, "max": 200000 },
+								"price": 3.00
+							},
+							{
+								"tier": 1,
+								"name": "extended",
+								"threshold": { "min": 200000, "max": null },
+								"price": 6.00
+							}
+						],
+						"tierDeterminedBy": "totalInputTokens"
+					},
+					"cacheTypes": {
+						"read": {
+							"description": "Cache read operations",
+							"inheritsTiers": true,
+							"multiplier": 0.1,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 0.30 },
+									{ "tier": 1, "price": 0.60 }
+								]
+							}
+						},
+						"write_time1": {
+							"description": "Short-term cache write (5min TTL)",
+							"inheritsTiers": true,
+							"multiplier": 1.25,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 3.75 },
+									{ "tier": 1, "price": 7.50 }
+								]
+							}
+						},
+						"write_time2": {
+							"description": "Long-term cache write (60min TTL)",
+							"inheritsTiers": true,
+							"multiplier": 2.0,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 6.00 },
+									{ "tier": 1, "price": 12.00 }
+								]
+							}
+						}
+					}
+				},
+				"outputTokens": {
+					"basePrice": 15.00,
+					"tieredPricing": {
+						"tiers": [
+							{
+								"tier": 0,
+								"name": "base",
+								"threshold": { "min": 0, "max": 200000 },
+								"price": 15.00
+							},
+							{
+								"tier": 1,
+								"name": "extended",
+								"threshold": { "min": 200000, "max": null },
+								"price": 22.50
+							}
+						],
+						"tierDeterminedBy": "totalInputTokens"
+					}
+				},
+				"currency": "USD",
+				"effectiveDate": "2025-05-14"
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": true,
+				"promptCaching": true,
+				"extendedThinking": true
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 16384,
+				"extendedThinking": false
+			},
+			"constraints": {
+				"temperature": { "min": 0.0, "max": 1.0 }
+			},
+			"systemPromptBehavior": "optional",
+			"trainingCutoff": "2025-03-01",
+			"releaseDate": "2025-05-14",
+			"responseSpeed": "fast",
+			"cost": "medium",
+			"intelligence": "high",
+			"modality": "text-and-vision",
+			"description": "High-performance model with exceptional reasoning capabilities and tiered pricing for large contexts",
+			"deprecated": false
+		},
+		{
+			"modelId": "claude-opus-4-1-20250805",
+			"alias": "claude-opus-4-1",
+			"displayName": "Claude Opus 4.1",
+			"family": "Claude-4",
+			"contextWindow": 200000,
+			"maxOutputTokens": 32000,
+			"pricing": {
+				"inputTokens": {
+					"basePrice": 15.00,
+					"cacheTypes": {
+						"read": {
+							"description": "Cache read operations",
+							"inheritsTiers": false,
+							"multiplier": 0.1,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 1.50 }
+								]
+							}
+						},
+						"write_time1": {
+							"description": "Short-term cache write (5min TTL)",
+							"inheritsTiers": false,
+							"multiplier": 1.25,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 18.75 }
+								]
+							}
+						},
+						"write_time2": {
+							"description": "Long-term cache write (60min TTL)",
+							"inheritsTiers": false,
+							"multiplier": 2.0,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 30.00 }
+								]
+							}
+						}
+					}
+				},
+				"outputTokens": {
+					"basePrice": 75.00
+				},
+				"currency": "USD",
+				"effectiveDate": "2025-08-05"
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": true,
+				"promptCaching": true,
+				"extendedThinking": true
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 16384,
+				"extendedThinking": false
+			},
+			"constraints": {
+				"temperature": { "min": 0.0, "max": 1.0 }
+			},
+			"systemPromptBehavior": "optional",
+			"trainingCutoff": "2025-03-01",
+			"releaseDate": "2025-08-05",
+			"responseSpeed": "slow",
+			"cost": "very-high",
+			"intelligence": "very-high",
+			"modality": "text-and-vision",
+			"description": "Our most capable and intelligent model yet. Sets new standards in complex reasoning and advanced coding.",
+			"deprecated": false
+		},
+		{
+			"modelId": "claude-opus-4-20250514",
+			"displayName": "Claude Opus 4.0",
+			"family": "Claude-4",
+			"contextWindow": 200000,
+			"maxOutputTokens": 32000,
+			"pricing": {
+				"inputTokens": {
+					"basePrice": 15.00,
+					"cacheTypes": {
+						"read": {
+							"description": "Cache read operations",
+							"inheritsTiers": false,
+							"multiplier": 0.1,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 1.50 }
+								]
+							}
+						},
+						"write_time1": {
+							"description": "Short-term cache write (5min TTL)",
+							"inheritsTiers": false,
+							"multiplier": 1.25,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 18.75 }
+								]
+							}
+						},
+						"write_time2": {
+							"description": "Long-term cache write (60min TTL)",
+							"inheritsTiers": false,
+							"multiplier": 2.0,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 30.00 }
+								]
+							}
+						}
+					}
+				},
+				"outputTokens": {
+					"basePrice": 75.00
+				},
+				"currency": "USD",
+				"effectiveDate": "2025-05-14"
 			},
 			"supportedFeatures": {
 				"functionCalling": true,
@@ -47,48 +375,6 @@
 			"description": "Anthropic's newest flagship model with advanced reasoning"
 		},
 		{
-			"modelId": "claude-opus-4-20250514",
-			"displayName": "Claude Opus 4.0",
-			"family": "Claude-4",
-			"contextWindow": 200000,
-			"maxOutputTokens": 128000,
-			"pricing": {
-				"inputTokens": {
-					"basePrice": 15.00,
-					"cachedPrice": 1.50
-				},
-				"outputTokens": {
-					"basePrice": 75.00
-				},
-				"currency": "USD",
-				"effectiveDate": "2025-05-23"
-			},
-			"supportedFeatures": {
-				"functionCalling": true,
-				"json": true,
-				"streaming": true,
-				"vision": true,
-				"promptCaching": true,
-				"extendedThinking": true
-			},
-			"defaults": {
-				"temperature": 0.7,
-				"maxTokens": 16384,
-				"extendedThinking": false
-			},
-			"constraints": {
-				"temperature": { "min": 0.0, "max": 1.0 }
-			},
-			"systemPromptBehavior": "optional",
-			"trainingCutoff": "2025-03-01",
-			"releaseDate": "2025-05-23",
-			"responseSpeed": "slow",
-			"cost": "very-high",
-			"intelligence": "very-high",
-			"modality": "text-and-vision",
-			"description": "Anthropic's most capable model for complex reasoning tasks"
-		},
-		{
 			"modelId": "claude-3-7-sonnet-20250219",
 			"displayName": "Claude Sonnet 3.7",
 			"family": "Claude-3",
@@ -97,7 +383,38 @@
 			"pricing": {
 				"inputTokens": {
 					"basePrice": 3.00,
-					"cachedPrice": 0.3
+					"cacheTypes": {
+						"read": {
+							"description": "Cache read operations",
+							"inheritsTiers": false,
+							"multiplier": 0.1,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 0.30 }
+								]
+							}
+						},
+						"write_time1": {
+							"description": "Short-term cache write (5min TTL)",
+							"inheritsTiers": false,
+							"multiplier": 1.25,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 3.75 }
+								]
+							}
+						},
+						"write_time2": {
+							"description": "Long-term cache write (60min TTL)",
+							"inheritsTiers": false,
+							"multiplier": 2.0,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 6.00 }
+								]
+							}
+						}
+					}
 				},
 				"outputTokens": {
 					"basePrice": 15.00
@@ -135,11 +452,42 @@
 			"displayName": "Claude Sonnet 3.5",
 			"family": "Claude-3",
 			"contextWindow": 200000,
-			"maxOutputTokens": 128000,
+			"maxOutputTokens": 8192,
 			"pricing": {
 				"inputTokens": {
 					"basePrice": 3.00,
-					"cachedPrice": 0.30
+					"cacheTypes": {
+						"read": {
+							"description": "Cache read operations",
+							"inheritsTiers": false,
+							"multiplier": 0.1,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 0.30 }
+								]
+							}
+						},
+						"write_time1": {
+							"description": "Short-term cache write (5min TTL)",
+							"inheritsTiers": false,
+							"multiplier": 1.25,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 3.75 }
+								]
+							}
+						},
+						"write_time2": {
+							"description": "Long-term cache write (60min TTL)",
+							"inheritsTiers": false,
+							"multiplier": 2.0,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 6.00 }
+								]
+							}
+						}
+					}
 				},
 				"outputTokens": {
 					"basePrice": 15.00
@@ -181,7 +529,38 @@
 			"pricing": {
 				"inputTokens": {
 					"basePrice": 0.80,
-					"cachedPrice": 0.08
+					"cacheTypes": {
+						"read": {
+							"description": "Cache read operations",
+							"inheritsTiers": false,
+							"multiplier": 0.1,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 0.08 }
+								]
+							}
+						},
+						"write_time1": {
+							"description": "Short-term cache write (5min TTL)",
+							"inheritsTiers": false,
+							"multiplier": 1.25,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 1.00 }
+								]
+							}
+						},
+						"write_time2": {
+							"description": "Long-term cache write (60min TTL)",
+							"inheritsTiers": false,
+							"multiplier": 2.0,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 1.60 }
+								]
+							}
+						}
+					}
 				},
 				"outputTokens": {
 					"basePrice": 4.00
@@ -223,7 +602,38 @@
 			"pricing": {
 				"inputTokens": {
 					"basePrice": 15.00,
-					"cachedPrice": 1.50
+					"cacheTypes": {
+						"read": {
+							"description": "Cache read operations",
+							"inheritsTiers": false,
+							"multiplier": 0.1,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 1.50 }
+								]
+							}
+						},
+						"write_time1": {
+							"description": "Short-term cache write (5min TTL)",
+							"inheritsTiers": false,
+							"multiplier": 1.25,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 18.75 }
+								]
+							}
+						},
+						"write_time2": {
+							"description": "Long-term cache write (60min TTL)",
+							"inheritsTiers": false,
+							"multiplier": 2.0,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 30.00 }
+								]
+							}
+						}
+					}
 				},
 				"outputTokens": {
 					"basePrice": 75.00
@@ -265,7 +675,38 @@
 			"pricing": {
 				"inputTokens": {
 					"basePrice": 0.25,
-					"cachedPrice": 0.03
+					"cacheTypes": {
+						"read": {
+							"description": "Cache read operations",
+							"inheritsTiers": false,
+							"multiplier": 0.12,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 0.03 }
+								]
+							}
+						},
+						"write_time1": {
+							"description": "Short-term cache write (5min TTL)",
+							"inheritsTiers": false,
+							"multiplier": 1.2,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 0.30 }
+								]
+							}
+						},
+						"write_time2": {
+							"description": "Long-term cache write (60min TTL)",
+							"inheritsTiers": false,
+							"multiplier": 2.0,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 0.50 }
+								]
+							}
+						}
+					}
 				},
 				"outputTokens": {
 					"basePrice": 1.25

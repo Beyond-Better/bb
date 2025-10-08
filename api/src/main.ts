@@ -18,7 +18,10 @@ import type { BbState } from 'api/types.ts';
 import { getProjectId, getWorkingRootFromStartDir, readFromBbDir, readFromGlobalConfigDir } from 'shared/dataDir.ts';
 import { apiFileLogger } from 'api/utils/fileLogger.ts';
 import { getVersionInfo } from 'shared/version.ts';
-import { SessionManager } from 'api/auth/session.ts';
+import { UserAuthSession } from 'api/auth/userAuthSession.ts';
+import { SessionRegistry } from 'api/auth/sessionRegistry.ts';
+import { SupabaseClientFactory } from 'api/auth/supabaseClientFactory.ts';
+import { KVAuthStorage } from 'shared/kvAuthStorage.ts';
 import { KVManager } from 'api/utils/kvManager.ts';
 import { setApiBaseUrl } from 'api/utils/apiBaseUrl.ts';
 import { ModelRegistryService } from 'api/llms/modelRegistryService.ts';
@@ -98,10 +101,57 @@ const customUseTls: boolean = typeof args['use-tls'] !== 'undefined'
 	: useTls;
 //console.debug(`BB API starting at ${customHostname}:${customPort}`);
 
+// Initialize sessionRegistry (singleton - must always succeed)
+try {
+	// SessionRegistry initialization should never fail
+	logger.info('APIStartup: SessionRegistry singleton initialized');
+} catch (error) {
+	logger.error(`APIStartup: Failed to initialize sessionRegistry singleton: ${(error as Error).message}`);
+	logger.error(`APIStartup: Stack trace: ${(error as Error).stack}`);
+	Deno.exit(1);
+}
+
 // Initialize auth system
-const sessionManager = new SessionManager();
-await sessionManager.initialize();
+// bootstrap with default-user until we have full multi-user support
+let userAuthSession = await new UserAuthSession('default-user').initialize();
 logger.info('APIStartup: Auth system initialized');
+
+// Check if we have a logged-in user to register
+let userId: string | null = null;
+try {
+	const session = await userAuthSession.getSession();
+	if (session?.user?.id) {
+		userId = session.user.id;
+		logger.info(`APIStartup: Found logged-in user, registering session for userId: ${userId}`);
+	} else {
+		logger.info('APIStartup: No logged-in user found - starting in no-user mode (normal for fresh startup)');
+	}
+} catch (error) {
+	logger.info(`APIStartup: No valid session found - starting in no-user mode (normal for fresh startup)`);
+	logger.debug(`APIStartup: Session check details:`, error);
+}
+
+// Register user session with sessionRegistry (only if we have a user)
+if (userId) {
+	try {
+		await SessionRegistry.getInstance().registerSession(userId);
+		logger.info(`APIStartup: Session registered in sessionRegistry for userId: ${userId}`);
+
+		// Bridging: Replace original userAuthSession with the one from sessionRegistry
+		// This ensures consistency - all code uses the same UserAuthSession instance
+		const registryUserAuthSession = SessionRegistry.getInstance().getUserAuthSession(userId);
+		if (registryUserAuthSession) {
+			// Clean up the original (bridging code - explains why we do this replacement)
+			await userAuthSession.destroy();
+			userAuthSession = registryUserAuthSession;
+			logger.info('APIStartup: Replaced original UserAuthSession with sessionRegistry instance');
+		}
+	} catch (error) {
+		logger.error(`APIStartup: Failed to register session in sessionRegistry: ${(error as Error).message}`);
+		logger.error(`APIStartup: Stack trace: ${(error as Error).stack}`);
+		Deno.exit(1);
+	}
+}
 
 const registryService = await ModelRegistryService.getInstance(projectConfig);
 //logger.info('APIStartup: Model Registry initialized', registryService.getAllModels());
@@ -122,7 +172,8 @@ const app = new Application<BbState>();
 // Set up app state
 app.state = {
 	auth: {
-		sessionManager,
+		userAuthSession, // UserAuthSession (may be original or from sessionRegistry)
+		userId, // Real userId for middleware to use (null if no user)
 	},
 	apiConfig,
 };
@@ -140,6 +191,11 @@ app.use(router.allowedMethods());
 
 const cleanup = async (code: number = 0) => {
 	try {
+		// Close Supabase client factory
+		await SupabaseClientFactory.close();
+		// Close auth storage
+		await KVAuthStorage.close();
+		// Close other KV managers
 		await KVManager.closeAll();
 		Deno.exit(code);
 	} catch (error) {

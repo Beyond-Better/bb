@@ -1,8 +1,8 @@
 {
-	"lastUpdated": "2025-06-04T04:30:00.000Z",
-	"source": "Official Google Gemini API documentation research",
+	"lastUpdated": "2025-08-13T01:58:00.000Z",
+	"source": "Official Google Gemini API documentation research - Updated with new tiered pricing format",
 	"pricingUnit": "per_1M_tokens",
-	"notes": "Pricing varies by context length (≤200k vs >200k tokens). 2.5 series models are in Preview with restricted rate limits. Free tier available for most models. Thinking models charge separately for reasoning tokens.",
+	"notes": "All pricing verified from official Google docs as of August 2025. Updated tiered pricing format for context-based and content-based pricing. Thinking models charge reasoning tokens as part of output tokens. Content types include audio, image, video with different rates.",
 	"models": [
 		{
 			"modelId": "gemini-2.5-pro-preview-06-05",
@@ -12,20 +12,56 @@
 			"maxOutputTokens": 65536,
 			"pricing": {
 				"inputTokens": {
-					"basePrice": 2.5,
-					"cachedPrice": 0.625,
+					"basePrice": 2.50,
 					"tieredPricing": {
-						"under200k": 1.25,
-						"over200k": 2.5,
-						"cacheUnder200k": 0.31,
-						"cachedOver200k": 0.625
+						"tiers": [
+							{
+								"tier": 0,
+								"name": "base",
+								"threshold": { "min": 0, "max": 200000 },
+								"price": 1.25
+							},
+							{
+								"tier": 1,
+								"name": "extended",
+								"threshold": { "min": 200000, "max": null },
+								"price": 2.50
+							}
+						],
+						"tierDeterminedBy": "totalInputTokens"
+					},
+					"cacheTypes": {
+						"read": {
+							"description": "Context cache read operations",
+							"inheritsTiers": true,
+							"multiplier": 0.25,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 0.31 },
+									{ "tier": 1, "price": 0.625 }
+								]
+							}
+						}
 					}
 				},
 				"outputTokens": {
-					"basePrice": 15.0,
+					"basePrice": 15.00,
 					"tieredPricing": {
-						"under200k": 10.0,
-						"over200k": 15.0
+						"tiers": [
+							{
+								"tier": 0,
+								"name": "base",
+								"threshold": { "min": 0, "max": 200000 },
+								"price": 10.00
+							},
+							{
+								"tier": 1,
+								"name": "extended",
+								"threshold": { "min": 200000, "max": null },
+								"price": 15.00
+							}
+						],
+						"tierDeterminedBy": "totalInputTokens"
 					}
 				},
 				"currency": "USD",
@@ -66,22 +102,38 @@
 			"maxOutputTokens": 65536,
 			"pricing": {
 				"inputTokens": {
-					"basePrice": 0.15,
-					"cachedPrice": 0.0375,
-					"multimodal": {
-						"text": 0.15,
-						"audio": 1.0
+					"basePrice": 0.30,
+					"cacheTypes": {
+						"read": {
+							"description": "Context cache read operations",
+							"inheritsTiers": false,
+							"multiplier": 0.25,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 0.075 }
+								]
+							}
+						}
+					},
+					"contentTypes": {
+						"text": { "multiplier": 1.0 },
+						"image": { "multiplier": 1.0 },
+						"video": { "multiplier": 1.0 },
+						"audio": {
+							"multiplier": 3.33,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 1.00 }
+								]
+							}
+						}
 					}
 				},
 				"outputTokens": {
-					"basePrice": 3.5,
-					"tieredPricing": {
-						"nonThinking": 0.6,
-						"thinking": 3.5
-					}
+					"basePrice": 2.50
 				},
 				"currency": "USD",
-				"effectiveDate": "2025-05-01"
+				"effectiveDate": "2025-08-11"
 			},
 			"supportedFeatures": {
 				"functionCalling": true,
@@ -118,20 +170,38 @@
 			"maxOutputTokens": 8192,
 			"pricing": {
 				"inputTokens": {
-					"basePrice": 0.1,
-					"cachedPrice": 0.025,
-					"multimodal": {
-						"text": 0.1,
-						"audio": 0.7,
-						"cachedTextPrice": 0.025,
-						"cachedAudioPrice": 0.175
+					"basePrice": 0.10,
+					"cacheTypes": {
+						"read": {
+							"description": "Context cache read operations",
+							"inheritsTiers": false,
+							"multiplier": 0.25,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 0.025 }
+								]
+							}
+						}
+					},
+					"contentTypes": {
+						"text": { "multiplier": 1.0 },
+						"image": { "multiplier": 1.0 },
+						"video": { "multiplier": 1.0 },
+						"audio": {
+							"multiplier": 7.0,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 0.70 }
+								]
+							}
+						}
 					}
 				},
 				"outputTokens": {
-					"basePrice": 0.4
+					"basePrice": 0.40
 				},
 				"currency": "USD",
-				"effectiveDate": "2025-02-01"
+				"effectiveDate": "2025-08-11"
 			},
 			"supportedFeatures": {
 				"functionCalling": true,
@@ -167,13 +237,38 @@
 			"maxOutputTokens": 8192,
 			"pricing": {
 				"inputTokens": {
-					"basePrice": 0.075
+					"basePrice": 0.10,
+					"cacheTypes": {
+						"read": {
+							"description": "Context cache read operations",
+							"inheritsTiers": false,
+							"multiplier": 0.25,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 0.025 }
+								]
+							}
+						}
+					},
+					"contentTypes": {
+						"text": { "multiplier": 1.0 },
+						"image": { "multiplier": 1.0 },
+						"video": { "multiplier": 1.0 },
+						"audio": {
+							"multiplier": 3.0,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 0.30 }
+								]
+							}
+						}
+					}
 				},
 				"outputTokens": {
-					"basePrice": 0.3
+					"basePrice": 0.40
 				},
 				"currency": "USD",
-				"effectiveDate": "2025-02-01"
+				"effectiveDate": "2025-08-11"
 			},
 			"supportedFeatures": {
 				"functionCalling": true,
@@ -209,24 +304,60 @@
 			"maxOutputTokens": 8192,
 			"pricing": {
 				"inputTokens": {
-					"basePrice": 2.5,
-					"cachedPrice": 0.625,
+					"basePrice": 2.50,
 					"tieredPricing": {
-						"under128k": 1.25,
-						"over128k": 2.5,
-						"cacheUnder128k": 0.3125,
-						"cachedOver128k": 0.625
+						"tiers": [
+							{
+								"tier": 0,
+								"name": "base",
+								"threshold": { "min": 0, "max": 128000 },
+								"price": 1.25
+							},
+							{
+								"tier": 1,
+								"name": "extended",
+								"threshold": { "min": 128000, "max": null },
+								"price": 2.50
+							}
+						],
+						"tierDeterminedBy": "totalInputTokens"
+					},
+					"cacheTypes": {
+						"read": {
+							"description": "Context cache read operations",
+							"inheritsTiers": true,
+							"multiplier": 0.25,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 0.3125 },
+									{ "tier": 1, "price": 0.625 }
+								]
+							}
+						}
 					}
 				},
 				"outputTokens": {
-					"basePrice": 10.0,
+					"basePrice": 10.00,
 					"tieredPricing": {
-						"under128k": 5.0,
-						"over128k": 10.0
+						"tiers": [
+							{
+								"tier": 0,
+								"name": "base",
+								"threshold": { "min": 0, "max": 128000 },
+								"price": 5.00
+							},
+							{
+								"tier": 1,
+								"name": "extended",
+								"threshold": { "min": 128000, "max": null },
+								"price": 10.00
+							}
+						],
+						"tierDeterminedBy": "totalInputTokens"
 					}
 				},
 				"currency": "USD",
-				"effectiveDate": "2024-09-01"
+				"effectiveDate": "2025-08-11"
 			},
 			"supportedFeatures": {
 				"functionCalling": true,
@@ -263,23 +394,59 @@
 			"pricing": {
 				"inputTokens": {
 					"basePrice": 0.15,
-					"cachedPrice": 0.0375,
 					"tieredPricing": {
-						"under128k": 0.075,
-						"over128k": 0.15,
-						"cacheUnder128k": 0.01875,
-						"cachedOver128k": 0.0375
+						"tiers": [
+							{
+								"tier": 0,
+								"name": "base",
+								"threshold": { "min": 0, "max": 128000 },
+								"price": 0.075
+							},
+							{
+								"tier": 1,
+								"name": "extended",
+								"threshold": { "min": 128000, "max": null },
+								"price": 0.15
+							}
+						],
+						"tierDeterminedBy": "totalInputTokens"
+					},
+					"cacheTypes": {
+						"read": {
+							"description": "Context cache read operations",
+							"inheritsTiers": true,
+							"multiplier": 0.25,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 0.01875 },
+									{ "tier": 1, "price": 0.0375 }
+								]
+							}
+						}
 					}
 				},
 				"outputTokens": {
-					"basePrice": 0.6,
+					"basePrice": 0.60,
 					"tieredPricing": {
-						"under128k": 0.3,
-						"over128k": 0.6
+						"tiers": [
+							{
+								"tier": 0,
+								"name": "base",
+								"threshold": { "min": 0, "max": 128000 },
+								"price": 0.30
+							},
+							{
+								"tier": 1,
+								"name": "extended",
+								"threshold": { "min": 128000, "max": null },
+								"price": 0.60
+							}
+						],
+						"tierDeterminedBy": "totalInputTokens"
 					}
 				},
 				"currency": "USD",
-				"effectiveDate": "2024-09-01"
+				"effectiveDate": "2025-08-11"
 			},
 			"supportedFeatures": {
 				"functionCalling": true,
@@ -315,24 +482,60 @@
 			"maxOutputTokens": 8192,
 			"pricing": {
 				"inputTokens": {
-					"basePrice": 0.0375,
-					"cachedPrice": 0.02,
+					"basePrice": 0.075,
 					"tieredPricing": {
-						"under128k": 0.0375,
-						"over128k": 0.075,
-						"cacheUnder128k": 0.01,
-						"cachedOver128k": 0.02
+						"tiers": [
+							{
+								"tier": 0,
+								"name": "base",
+								"threshold": { "min": 0, "max": 128000 },
+								"price": 0.0375
+							},
+							{
+								"tier": 1,
+								"name": "extended",
+								"threshold": { "min": 128000, "max": null },
+								"price": 0.075
+							}
+						],
+						"tierDeterminedBy": "totalInputTokens"
+					},
+					"cacheTypes": {
+						"read": {
+							"description": "Context cache read operations",
+							"inheritsTiers": true,
+							"multiplier": 0.27,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 0.01 },
+									{ "tier": 1, "price": 0.02 }
+								]
+							}
+						}
 					}
 				},
 				"outputTokens": {
-					"basePrice": 0.15,
+					"basePrice": 0.30,
 					"tieredPricing": {
-						"under128k": 0.15,
-						"over128k": 0.3
+						"tiers": [
+							{
+								"tier": 0,
+								"name": "base",
+								"threshold": { "min": 0, "max": 128000 },
+								"price": 0.15
+							},
+							{
+								"tier": 1,
+								"name": "extended",
+								"threshold": { "min": 128000, "max": null },
+								"price": 0.30
+							}
+						],
+						"tierDeterminedBy": "totalInputTokens"
 					}
 				},
 				"currency": "USD",
-				"effectiveDate": "2024-10-01"
+				"effectiveDate": "2025-08-11"
 			},
 			"supportedFeatures": {
 				"functionCalling": true,

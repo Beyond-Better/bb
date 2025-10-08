@@ -21,6 +21,7 @@ import type {
 	DataSourceProviderType,
 	DataSourceSearchCapability,
 } from 'shared/types/dataSource.ts';
+import type { InstructionFilters } from 'api/types/instructionFilters.ts';
 
 /**
  * Abstract base class for all data source providers
@@ -193,9 +194,80 @@ export abstract class BaseDataSourceProvider implements DataSourceProvider {
 	}
 
 	/**
+	 * Get detailed editing instructions for LLM tool usage
+	 * Must be implemented by subclasses to provide comprehensive editing guidance
+	 * @param filters Optional filters to customize instruction content
+	 * @returns Detailed instruction text with provider-specific examples and workflows
+	 */
+	abstract getDetailedInstructions(filters?: InstructionFilters): string;
+
+	/**
 	 * Get content type guidance for LLM tool usage
 	 * Must be implemented by subclasses to provide provider-specific guidance
 	 * @returns ContentTypeGuidance object with usage examples and constraints
 	 */
 	abstract getContentTypeGuidance(): ContentTypeGuidance;
+
+	/**
+	 * Get error-specific guidance for LLM tool usage
+	 * Provides context-aware error messaging based on error type and operation
+	 * @param errorType The type of error encountered
+	 * @param operation The operation that failed
+	 * @param hasLoadedInstructions Whether the LLM has already loaded instructions
+	 * @returns Object with enhanced error message and guidance type
+	 */
+	getErrorGuidance(
+		errorType:
+			| 'not_found'
+			| 'permission_denied'
+			| 'invalid_format'
+			| 'workflow_violation'
+			| 'configuration'
+			| 'unknown',
+		operation: string,
+		hasLoadedInstructions: boolean = false,
+	): { message: string; type: 'workflow' | 'instructions' | 'configuration' | 'format' } {
+		// Default implementation - can be overridden by subclasses
+		const instructionsReminder = hasLoadedInstructions
+			? "💡 Review the datasource instructions you've loaded, especially the workflow sections marked as CRITICAL."
+			: "🔍 **Load datasource instructions first**: Use `loadDatasource` with `returnType='instructions'` to get detailed workflows and requirements for this data source.";
+
+		switch (errorType) {
+			case 'not_found':
+				return {
+					message:
+						`${instructionsReminder}\n\n📋 **Resource not found**: Verify the resource path exists and you have access. Consider loading the resource first to confirm its availability.`,
+					type: 'workflow',
+				};
+
+			case 'workflow_violation':
+			case 'invalid_format':
+				return {
+					message:
+						`${instructionsReminder}\n\n⚠️ **Workflow error**: This operation may require following specific steps. Check the datasource instructions for required workflows and parameter formats.`,
+					type: 'workflow',
+				};
+
+			case 'configuration':
+				return {
+					message:
+						`${instructionsReminder}\n\n⚙️ **Configuration issue**: This error suggests missing or incorrect configuration. Review the datasource setup requirements and parameter formats.`,
+					type: 'configuration',
+				};
+
+			case 'permission_denied':
+				return {
+					message:
+						`${instructionsReminder}\n\n🔐 **Access denied**: Verify you have the required permissions for this ${operation} operation on ${this.name} resources.`,
+					type: 'configuration',
+				};
+
+			default:
+				return {
+					message:
+						`${instructionsReminder}\n\n🔧 **Error in ${operation} operation**: This ${this.name} operation failed. The datasource instructions contain critical workflows and requirements that may resolve this issue.`,
+					type: 'instructions',
+				};
+		}
+	}
 }

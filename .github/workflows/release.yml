@@ -278,9 +278,6 @@ jobs:
           echo "$env:TEMP\wix" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           
           # Set MSI-compatible version
-          echo "=== VERSION ==="
-          echo "${{ steps.get_version.outputs.VERSION }}"
-          # $originalVersion = "${{ steps.get_version.outputs.VERSION }}"
           $configPath = "dui\src-tauri\tauri.conf.json"
           $config = Get-Content $configPath | ConvertFrom-Json
           $originalVersion = $config.version

@@ -81,8 +81,8 @@ export const formatLogEntryToolUse = (toolInput: LLMToolInputSchema): LLMToolLog
 export const formatLogEntryToolResult = (
 	resultContent: CollaborationLogEntryContentToolResult,
 ): LLMToolLogEntryFormattedResult => {
-	const { toolResult, bbResponse } = resultContent as unknown as LLMToolBlockEditResult;
-	const results = getContentArrayFromToolResult(toolResult);
+	const { toolResults, bbResponse } = resultContent as unknown as LLMToolBlockEditResult;
+	const results = getContentArrayFromToolResult(toolResults);
 
 	// Check if operation was successful
 	const isSuccess = !bbResponse.toLowerCase().includes('error') &&

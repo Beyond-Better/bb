@@ -1,5 +1,5 @@
 import { walk } from '@std/fs';
-import { parse as parseToml } from '@std/toml';
+//import { parse as parseToml, stringify as stringifyToml } from '@std/toml';
 
 // Standard commit/change types for consistent changelog entries:
 //
@@ -21,7 +21,7 @@ import { parse as parseToml } from '@std/toml';
 const updateVersion = async (newVersion: string, minVersion: string) => {
 	// Add +oss build metadata for open source version
 	const ossVersion = newVersion + '-oss';
-	
+
 	const files = ['deno.jsonc', 'cli/deno.jsonc', 'bui/deno.jsonc', 'api/deno.jsonc', 'dui/src-tauri/tauri.conf.json'];
 
 	for await (const file of files) {
@@ -41,26 +41,33 @@ const updateVersion = async (newVersion: string, minVersion: string) => {
 	// Update Cargo.toml
 	const cargoPath = 'dui/src-tauri/Cargo.toml';
 	const cargoContent = await Deno.readTextFile(cargoPath);
-	const cargoToml = parseToml(cargoContent);
-	cargoToml.package.version = ossVersion;
-	
+	// using stringifyToml completely restructures the file
+	//const cargoToml = parseToml(cargoContent);
+	//cargoToml.package.version = ossVersion;
+	//const cargoContentReplaced = stringifyToml(cargoToml);
+	//await Deno.writeTextFile(cargoPath, cargoContentReplaced);
+
 	// Format the TOML content maintaining the original structure
-	const formattedCargoContent = [
-		'[package]',
-		...Object.entries(cargoToml.package).map(([key, value]) => `${key} = ${JSON.stringify(value)}`),
-		'',
-		cargoContent.substring(cargoContent.indexOf('[lib]'))
-	].join('\n');
-	await Deno.writeTextFile(cargoPath, formattedCargoContent);
+	const cargoContentReplaced = cargoContent.replace(
+		/(\[package\][\s\S]*?)^version\s*=\s*"[^"]*"/m,
+		`$1version = "${ossVersion}"`,
+	);
+	await Deno.writeTextFile(cargoPath, cargoContentReplaced);
 
 	// Update version.ts
-	await Deno.writeTextFile('version.ts', `export const VERSION = "${ossVersion}";\n\nexport const REQUIRED_API_VERSION = "${minVersion}";`);
+	await Deno.writeTextFile(
+		'version.ts',
+		`export const VERSION = "${ossVersion}";\n\nexport const REQUIRED_API_VERSION = "${minVersion}";`,
+	);
 
 	// Update other files that might need the version
 	for await (const entry of walk('.', { exts: ['.ts', '.rb'] })) {
 		if (entry.isFile) {
 			let content = await Deno.readTextFile(entry.path);
-			content = content.replace(/^\s*(?<!API_|MINIMUM_)VERSION\s*=\s*["'][\d.-]+["']\s*;?\s*$/m, `VERSION = "${ossVersion}"`);
+			content = content.replace(
+				/^\s*(?<!API_|MINIMUM_)VERSION\s*=\s*["'][\d.-]+["']\s*;?\s*$/m,
+				`VERSION = "${ossVersion}"`,
+			);
 			await Deno.writeTextFile(entry.path, content);
 		}
 	}
@@ -78,7 +85,9 @@ const updateChangelog = async (newVersion: string) => {
 	const unreleasedContent = unreleasedMatch ? unreleasedMatch[1].trim() : '';
 
 	// Create new version entry with the unreleased content
-	const newEntry = `\n\n## [${newVersion}] - ${new Date().toISOString().split('T')[0]}\n${unreleasedContent ? '\n' + unreleasedContent : '\n### Changed\n- No significant changes in this version'}`;
+	const newEntry = `\n\n## [${newVersion}] - ${new Date().toISOString().split('T')[0]}\n${
+		unreleasedContent ? '\n' + unreleasedContent : '\n### Changed\n- No significant changes in this version'
+	}`;
 
 	// Update the changelog
 	let updatedChangelog;

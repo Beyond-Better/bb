@@ -13,6 +13,8 @@ import type {
 //import { dirname } from '@std/path';
 import { LoadingSpinner } from './LoadingSpinner.tsx';
 import { Action, InputStatusBar } from './InputStatusBar.tsx';
+import { TieredTokenProgressIndicator } from './TieredTokenProgressIndicator.tsx';
+//import type { TieredPricingConfig } from '../types/pricing.types.ts';
 import { ChatState, ChatStatus, isProcessing } from '../types/chat.types.ts';
 import { ApiStatus, ProjectId } from 'shared/types.ts';
 import { ApiClient, type ModelDetails } from '../utils/apiClient.utils.ts';
@@ -121,28 +123,6 @@ const inputMetrics = signal({
 });
 const collaborationIdSignal = signal<string | null>(null);
 
-// Token Progress Indicator Component
-const TokenProgressIndicator = ({ percentage }: { percentage: number }) => {
-	const getProgressColor = (pct: number): string => {
-		if (pct < 50) return 'bg-green-500';
-		if (pct < 75) return 'bg-yellow-500';
-		return 'bg-red-500';
-	};
-
-	// Only show if there's meaningful progress (> 1%)
-	if (percentage <= 1) return null;
-
-	return (
-		<div className='w-full h-0.5 bg-gray-200 dark:bg-gray-700'>
-			<div
-				title={`Conversation context used: ${percentage}%`}
-				className={`h-full transition-all duration-300 ${getProgressColor(percentage)}`}
-				style={{ width: `${Math.min(100, percentage)}%` }}
-			/>
-		</div>
-	);
-};
-
 export function ChatInput({
 	apiClient,
 	chatInputText,
@@ -222,11 +202,23 @@ export function ChatInput({
 
 		const cached = modelState.value.modelCapabilities[orchestratorModel];
 		if (cached) {
+			console.log('ChatInput: Using cached orchestrator model capabilities:', {
+				model: orchestratorModel,
+				capabilities: cached.capabilities,
+				pricing: cached.capabilities?.pricing,
+				inputTieredConfig: cached.capabilities?.pricing?.inputTokensTieredConfig,
+			});
 			orchestratorModelCapabilities.value = cached;
 			return;
 		}
 
 		getModelCapabilities(orchestratorModel).then((capabilities) => {
+			console.log('ChatInput: Loaded fresh orchestrator model capabilities:', {
+				model: orchestratorModel,
+				capabilities: capabilities?.capabilities,
+				pricing: capabilities?.capabilities?.pricing,
+				inputTieredConfig: capabilities?.capabilities?.pricing?.inputTokensTieredConfig,
+			});
 			orchestratorModelCapabilities.value = capabilities || null;
 		});
 	});
@@ -312,7 +304,7 @@ export function ChatInput({
 
 		try {
 			// console.debug('ChatInput: Fetching suggestions', { effectivePath, projectId });
-			const response = await apiClient.suggestFiles(effectivePath, projectId);
+			const response = await apiClient.suggestResources(effectivePath, projectId);
 			if (!response) throw new Error('Failed to fetch suggestions');
 			// console.debug('ChatInput: Got suggestions response', { searchPath, suggestions: response.suggestions });
 
@@ -432,7 +424,7 @@ export function ChatInput({
 			// Use XMLHttpRequest for progress tracking
 			return new Promise<string | undefined>((resolve, reject) => {
 				const xhr = new XMLHttpRequest();
-				xhr.open('POST', `${apiClient.baseUrl}/api/v1/files`);
+				xhr.open('POST', `${apiClient.baseUrl}/api/v1/resources`);
 
 				// // Add auth headers
 				// const headers = apiClient.getAuthHeaders();
@@ -1444,12 +1436,46 @@ export function ChatInput({
 		return getStatusInfo(statusState.value);
 	});
 
-	return (
-		<div className='bg-white dark:bg-gray-900 w-full relative'>
-			{/* Token Progress Indicator */}
-			<TokenProgressIndicator percentage={tokenPercentage.value} />
+	// Calculate used tokens for tiered pricing
+	const usedTokens = useComputed(() => {
+		if (!chatState?.value || !collaborationId) return 0;
 
-			<div ref={containerRef} className='px-3 py-2 w-full relative'>
+		const currentCollaboration = chatState.value.selectedCollaboration;
+		if (!currentCollaboration?.lastInteractionMetadata?.tokenUsageStatsForInteraction?.tokenUsageTurn) {
+			return 0;
+		}
+
+		const tokenUsageTurn =
+			currentCollaboration.lastInteractionMetadata.tokenUsageStatsForInteraction.tokenUsageTurn;
+		return tokenUsageTurn?.totalAllTokens ?? tokenUsageTurn?.totalTokens ?? 0;
+	});
+
+	// Get pricing config from model capabilities
+	const pricingConfig = useComputed(() => {
+		const capabilities = orchestratorModelCapabilities.value?.capabilities;
+		console.log('ChatInput: Computing pricing config:', {
+			hasCapabilities: !!capabilities,
+			hasPricing: !!capabilities?.pricing,
+			hasInputTieredConfig: !!capabilities?.pricing?.inputTokensTieredConfig,
+			inputTieredConfig: capabilities?.pricing?.inputTokensTieredConfig,
+		});
+		if (!capabilities?.pricing?.inputTokensTieredConfig) return undefined;
+
+		return capabilities.pricing.inputTokensTieredConfig;
+	});
+
+	return (
+		<div ref={containerRef} className='bg-white dark:bg-gray-900 w-full relative'>
+			{/* Tiered Token Progress Indicator */}
+			<TieredTokenProgressIndicator
+				tokenPercentage={tokenPercentage}
+				usedTokens={usedTokens}
+				contextWindow={orchestratorModelCapabilities.value?.capabilities?.contextWindow || 0}
+				pricingConfig={pricingConfig}
+				showTierLabels
+			/>
+
+			<div className='px-3 py-2 w-full relative'>
 				<InputStatusBar
 					visible={statusInfo.value.visible}
 					message={statusInfo.value.message}

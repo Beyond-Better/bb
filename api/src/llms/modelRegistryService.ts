@@ -14,6 +14,25 @@ import type { LLMProviderConfig, ProjectConfig } from 'shared/config/types.ts';
 import { getConfigManager } from 'shared/config/configManager.ts';
 //import type { PartialTokenPricing } from 'shared/types/models.ts';
 
+// Generic types for model selection (used across BB, not just MCP)
+export interface ModelSelectionPreferences {
+	/** Cost priority (0.0 = don't care, 1.0 = minimize cost) */
+	costPriority?: number;
+	/** Speed priority (0.0 = don't care, 1.0 = maximize speed) */
+	speedPriority?: number;
+	/** Intelligence priority (0.0 = don't care, 1.0 = maximize capabilities) */
+	intelligencePriority?: number;
+	/** Model hints for preferred models or providers */
+	hints?: ModelSelectionHint[];
+}
+
+export interface ModelSelectionHint {
+	/** Hint name (model ID, provider name, or capability) */
+	name: string;
+	/** Optional description of why this hint is preferred */
+	description?: string;
+}
+
 // Import the built-in capabilities data
 import builtinCapabilities from '../data/modelCapabilities.json' with { type: 'json' };
 
@@ -81,6 +100,7 @@ export class ModelRegistryService {
 	private providerModels: Map<LLMProvider, string[]> = new Map();
 	private initialized = false;
 	private llmProviders!: Partial<Record<LLMProvider, LLMProviderConfig>>;
+	private preferredProviders: string[] = ['anthropic'];
 
 	/**
 	 * Private constructor for singleton pattern
@@ -96,6 +116,22 @@ export class ModelRegistryService {
 			await ModelRegistryService.instance.init(projectConfig);
 		}
 		return ModelRegistryService.instance;
+	}
+
+	/**
+	 * Set preferred providers for model selection
+	 * @param providers Array of provider names in order of preference
+	 */
+	public setPreferredProviders(providers: string[]): void {
+		this.preferredProviders = [...providers];
+		logger.info('ModelRegistryService: Updated preferred providers', { providers });
+	}
+
+	/**
+	 * Get current preferred providers
+	 */
+	public getPreferredProviders(): string[] {
+		return [...this.preferredProviders];
 	}
 
 	/**
@@ -130,6 +166,7 @@ export class ModelRegistryService {
 	/**
 	 * Load static models from built-in capabilities JSON
 	 */
+	// deno-lint-ignore require-await
 	private async loadStaticModels(): Promise<void> {
 		try {
 			// Destructure to separate metadata from provider data
@@ -450,6 +487,375 @@ export class ModelRegistryService {
 		return mapping;
 	}
 
+	// ============================================================================
+	// SMART MODEL SELECTION METHODS
+	// ============================================================================
+
+	/**
+	 * Select the best model based on preferences using intelligent scoring
+	 * This is the main entry point for smart model selection across BB
+	 */
+	public selectModelByPreferences(preferences?: ModelSelectionPreferences): string {
+		//logger.info('ModelRegistryService: selecting model based on preferences', preferences);
+		if (!this.initialized) {
+			logger.warn('ModelRegistryService: Service not initialized, returning smart default');
+			return this.getSmartDefaultModel();
+		}
+
+		// If no preferences provided, use smart default logic
+		if (!preferences) {
+			//logger.info('ModelRegistryService: No preferences provided, using smart default');
+			return this.getSmartDefaultModel();
+		}
+
+		const allModels = this.getAllModels();
+		if (allModels.length === 0) {
+			logger.warn('ModelRegistryService: No models available, returning fallback default');
+			return this.getFallbackDefaultModel();
+		}
+
+		// Process hints first if provided
+		if (preferences.hints?.length) {
+			for (const hint of preferences.hints) {
+				// Skip hints with invalid names
+				if (!hint.name || typeof hint.name !== 'string' || hint.name.trim() === '') {
+					logger.warn('ModelRegistryService: Skipping invalid hint with empty/undefined name:', hint);
+					continue;
+				}
+
+				//logger.info('ModelRegistryService: choosing model from hints: ', hint.name);
+				const mappedModel = this.mapHintToModel(allModels, hint.name);
+				if (mappedModel) {
+					//logger.info(`ModelRegistryService: Mapped hint '${hint.name}' to model '${mappedModel}'`);
+					return mappedModel;
+				}
+			}
+			//logger.info('ModelRegistryService: No suitable model found for hints, using capability priorities');
+		}
+
+		// Use capability-based selection
+		const selectedModel = this.selectModelByCapabilities(allModels, {
+			cost: preferences.costPriority || 0.5,
+			speed: preferences.speedPriority || 0.5,
+			intelligence: preferences.intelligencePriority || 0.5,
+		});
+
+		logger.info('ModelRegistryService: Selected model using capability scoring', {
+			selectedModel,
+			preferences: {
+				cost: preferences.costPriority,
+				speed: preferences.speedPriority,
+				intelligence: preferences.intelligencePriority,
+			},
+		});
+
+		return selectedModel;
+	}
+
+	/**
+	 * Map model hints to available models using comprehensive matching logic
+	 */
+	public mapHintToModel(allModels: ModelInfo[], hint: string): string | null {
+		// Validate input parameters
+		if (!hint || typeof hint !== 'string' || hint.trim() === '') {
+			logger.warn('ModelRegistryService: Invalid hint provided to mapHintToModel:', hint);
+			return null;
+		}
+
+		if (!allModels || allModels.length === 0) {
+			logger.warn('ModelRegistryService: No models provided to mapHintToModel');
+			return null;
+		}
+
+		const normalizedHint = hint.trim();
+
+		// 1. Check for case-insensitive exact model ID match
+		const caseInsensitiveMatch = allModels.find((m) => m.id.toLowerCase() === normalizedHint.toLowerCase());
+		if (caseInsensitiveMatch) {
+			return caseInsensitiveMatch.id;
+		}
+
+		// 2. Create dynamic model mappings based on available models
+		const modelMappings: Record<string, string[]> = {
+			// Claude variants
+			'claude-3-sonnet': allModels
+				.filter((m) => m.id.includes('claude-3') && m.id.includes('sonnet'))
+				.map((m) => m.id),
+			'claude-sonnet': allModels
+				.filter((m) => m.id.includes('claude') && m.id.includes('sonnet'))
+				.map((m) => m.id),
+			'claude-3-haiku': allModels
+				.filter((m) => m.id.includes('claude-3') && m.id.includes('haiku'))
+				.map((m) => m.id),
+			'claude-haiku': allModels.filter((m) => m.id.includes('claude') && m.id.includes('haiku')).map((m) => m.id),
+			'claude-3-opus': allModels
+				.filter((m) => m.id.includes('claude-3') && m.id.includes('opus'))
+				.map((m) => m.id),
+			'claude-opus': allModels.filter((m) => m.id.includes('claude') && m.id.includes('opus')).map((m) => m.id),
+			'claude': allModels.filter((m) => m.id.includes('claude')).map((m) => m.id),
+
+			// GPT variants
+			'gpt-4o': allModels.filter((m) => m.id.includes('gpt-4o')).map((m) => m.id),
+			'gpt-4': allModels.filter((m) => m.id.includes('gpt-4')).map((m) => m.id),
+			'gpt': allModels.filter((m) => m.id.includes('gpt')).map((m) => m.id),
+			'openai': allModels.filter((m) => m.provider === 'openai').map((m) => m.id),
+
+			// Gemini variants
+			'gemini-pro': allModels
+				.filter((m) => m.id.includes('gemini') && m.id.includes('pro'))
+				.map((m) => m.id),
+			'gemini': allModels.filter((m) => m.id.includes('gemini')).map((m) => m.id),
+			'google': allModels.filter((m) => m.provider === 'google').map((m) => m.id),
+
+			// Ollama
+			'ollama': allModels.filter((m) => m.provider === 'ollama').map((m) => m.id),
+		};
+
+		// 3. Check exact pattern matches
+		const exactMatch = modelMappings[normalizedHint.toLowerCase()];
+		if (exactMatch && exactMatch.length > 0) {
+			// Apply provider preference to pattern matches
+			const preferredMatch = this.applyProviderPreference(
+				exactMatch.map((id) => allModels.find((m) => m.id === id)!).filter(Boolean),
+			);
+			return preferredMatch ? preferredMatch.id : exactMatch[0];
+		}
+
+		// 4. Check for partial pattern matches
+		for (const [pattern, models] of Object.entries(modelMappings)) {
+			if (normalizedHint.toLowerCase().includes(pattern.toLowerCase()) && models.length > 0) {
+				// Apply provider preference to pattern matches
+				const preferredMatch = this.applyProviderPreference(
+					models.map((id) => allModels.find((m) => m.id === id)!).filter(Boolean),
+				);
+				return preferredMatch ? preferredMatch.id : models[0];
+			}
+		}
+
+		// 5. Check if the hint is contained in any model ID
+		const partialMatch = allModels.find((m) => m.id.toLowerCase().includes(normalizedHint.toLowerCase()));
+		if (partialMatch) {
+			return partialMatch.id;
+		}
+
+		return null;
+	}
+
+	/**
+	 * Apply provider preference to a list of models
+	 * Returns the first model from the most preferred provider, or null if no models match preferences
+	 */
+	private applyProviderPreference(models: ModelInfo[]): ModelInfo | null {
+		if (models.length === 0) return null;
+		if (models.length === 1) return models[0];
+
+		// Try to find models from preferred providers in order
+		for (const preferredProvider of this.preferredProviders) {
+			const matchingModels = models.filter((m) => m.provider === preferredProvider);
+			if (matchingModels.length > 0) {
+				return matchingModels[0]; // Return first match from this preferred provider
+			}
+		}
+
+		// If no preferred provider matches, return the first model
+		return models[0];
+	}
+
+	/**
+	 * Select model based on capability priorities using intelligent scoring
+	 */
+	public selectModelByCapabilities(
+		allModels: ModelInfo[],
+		priorities: {
+			cost: number;
+			speed: number;
+			intelligence: number;
+		},
+	): string {
+		if (allModels.length === 0) {
+			return this.getFallbackDefaultModel();
+		}
+
+		// Score each model based on priorities
+		let bestModel = allModels[0];
+		let bestScore = -1;
+
+		for (const model of allModels) {
+			const capabilities = model.capabilities;
+
+			// Calculate scores for each priority (0-1 range)
+			const costScore = this.calculateCostScore(capabilities);
+			const speedScore = this.calculateSpeedScore(capabilities);
+			const intelligenceScore = this.calculateIntelligenceScore(capabilities);
+
+			// Weighted combination of scores
+			let totalScore = costScore * priorities.cost + speedScore * priorities.speed +
+				intelligenceScore * priorities.intelligence;
+
+			// Apply provider preference bonus (up to 0.1 points)
+			const providerBonus = this.calculateProviderPreferenceScore(model.provider);
+			totalScore += providerBonus;
+
+			if (totalScore > bestScore) {
+				bestScore = totalScore;
+				bestModel = model;
+			}
+		}
+
+		logger.debug('ModelRegistryService: Selected model using capability scoring', {
+			selectedModel: bestModel.id,
+			bestScore,
+			priorities,
+			preferredProviders: this.preferredProviders,
+		});
+
+		return bestModel.id;
+	}
+
+	/**
+	 * Calculate cost score (lower cost = higher score)
+	 */
+	public calculateCostScore(capabilities: ModelCapabilities): number {
+		const inputPrice = capabilities.token_pricing?.input || 0;
+		const outputPrice = capabilities.token_pricing?.output || 0;
+		const avgPrice = (inputPrice + outputPrice) / 2;
+
+		// Normalize price to 0-1 score (assuming max price of $0.10 per 1K tokens)
+		const maxPrice = 0.1;
+		return Math.max(0, 1 - avgPrice / maxPrice);
+	}
+
+	/**
+	 * Calculate speed score based on model response speed rating
+	 */
+	public calculateSpeedScore(capabilities: ModelCapabilities): number {
+		const speedRating = capabilities.responseSpeed || 'medium';
+		switch (speedRating) {
+			case 'very_fast':
+				return 1.0;
+			case 'fast':
+				return 0.8;
+			case 'medium':
+				return 0.6;
+			case 'slow':
+				return 0.4;
+			case 'very_slow':
+				return 0.2;
+			default:
+				return 0.6;
+		}
+	}
+
+	/**
+	 * Calculate intelligence score based on model capabilities and features
+	 */
+	public calculateIntelligenceScore(capabilities: ModelCapabilities): number {
+		let score = 0.5; // Base score
+
+		// Bonus for advanced features
+		if (capabilities.supportedFeatures?.functionCalling) score += 0.1;
+		if (capabilities.supportedFeatures?.json) score += 0.1;
+		if (capabilities.supportedFeatures?.vision) score += 0.1;
+		if (capabilities.supportedFeatures?.extendedThinking) score += 0.1;
+		if (capabilities.supportedFeatures?.promptCaching) score += 0.05;
+
+		// Bonus for larger context windows (normalized to max 200k tokens)
+		const contextBonus = Math.min(0.15, (capabilities.contextWindow / 200000) * 0.15);
+		score += contextBonus;
+
+		return Math.min(1.0, score);
+	}
+
+	/**
+	 * Calculate provider preference score bonus
+	 * Returns a bonus score (0-0.1) based on provider preference ranking
+	 */
+	public calculateProviderPreferenceScore(provider: LLMProvider): number {
+		const providerIndex = this.preferredProviders.indexOf(provider);
+		if (providerIndex === -1) {
+			// Provider not in preferences, no bonus
+			return 0;
+		}
+
+		// Higher preference = higher bonus (0.1 for first, decreasing by 0.02 for each subsequent)
+		const maxBonus = 0.1;
+		const decreasePerRank = 0.02;
+		return Math.max(0, maxBonus - (providerIndex * decreasePerRank));
+	}
+
+	/**
+	 * Get smart default model using intelligent logic instead of hard-coded values
+	 * Selects a balanced model that works well for most use cases
+	 */
+	public getSmartDefaultModel(): string {
+		if (!this.initialized) {
+			return this.getFallbackDefaultModel();
+		}
+
+		const allModels = this.getAllModels();
+		if (allModels.length === 0) {
+			return this.getFallbackDefaultModel();
+		}
+
+		// First try to get a model from preferred providers
+		for (const preferredProvider of this.preferredProviders) {
+			const providerModels = allModels.filter((m) => m.provider === preferredProvider);
+			if (providerModels.length > 0) {
+				// Use balanced priorities for default selection within preferred provider
+				const balancedPreferences: ModelSelectionPreferences = {
+					costPriority: 0.3, // Some cost consideration
+					speedPriority: 0.3, // Some speed consideration
+					intelligencePriority: 0.7, // Prefer intelligence for general use
+				};
+
+				const selectedModel = this.selectModelByCapabilities(providerModels, {
+					cost: balancedPreferences.costPriority!,
+					speed: balancedPreferences.speedPriority!,
+					intelligence: balancedPreferences.intelligencePriority!,
+				});
+
+				logger.info('ModelRegistryService: Selected smart default model from preferred provider', {
+					selectedModel,
+					preferredProvider,
+					preferences: balancedPreferences,
+				});
+
+				return selectedModel;
+			}
+		}
+
+		// Fallback to all models if no preferred provider has models
+		const balancedPreferences: ModelSelectionPreferences = {
+			costPriority: 0.3, // Some cost consideration
+			speedPriority: 0.3, // Some speed consideration
+			intelligencePriority: 0.7, // Prefer intelligence for general use
+		};
+
+		const selectedModel = this.selectModelByCapabilities(allModels, {
+			cost: balancedPreferences.costPriority!,
+			speed: balancedPreferences.speedPriority!,
+			intelligence: balancedPreferences.intelligencePriority!,
+		});
+
+		logger.info('ModelRegistryService: Selected smart default model (fallback to all models)', {
+			selectedModel,
+			preferences: balancedPreferences,
+			preferredProviders: this.preferredProviders,
+		});
+
+		return selectedModel;
+	}
+
+	/**
+	 * Get fallback default model when smart logic fails
+	 * This should only be used when ModelRegistryService is not properly initialized
+	 */
+	private getFallbackDefaultModel(): string {
+		// Conservative fallback - should rarely be used
+		logger.warn('ModelRegistryService: Using hard-coded fallback default model');
+		return 'claude-sonnet-4-5-20250929';
+	}
+
 	/**
 	 * Refresh dynamic models (useful for manual updates)
 	 */
@@ -471,6 +877,10 @@ export class ModelRegistryService {
 		// Could be enhanced with more sophisticated logic
 		return models.length > 0 ? models[0].id : undefined;
 	}
+
+	// ============================================================================
+	// PARAMETER RESOLUTION METHODS (existing)
+	// ============================================================================
 
 	/**
 	 * Resolves a parameter value based on priority

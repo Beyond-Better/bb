@@ -15,7 +15,7 @@ export interface LLMToolFetchWebScreenshotResponseData {
 }
 
 export interface LLMToolFetchWebScreenshotResult {
-	toolResult: LLMToolRunResultContent;
+	toolResults: LLMToolRunResultContent;
 	toolResponse: string;
 	bbResponse: LLMToolFetchWebScreenshotResponseData;
 }

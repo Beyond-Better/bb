@@ -1484,7 +1484,7 @@ export class StorageMigration {
 						// Check if the revision exists
 						if (await exists(revisionPath)) {
 							// Found the revision, read it
-							if (info.uri.toLowerCase().match(/\.(jpg|jpeg|png|gif|bmp|webp|svg)$/)) {
+							if (info.uri.toLowerCase().match(/\.(jpg|jpeg|png|gif|bmp|webp|svg|pdf)$/)) {
 								content = await Deno.readFile(revisionPath);
 							} else {
 								content = await Deno.readTextFile(revisionPath);

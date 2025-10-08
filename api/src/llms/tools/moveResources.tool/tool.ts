@@ -13,6 +13,7 @@ import type {
 } from 'api/errors/error.ts';
 import { createError, ErrorType } from 'api/utils/error.ts';
 import { logger } from 'shared/logger.ts';
+import { checkDatasourceAccess } from 'api/utils/featureAccess.ts';
 import type { LLMToolMoveResourcesInput } from './types.ts';
 import {
 	formatLogEntryToolResult as formatLogEntryToolResultBrowser,
@@ -31,7 +32,7 @@ export default class LLMToolMoveResources extends LLMTool {
 				dataSourceId: {
 					type: 'string',
 					description:
-						"Data source ID to operate on. Defaults to the primary data source if omitted. Examples: 'primary', 'filesystem-1', 'db-staging'. Data sources are identified by their name (e.g., 'primary', 'local-2', 'supabase').",
+						"Data source ID to operate on. Defaults to the primary data source if omitted. Examples: 'primary', 'filesystem-1', 'db-staging'. Data sources are identified by their name (e.g., 'primary', 'local-2', 'supabase'). **IMPORTANT: Different data sources have different path format requirements - use loadDataSource with returnType='instructions' and operations=['utility'] to get provider-specific move guidance before using this tool.**",
 				},
 				sources: {
 					type: 'array',
@@ -155,6 +156,24 @@ export default class LLMToolMoveResources extends LLMTool {
 			} as DataSourceHandlingErrorOptions);
 		}
 		//logger.info(`LLMToolMoveResources: dataSourceRoot: ${dataSourceRoot}`);
+
+		// Check datasource write access
+		const hasWriteAccess = await checkDatasourceAccess(
+			projectEditor.userContext,
+			dsConnectionToUse.providerType,
+			'write',
+		);
+		if (!hasWriteAccess) {
+			throw createError(
+				ErrorType.ToolHandling,
+				'Datasource write access not available on your current plan',
+				{
+					toolName: 'move_resources',
+					operation: 'capability-check',
+				} as ToolHandlingErrorOptions,
+			);
+		}
+
 		// [TODO] check that dsConnectionToUse is type filesystem
 
 		try {

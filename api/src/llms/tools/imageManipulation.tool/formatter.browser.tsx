@@ -126,7 +126,7 @@ export function formatLogEntryToolResult(
 	// };
 
 	// Display the thumbnail image
-	//const imageData = getImageContent(result.toolResult);
+	//const imageData = getImageContent(result.toolResults);
 	const imageData = thumbnail.data;
 	const imageContent = imageData
 		? (

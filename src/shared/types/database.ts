@@ -7,8 +7,446 @@ export type Json =
 	| Json[];
 
 export type Database = {
+	abi_api: {
+		Tables: {
+			provider_api_requests: {
+				Row: {
+					client_source: string | null;
+					client_version: string | null;
+					metadata: Json;
+					provider_duration_ms: number | null;
+					provider_error_details: string | null;
+					provider_response_code: number | null;
+					provider_response_id: string | null;
+					provider_response_length: number | null;
+					provider_response_timestamp: string | null;
+					proxy_request_headers: Json | null;
+					proxy_request_length: number | null;
+					proxy_request_path: string;
+					proxy_request_timestamp: string;
+					request_id: string;
+					service_id: string | null;
+					total_duration_ms: number | null;
+					user_id: string;
+				};
+				Insert: {
+					client_source?: string | null;
+					client_version?: string | null;
+					metadata?: Json;
+					provider_duration_ms?: number | null;
+					provider_error_details?: string | null;
+					provider_response_code?: number | null;
+					provider_response_id?: string | null;
+					provider_response_length?: number | null;
+					provider_response_timestamp?: string | null;
+					proxy_request_headers?: Json | null;
+					proxy_request_length?: number | null;
+					proxy_request_path: string;
+					proxy_request_timestamp?: string;
+					request_id?: string;
+					service_id?: string | null;
+					total_duration_ms?: number | null;
+					user_id: string;
+				};
+				Update: {
+					client_source?: string | null;
+					client_version?: string | null;
+					metadata?: Json;
+					provider_duration_ms?: number | null;
+					provider_error_details?: string | null;
+					provider_response_code?: number | null;
+					provider_response_id?: string | null;
+					provider_response_length?: number | null;
+					provider_response_timestamp?: string | null;
+					proxy_request_headers?: Json | null;
+					proxy_request_length?: number | null;
+					proxy_request_path?: string;
+					proxy_request_timestamp?: string;
+					request_id?: string;
+					service_id?: string | null;
+					total_duration_ms?: number | null;
+					user_id?: string;
+				};
+				Relationships: [
+					{
+						foreignKeyName: 'provider_api_requests_service_id_fkey';
+						columns: ['service_id'];
+						isOneToOne: false;
+						referencedRelation: 'provider_services';
+						referencedColumns: ['service_id'];
+					},
+				];
+			};
+			provider_service_pricing: {
+				Row: {
+					created_at: string;
+					effective_from: string;
+					effective_until: string | null;
+					metadata: Json;
+					per_thousand_requests_cents_usd: number;
+					pricing_id: string;
+					request_type: string;
+					service_id: string;
+					updated_at: string;
+				};
+				Insert: {
+					created_at?: string;
+					effective_from?: string;
+					effective_until?: string | null;
+					metadata?: Json;
+					per_thousand_requests_cents_usd: number;
+					pricing_id?: string;
+					request_type: string;
+					service_id: string;
+					updated_at?: string;
+				};
+				Update: {
+					created_at?: string;
+					effective_from?: string;
+					effective_until?: string | null;
+					metadata?: Json;
+					per_thousand_requests_cents_usd?: number;
+					pricing_id?: string;
+					request_type?: string;
+					service_id?: string;
+					updated_at?: string;
+				};
+				Relationships: [
+					{
+						foreignKeyName: 'provider_service_pricing_service_id_fkey';
+						columns: ['service_id'];
+						isOneToOne: false;
+						referencedRelation: 'provider_services';
+						referencedColumns: ['service_id'];
+					},
+				];
+			};
+			provider_services: {
+				Row: {
+					created_at: string;
+					is_available: boolean;
+					provider_name: string;
+					service_id: string;
+					service_name: string;
+					service_type: string;
+					settings: Json;
+					updated_at: string;
+				};
+				Insert: {
+					created_at?: string;
+					is_available?: boolean;
+					provider_name: string;
+					service_id?: string;
+					service_name: string;
+					service_type: string;
+					settings?: Json;
+					updated_at?: string;
+				};
+				Update: {
+					created_at?: string;
+					is_available?: boolean;
+					provider_name?: string;
+					service_id?: string;
+					service_name?: string;
+					service_type?: string;
+					settings?: Json;
+					updated_at?: string;
+				};
+				Relationships: [];
+			};
+			service_usage: {
+				Row: {
+					batch_id: string | null;
+					cost_micro_usd: number;
+					created_at: string;
+					request_count: number;
+					request_id: string;
+					request_timestamp: string;
+					request_type: string;
+					service_id: string;
+					usage_id: string;
+					user_id: string;
+				};
+				Insert: {
+					batch_id?: string | null;
+					cost_micro_usd: number;
+					created_at?: string;
+					request_count?: number;
+					request_id: string;
+					request_timestamp?: string;
+					request_type: string;
+					service_id: string;
+					usage_id?: string;
+					user_id: string;
+				};
+				Update: {
+					batch_id?: string | null;
+					cost_micro_usd?: number;
+					created_at?: string;
+					request_count?: number;
+					request_id?: string;
+					request_timestamp?: string;
+					request_type?: string;
+					service_id?: string;
+					usage_id?: string;
+					user_id?: string;
+				};
+				Relationships: [
+					{
+						foreignKeyName: 'service_usage_request_id_fkey';
+						columns: ['request_id'];
+						isOneToOne: false;
+						referencedRelation: 'provider_api_requests';
+						referencedColumns: ['request_id'];
+					},
+					{
+						foreignKeyName: 'service_usage_service_id_fkey';
+						columns: ['service_id'];
+						isOneToOne: false;
+						referencedRelation: 'provider_services';
+						referencedColumns: ['service_id'];
+					},
+				];
+			};
+			service_usage_batches: {
+				Row: {
+					batch_date: string;
+					batch_id: string;
+					created_at: string;
+					event_count: number;
+					ledger_entry_id: number | null;
+					period_end: string;
+					period_start: string;
+					total_cost_micro_usd: number;
+					used_micro_usd: number;
+					user_id: string;
+				};
+				Insert: {
+					batch_date: string;
+					batch_id?: string;
+					created_at?: string;
+					event_count: number;
+					ledger_entry_id?: number | null;
+					period_end: string;
+					period_start: string;
+					total_cost_micro_usd: number;
+					used_micro_usd?: number;
+					user_id: string;
+				};
+				Update: {
+					batch_date?: string;
+					batch_id?: string;
+					created_at?: string;
+					event_count?: number;
+					ledger_entry_id?: number | null;
+					period_end?: string;
+					period_start?: string;
+					total_cost_micro_usd?: number;
+					used_micro_usd?: number;
+					user_id?: string;
+				};
+				Relationships: [];
+			};
+		};
+		Views: {
+			[_ in never]: never;
+		};
+		Functions: {
+			batch_api_usage: {
+				Args: {
+					p_force_batch?: boolean;
+					p_period_end?: string;
+					p_period_start?: string;
+					p_user_id: string;
+				};
+				Returns: {
+					batch_id: string;
+					event_count: number;
+					period_end: string;
+					period_start: string;
+					total_cost_micro_usd: number;
+				}[];
+			};
+			check_api_usage_balance: {
+				Args: { p_user_id: string };
+				Returns: {
+					newest_unbatched_usage: string;
+					oldest_unbatched_usage: string;
+					unbatched_event_count: number;
+					unbatched_usage_micro_usd: number;
+				}[];
+			};
+			cleanup_old_unbatched_usage: {
+				Args: { p_older_than_hours?: number };
+				Returns: {
+					batches_created: number;
+					total_cost_batched_micro_usd: number;
+					users_processed: number;
+				}[];
+			};
+			get_api_usage_summary: {
+				Args: { p_end_date?: string; p_start_date?: string; p_user_id: string };
+				Returns: {
+					cost_dollars: number;
+					date: string;
+					providers: Json;
+					request_types: Json;
+					total_cost_micro_usd: number;
+					total_requests: number;
+				}[];
+			};
+			get_service_pricing: {
+				Args: {
+					p_provider_name: string;
+					p_request_type: string;
+					p_service_name: string;
+				};
+				Returns: {
+					cost_per_request_micro_usd: number;
+					effective_from: string;
+					effective_until: string;
+					per_thousand_requests_cents_usd: number;
+				}[];
+			};
+		};
+		Enums: {
+			[_ in never]: never;
+		};
+		CompositeTypes: {
+			[_ in never]: never;
+		};
+	};
 	abi_auth: {
 		Tables: {
+			admin_audit_log: {
+				Row: {
+					action: string;
+					admin_user_id: string;
+					created_at: string;
+					details: Json;
+					error_message: string | null;
+					ip_address: unknown | null;
+					log_id: string;
+					resource_id: string | null;
+					resource_type: string | null;
+					success: boolean;
+					user_agent: string | null;
+				};
+				Insert: {
+					action: string;
+					admin_user_id: string;
+					created_at?: string;
+					details?: Json;
+					error_message?: string | null;
+					ip_address?: unknown | null;
+					log_id?: string;
+					resource_id?: string | null;
+					resource_type?: string | null;
+					success: boolean;
+					user_agent?: string | null;
+				};
+				Update: {
+					action?: string;
+					admin_user_id?: string;
+					created_at?: string;
+					details?: Json;
+					error_message?: string | null;
+					ip_address?: unknown | null;
+					log_id?: string;
+					resource_id?: string | null;
+					resource_type?: string | null;
+					success?: boolean;
+					user_agent?: string | null;
+				};
+				Relationships: [
+					{
+						foreignKeyName: 'admin_audit_log_admin_user_id_fkey';
+						columns: ['admin_user_id'];
+						isOneToOne: false;
+						referencedRelation: 'user_profiles';
+						referencedColumns: ['user_id'];
+					},
+				];
+			};
+			admin_role_assignments: {
+				Row: {
+					assigned_by: string;
+					created_at: string;
+					notes: string | null;
+					role_id: string;
+					updated_at: string;
+					user_id: string;
+				};
+				Insert: {
+					assigned_by: string;
+					created_at?: string;
+					notes?: string | null;
+					role_id: string;
+					updated_at?: string;
+					user_id: string;
+				};
+				Update: {
+					assigned_by?: string;
+					created_at?: string;
+					notes?: string | null;
+					role_id?: string;
+					updated_at?: string;
+					user_id?: string;
+				};
+				Relationships: [
+					{
+						foreignKeyName: 'admin_role_assignments_assigned_by_fkey';
+						columns: ['assigned_by'];
+						isOneToOne: false;
+						referencedRelation: 'user_profiles';
+						referencedColumns: ['user_id'];
+					},
+					{
+						foreignKeyName: 'admin_role_assignments_role_id_fkey';
+						columns: ['role_id'];
+						isOneToOne: false;
+						referencedRelation: 'admin_roles';
+						referencedColumns: ['role_id'];
+					},
+					{
+						foreignKeyName: 'admin_role_assignments_user_id_fkey';
+						columns: ['user_id'];
+						isOneToOne: false;
+						referencedRelation: 'user_profiles';
+						referencedColumns: ['user_id'];
+					},
+				];
+			};
+			admin_roles: {
+				Row: {
+					created_at: string;
+					description: string | null;
+					permissions: Json;
+					role_id: string;
+					role_level: number;
+					role_name: string;
+					updated_at: string;
+				};
+				Insert: {
+					created_at?: string;
+					description?: string | null;
+					permissions?: Json;
+					role_id?: string;
+					role_level: number;
+					role_name: string;
+					updated_at?: string;
+				};
+				Update: {
+					created_at?: string;
+					description?: string | null;
+					permissions?: Json;
+					role_id?: string;
+					role_level?: number;
+					role_name?: string;
+					updated_at?: string;
+				};
+				Relationships: [];
+			};
 			organization_members: {
 				Row: {
 					created_at: string;
@@ -223,6 +661,14 @@ export type Database = {
 			[_ in never]: never;
 		};
 		Functions: {
+			check_admin_permission: {
+				Args: { permission: string };
+				Returns: boolean;
+			};
+			check_min_admin_role: {
+				Args: { min_role: string };
+				Returns: boolean;
+			};
 			check_min_org_role: {
 				Args: { min_role: string; org_id: string };
 				Returns: boolean;
@@ -247,6 +693,14 @@ export type Database = {
 				Args: { required_roles: string[]; t_id: string };
 				Returns: boolean;
 			};
+			get_user_admin_context: {
+				Args: { target_user_id: string };
+				Returns: {
+					permissions: Json;
+					role_level: number;
+					role_name: string;
+				}[];
+			};
 			get_user_email: {
 				Args: { user_id: string };
 				Returns: string;
@@ -259,9 +713,26 @@ export type Database = {
 				Args: { t_id: string };
 				Returns: boolean;
 			};
+			is_admin_user: {
+				Args: Record<PropertyKey, never>;
+				Returns: boolean;
+			};
 			is_resource_owner: {
 				Args: { resource_user_id: string };
 				Returns: boolean;
+			};
+			log_admin_action: {
+				Args: {
+					p_action: string;
+					p_details?: Json;
+					p_error_message?: string;
+					p_ip_address?: unknown;
+					p_resource_id?: string;
+					p_resource_type?: string;
+					p_success?: boolean;
+					p_user_agent?: string;
+				};
+				Returns: string;
 			};
 			verify_free_plan_exists: {
 				Args: Record<PropertyKey, never>;
@@ -1932,34 +2403,34 @@ export type Database = {
 					p_user_id: string;
 				};
 				Returns: {
-					transition_successful: boolean;
-					canceled_subscription_id: string;
 					activated_subscription_id: string;
+					canceled_subscription_id: string;
+					transition_successful: boolean;
 				}[];
 			};
 			activate_scheduled_subscription: {
 				Args: {
 					p_effective_date?: string;
-					p_user_id: string;
 					p_stripe_subscription_id: string;
+					p_user_id: string;
 				};
 				Returns: {
 					activated_subscription_id: string;
-					transition_successful: boolean;
 					canceled_subscription_id: string;
+					transition_successful: boolean;
 				}[];
 			};
 			add_ledger_entry: {
 				Args: {
-					p_effective_date?: string;
-					p_reference_type?: string;
-					p_metadata?: Json;
-					p_expires_at?: string;
-					p_user_id: string;
-					p_team_id: string;
-					p_entry_type: Database['abi_billing']['Enums']['ledger_entry_type'];
 					p_amount_micro_usd: number;
+					p_effective_date?: string;
+					p_entry_type: Database['abi_billing']['Enums']['ledger_entry_type'];
+					p_expires_at?: string;
+					p_metadata?: Json;
 					p_reference_id?: string;
+					p_reference_type?: string;
+					p_team_id: string;
+					p_user_id: string;
 				};
 				Returns: number;
 			};
@@ -1969,11 +2440,11 @@ export type Database = {
 			};
 			apply_coupon: {
 				Args: {
-					p_effective_date?: string;
 					p_base_amount_micro?: number;
-					p_user_id: string;
 					p_coupon_code: string;
+					p_effective_date?: string;
 					p_subscription_id: string;
+					p_user_id: string;
 				};
 				Returns: Json;
 			};
@@ -1987,48 +2458,48 @@ export type Database = {
 			batch_heavy_usage: {
 				Args: Record<PropertyKey, never>;
 				Returns: {
-					users_processed: number;
 					batches_created: number;
+					users_processed: number;
 				}[];
 			};
 			batch_user_usage: {
-				Args: { p_user_id: string; p_team_id?: string; p_force?: boolean };
+				Args: { p_force?: boolean; p_team_id?: string; p_user_id: string };
 				Returns: undefined;
 			};
 			calculate_discount: {
 				Args: {
-					p_maximum_discount_micro?: number;
-					p_discount_value: number;
-					p_discount_type: Database['abi_billing']['Enums']['discount_type'];
 					p_base_amount_micro: number;
+					p_discount_type: Database['abi_billing']['Enums']['discount_type'];
+					p_discount_value: number;
+					p_maximum_discount_micro?: number;
 				};
 				Returns: number;
 			};
 			calculate_prorated_amount: {
 				Args: {
 					p_current_plan_price_cents_usd: number;
-					p_new_plan_price_cents_usd: number;
 					p_effective_date?: string;
+					p_new_plan_price_cents_usd: number;
 				};
 				Returns: {
-					cost_difference_cents_usd: number;
-					prorated_amount_micro_usd: number;
-					days_remaining: number;
-					days_in_month: number;
-					proration_factor: number;
 					calculation_metadata: Json;
+					cost_difference_cents_usd: number;
+					days_in_month: number;
+					days_remaining: number;
+					prorated_amount_micro_usd: number;
+					proration_factor: number;
 				}[];
 			};
 			calculate_subscription_total_with_coupons: {
 				Args: {
 					p_base_amount_cents_usd: number;
-					p_subscription_id: string;
 					p_effective_date?: string;
+					p_subscription_id: string;
 				};
 				Returns: Json;
 			};
 			cancel_subscription: {
-				Args: { p_user_id: string; p_effective_date?: string };
+				Args: { p_effective_date?: string; p_user_id: string };
 				Returns: Database['abi_billing']['CompositeTypes']['subscription_result'];
 			};
 			categorize_auto_topup_failure: {
@@ -2045,13 +2516,13 @@ export type Database = {
 			};
 			change_subscription: {
 				Args: {
-					p_effective_date?: string;
-					p_user_id: string;
-					p_new_plan_id: string;
-					p_change_type: string;
 					p_activate_immediately?: boolean;
-					p_grant_tokens?: boolean;
+					p_change_type: string;
 					p_coupon_code?: string;
+					p_effective_date?: string;
+					p_grant_tokens?: boolean;
+					p_new_plan_id: string;
+					p_user_id: string;
 				};
 				Returns: Database['abi_billing']['CompositeTypes']['subscription_result'];
 			};
@@ -2060,38 +2531,38 @@ export type Database = {
 				Returns: undefined;
 			};
 			check_auto_topup_eligibility: {
-				Args: { p_user_id: string; p_current_balance_micro_usd: number };
+				Args: { p_current_balance_micro_usd: number; p_user_id: string };
 				Returns: {
-					payment_method_available: boolean;
-					eligible: boolean;
-					reason: string;
-					min_balance_cents: number;
-					purchase_amount_cents: number;
-					failure_count: number;
 					daily_limit_remaining_cents: number;
+					eligible: boolean;
+					failure_count: number;
+					min_balance_cents: number;
+					payment_method_available: boolean;
+					purchase_amount_cents: number;
+					reason: string;
 				}[];
 			};
 			check_balance: {
 				Args: { p_team_id?: string; p_user_id: string };
 				Returns: {
-					usage_since_update: number;
-					last_updated: string;
 					balance_micro_usd: number;
+					last_updated: string;
 					team_id: string;
+					usage_since_update: number;
 				}[];
 			};
 			check_month_end_job_status: {
 				Args: Record<PropertyKey, never>;
 				Returns: {
-					next_run: string;
-					period_processed: string;
 					job_name: string;
 					last_run: string;
 					last_success: boolean;
+					next_run: string;
+					period_processed: string;
 				}[];
 			};
 			count_recent_payment_failures: {
-				Args: { p_subscription_id: string; p_days?: number };
+				Args: { p_days?: number; p_subscription_id: string };
 				Returns: {
 					count: number;
 				}[];
@@ -2117,7 +2588,7 @@ export type Database = {
 				Returns: undefined;
 			};
 			divide_micro: {
-				Args: { micro: number; divisor: number };
+				Args: { divisor: number; micro: number };
 				Returns: number;
 			};
 			dollars_to_cents: {
@@ -2143,59 +2614,74 @@ export type Database = {
 			get_subscription_coupon_discounts: {
 				Args: { p_effective_date?: string; p_subscription_id: string };
 				Returns: {
+					coupon_code: string;
 					coupon_name: string;
-					discount_type: Database['abi_billing']['Enums']['discount_type'];
 					discount_applied_cents_usd: number;
 					discount_months_remaining: number;
+					discount_type: Database['abi_billing']['Enums']['discount_type'];
 					expires_at: string;
-					coupon_code: string;
 					usage_id: string;
 				}[];
 			};
 			get_transaction_history: {
 				Args: {
+					p_date_end?: string;
 					p_date_start?: string;
 					p_page?: number;
 					p_per_page?: number;
+					p_status?: string;
 					p_transaction_type?: string;
 					p_user_id: string;
-					p_status?: string;
-					p_date_end?: string;
 				};
 				Returns: {
-					transaction_id: string;
-					transaction_type: string;
 					amount_usd: number;
-					description: string;
-					status: string;
 					created_at: string;
-					payment_method: Json;
 					credit_details: Json;
+					current_page: number;
+					description: string;
+					payment_method: Json;
+					per_page: number;
+					status: string;
 					subscription_details: Json;
 					total_items: number;
-					current_page: number;
 					total_pages: number;
-					per_page: number;
+					transaction_id: string;
+					transaction_type: string;
 				}[];
 			};
 			get_usage_analytics: {
 				Args: {
+					p_include_trends?: boolean;
 					p_model_filter?: string[];
 					p_month_filter?: string;
-					p_include_trends?: boolean;
-					p_user_id: string;
 					p_period_end?: string;
 					p_period_start?: string;
+					p_user_id: string;
 				};
 				Returns: {
 					filtered_by: Json;
-					usage_trends: Json;
 					model_breakdown: Json;
 					period_end: string;
 					period_start: string;
-					total_tokens: number;
-					total_requests: number;
 					total_cost_micro_usd: number;
+					total_requests: number;
+					total_tokens: number;
+					usage_trends: Json;
+				}[];
+			};
+			get_usage_analytics_lite: {
+				Args: {
+					p_period_end?: string;
+					p_period_start?: string;
+					p_user_id: string;
+				};
+				Returns: {
+					model_breakdown: Json;
+					period_end: string;
+					period_start: string;
+					total_cost_micro_usd: number;
+					total_requests: number;
+					total_tokens: number;
 				}[];
 			};
 			has_active_subscription: {
@@ -2215,14 +2701,14 @@ export type Database = {
 				Returns: number;
 			};
 			multiply_micro: {
-				Args: { micro: number; factor: number };
+				Args: { factor: number; micro: number };
 				Returns: number;
 			};
 			notify_auto_topup_event: {
 				Args: {
-					p_event_type: string;
 					p_amount_cents?: number;
 					p_error_message?: string;
+					p_event_type: string;
 					p_user_id: string;
 				};
 				Returns: undefined;
@@ -2237,28 +2723,28 @@ export type Database = {
 			};
 			purchase_tokens: {
 				Args: {
-					p_purchase_date?: string;
+					p_amount_cents_usd: number;
 					p_apply_grant?: boolean;
 					p_auto_triggered?: boolean;
-					p_user_id: string;
+					p_purchase_date?: string;
 					p_team_id: string;
-					p_amount_cents_usd: number;
+					p_user_id: string;
 				};
 				Returns: Database['abi_billing']['CompositeTypes']['token_purchase_result'];
 			};
 			record_auto_topup_attempt: {
 				Args: {
-					p_user_id: string;
 					p_amount_cents: number;
-					p_success: boolean;
 					p_message: string;
+					p_success: boolean;
+					p_user_id: string;
 				};
 				Returns: undefined;
 			};
 			start_subscription: {
 				Args: {
-					p_coupon_code?: string;
 					p_activate_immediately?: boolean;
+					p_coupon_code?: string;
 					p_period_end?: string;
 					p_period_start?: string;
 					p_plan_id: string;
@@ -2267,40 +2753,40 @@ export type Database = {
 				Returns: Database['abi_billing']['CompositeTypes']['subscription_result'];
 			};
 			trigger_auto_topup: {
-				Args: { p_user_id: string; p_current_balance_micro_usd?: number };
+				Args: { p_current_balance_micro_usd?: number; p_user_id: string };
 				Returns: {
 					amount_cents: number;
 					message: string;
-					retry_after_seconds: number;
 					purchase_id: string;
+					retry_after_seconds: number;
 					success: boolean;
 				}[];
 			};
 			update_auto_topup_rate_limits: {
-				Args: { p_user_id: string; p_amount_cents: number; p_success: boolean };
+				Args: { p_amount_cents: number; p_success: boolean; p_user_id: string };
 				Returns: undefined;
 			};
 			validate_balance_cache: {
 				Args: {
-					p_user_id?: string;
-					p_team_id?: string;
 					p_include_details?: boolean;
+					p_team_id?: string;
+					p_user_id?: string;
 				};
 				Returns: {
-					user_id: string;
-					team_id: string;
 					cache_balance_micro_usd: number;
 					calculated_balance_micro_usd: number;
-					variance_micro_usd: number;
-					validation_status: string;
 					details: Json;
+					team_id: string;
+					user_id: string;
+					validation_status: string;
+					variance_micro_usd: number;
 				}[];
 			};
 			validate_coupon: {
 				Args: {
+					p_coupon_code: string;
 					p_effective_date?: string;
 					p_plan_id?: string;
-					p_coupon_code: string;
 					p_user_id: string;
 				};
 				Returns: Json;
@@ -2727,14 +3213,14 @@ export type Database = {
 			check_feature_access: {
 				Args: { p_feature_key: string; p_user_id: string };
 				Returns: {
-					inheritance_chain: string[];
 					access_granted: boolean;
 					access_reason: string;
 					feature_value: Json;
+					inheritance_chain: string[];
 				}[];
 			};
 			check_feature_access_cached: {
-				Args: { p_user_id: string; p_feature_key: string };
+				Args: { p_feature_key: string; p_user_id: string };
 				Returns: {
 					access_granted: boolean;
 					access_reason: string;
@@ -2744,22 +3230,22 @@ export type Database = {
 			};
 			check_rate_limit: {
 				Args: {
+					limit_count: number;
 					request_endpoint: string;
 					request_ip: string;
 					window_seconds: number;
-					limit_count: number;
 				};
 				Returns: Json;
 			};
 			check_storage_limits: {
-				Args: { file_size: number; user_id: string; bucket_id: string };
+				Args: { bucket_id: string; file_size: number; user_id: string };
 				Returns: boolean;
 			};
 			check_team_resource_access: {
 				Args: {
+					bucket_name: string;
 					object_path: string;
 					requesting_user: string;
-					bucket_name: string;
 				};
 				Returns: boolean;
 			};
@@ -2781,14 +3267,22 @@ export type Database = {
 			};
 			create_feature_override: {
 				Args: {
-					p_feature_key: string;
-					p_user_id: string;
-					p_override_value: Json;
-					p_override_reason?: string;
-					p_expires_at?: string;
 					p_created_by?: string;
+					p_expires_at?: string;
+					p_feature_key: string;
+					p_override_reason?: string;
+					p_override_value: Json;
+					p_user_id: string;
 				};
 				Returns: string;
+			};
+			cron_update_all_table_statistics: {
+				Args: Record<PropertyKey, never>;
+				Returns: undefined;
+			};
+			cron_update_statistics_monitoring: {
+				Args: Record<PropertyKey, never>;
+				Returns: undefined;
 			};
 			get_feature_analytics: {
 				Args: { p_days_back?: number };
@@ -2809,53 +3303,53 @@ export type Database = {
 				Returns: string;
 			};
 			get_setting: {
-				Args: { p_key: string; p_default?: string };
+				Args: { p_default?: string; p_key: string };
 				Returns: string;
 			};
 			get_user_features: {
 				Args: { p_user_id: string };
 				Returns: {
+					access_granted: boolean;
 					access_reason: string;
+					feature_category: string;
+					feature_description: string;
 					feature_key: string;
 					feature_name: string;
-					feature_description: string;
 					feature_type: string;
-					feature_category: string;
-					access_granted: boolean;
 					feature_value: Json;
 				}[];
 			};
 			has_datasource_access: {
 				Args: {
-					p_datasource_key: string;
 					p_access_type?: string;
+					p_datasource_key: string;
 					p_user_id: string;
 				};
 				Returns: boolean;
 			};
 			has_model_access: {
-				Args: { p_user_id: string; p_model_key: string };
+				Args: { p_model_key: string; p_user_id: string };
 				Returns: boolean;
 			};
 			log_feature_access: {
 				Args: {
-					p_access_reason: string;
-					p_request_context?: Json;
-					p_feature_key: string;
-					p_user_id: string;
 					p_access_granted: boolean;
+					p_access_reason: string;
+					p_feature_key: string;
+					p_request_context?: Json;
+					p_user_id: string;
 				};
 				Returns: undefined;
 			};
 			notify_admin: {
-				Args: { p_type: string; p_severity: string; p_metadata: Json };
+				Args: { p_metadata: Json; p_severity: string; p_type: string };
 				Returns: undefined;
 			};
 			record_performance_metric: {
 				Args: {
 					p_duration_ms: number;
-					p_metric_type: string;
 					p_metadata?: Json;
+					p_metric_type: string;
 					p_record_count?: number;
 				};
 				Returns: string;
@@ -2869,11 +3363,11 @@ export type Database = {
 				Returns: boolean;
 			};
 			set_secret: {
-				Args: { p_key: string; p_description?: string; p_value: string };
+				Args: { p_description?: string; p_key: string; p_value: string };
 				Returns: string;
 			};
 			set_setting: {
-				Args: { p_key: string; p_description?: string; p_value: string };
+				Args: { p_description?: string; p_key: string; p_value: string };
 				Returns: undefined;
 			};
 			update_statistics: {
@@ -3036,7 +3530,7 @@ export type Database = {
 					model_id: string;
 					per_million_tokens_cents_usd: number;
 					pricing_id: string;
-					token_type: Database['abi_llm']['Enums']['token_type'];
+					token_type: string;
 					updated_at: string;
 				};
 				Insert: {
@@ -3047,7 +3541,7 @@ export type Database = {
 					model_id: string;
 					per_million_tokens_cents_usd: number;
 					pricing_id?: string;
-					token_type: Database['abi_llm']['Enums']['token_type'];
+					token_type: string;
 					updated_at?: string;
 				};
 				Update: {
@@ -3058,7 +3552,7 @@ export type Database = {
 					model_id?: string;
 					per_million_tokens_cents_usd?: number;
 					pricing_id?: string;
-					token_type?: Database['abi_llm']['Enums']['token_type'];
+					token_type?: string;
 					updated_at?: string;
 				};
 				Relationships: [
@@ -3073,7 +3567,7 @@ export type Database = {
 						foreignKeyName: 'provider_model_pricing_model_id_fkey';
 						columns: ['model_id'];
 						isOneToOne: false;
-						referencedRelation: 'model_pricing_pivot';
+						referencedRelation: 'model_pricing_summary';
 						referencedColumns: ['model_id'];
 					},
 					{
@@ -3188,7 +3682,7 @@ export type Database = {
 						foreignKeyName: 'provider_requests_model_id_fkey';
 						columns: ['model_id'];
 						isOneToOne: false;
-						referencedRelation: 'model_pricing_pivot';
+						referencedRelation: 'model_pricing_summary';
 						referencedColumns: ['model_id'];
 					},
 					{
@@ -3360,7 +3854,7 @@ export type Database = {
 					request_id: string;
 					request_timestamp: string;
 					token_count: number;
-					token_type: Database['abi_llm']['Enums']['token_type'];
+					token_type: string;
 					usage_id: string;
 					user_id: string;
 				};
@@ -3372,7 +3866,7 @@ export type Database = {
 					request_id: string;
 					request_timestamp?: string;
 					token_count: number;
-					token_type: Database['abi_llm']['Enums']['token_type'];
+					token_type: string;
 					usage_id?: string;
 					user_id: string;
 				};
@@ -3384,7 +3878,7 @@ export type Database = {
 					request_id?: string;
 					request_timestamp?: string;
 					token_count?: number;
-					token_type?: Database['abi_llm']['Enums']['token_type'];
+					token_type?: string;
 					usage_id?: string;
 					user_id?: string;
 				};
@@ -3407,7 +3901,7 @@ export type Database = {
 						foreignKeyName: 'token_usage_model_id_fkey';
 						columns: ['model_id'];
 						isOneToOne: false;
-						referencedRelation: 'model_pricing_pivot';
+						referencedRelation: 'model_pricing_summary';
 						referencedColumns: ['model_id'];
 					},
 					{
@@ -3519,7 +4013,7 @@ export type Database = {
 					model_name: string | null;
 					per_million_tokens_cents_usd: number | null;
 					provider_name: string | null;
-					token_type: Database['abi_llm']['Enums']['token_type'] | null;
+					token_type: string | null;
 				};
 				Relationships: [];
 			};
@@ -3535,21 +4029,22 @@ export type Database = {
 				};
 				Relationships: [];
 			};
-			model_pricing_pivot: {
+			model_pricing_summary: {
 				Row: {
-					anthropic_cache_read_per_million_tokens_cents_usd: number | null;
-					anthropic_cache_write_5min_per_million_tokens_cents_usd: number | null;
-					anthropic_cache_write_60min_per_million_tokens_cents_usd:
-						| number
-						| null;
-					input_per_million_tokens_cents_usd: number | null;
+					available_token_types: string[] | null;
+					base_input_price_cents_usd: number | null;
+					base_output_price_cents_usd: number | null;
+					base_thought_price_cents_usd: number | null;
+					combined_metadata: Json | null;
+					has_cache_pricing: boolean | null;
+					has_thought_pricing: boolean | null;
+					has_tiered_pricing: boolean | null;
+					max_price_cents_usd: number | null;
+					min_price_cents_usd: number | null;
 					model_id: string | null;
 					model_name: string | null;
-					openai_batch_input_per_million_tokens_cents_usd: number | null;
-					openai_batch_output_per_million_tokens_cents_usd: number | null;
-					openai_reasoning_per_million_tokens_cents_usd: number | null;
-					output_per_million_tokens_cents_usd: number | null;
 					provider_name: string | null;
+					token_type_count: number | null;
 				};
 				Relationships: [];
 			};
@@ -3559,7 +4054,7 @@ export type Database = {
 					normalized_type: string | null;
 					per_million_tokens_cents_usd: number | null;
 					provider_name: string | null;
-					specific_type: Database['abi_llm']['Enums']['token_type'] | null;
+					specific_type: string | null;
 				};
 				Relationships: [];
 			};
@@ -3578,40 +4073,64 @@ export type Database = {
 			};
 		};
 		Functions: {
-			calculate_token_cost: {
-				Args: {
-					p_token_count: number;
-					p_model_id: string;
-					p_token_type: Database['abi_llm']['Enums']['token_type'];
-				};
-				Returns: number;
+			analyze_token_usage_fallbacks: {
+				Args: { p_check_unbatched?: boolean; p_hours_back?: number };
+				Returns: {
+					affected_users: number;
+					avg_cost_per_token: number;
+					expected_token_pattern: string;
+					fallback_confidence: string;
+					model_name: string;
+					provider_name: string;
+					token_type: string;
+					total_cost_micro_usd: number;
+					total_tokens: number;
+					usage_count: number;
+				}[];
 			};
 			check_usage_alerts: {
 				Args: { p_user_id: string };
 				Returns: undefined;
 			};
+			cron_pricing_validation: {
+				Args: Record<PropertyKey, never>;
+				Returns: undefined;
+			};
+			cron_token_usage_fallback_monitoring: {
+				Args: Record<PropertyKey, never>;
+				Returns: undefined;
+			};
+			detect_tiered_pricing_mismatches: {
+				Args: Record<PropertyKey, never>;
+				Returns: {
+					base_records_only: string[];
+					has_tiered_records: boolean;
+					model_id: string;
+					model_name: string;
+					provider_name: string;
+					supports_tiered_pricing: boolean;
+				}[];
+			};
 			get_cache_cost: {
 				Args: {
-					p_provider: string;
 					p_cache_duration: unknown;
+					p_provider: string;
 					p_tokens: number;
 				};
 				Returns: number;
 			};
+			validate_model_pricing: {
+				Args: Record<PropertyKey, never>;
+				Returns: {
+					missing_types: string[];
+					model_id: string;
+					model_name: string;
+					provider_name: string;
+				}[];
+			};
 		};
 		Enums: {
-			token_type:
-				| 'input'
-				| 'output'
-				| 'cache_read'
-				| 'anthropic_cache_read'
-				| 'anthropic_cache_write_5min'
-				| 'anthropic_cache_write_60min'
-				| 'openai_batch_input'
-				| 'openai_batch_output'
-				| 'openai_reasoning'
-				| 'cohere_rerank'
-				| 'perplexity_search';
+			[_ in never]: never;
 		};
 		CompositeTypes: {
 			[_ in never]: never;
@@ -3753,6 +4272,7 @@ export type Database = {
 					template_description: string | null;
 					template_id: string;
 					template_name: string;
+					template_variables: Json | null;
 					updated_at: string;
 					version: number;
 				};
@@ -3768,6 +4288,7 @@ export type Database = {
 					template_description?: string | null;
 					template_id?: string;
 					template_name: string;
+					template_variables?: Json | null;
 					updated_at?: string;
 					version?: number;
 				};
@@ -3783,6 +4304,7 @@ export type Database = {
 					template_description?: string | null;
 					template_id?: string;
 					template_name?: string;
+					template_variables?: Json | null;
 					updated_at?: string;
 					version?: number;
 				};
@@ -3910,10 +4432,11 @@ export type Database = {
 				Args: Record<PropertyKey, never>;
 				Returns: {
 					email_type_id: string;
-					template_id: string;
-					template_name: string;
 					html_template: string;
 					subject_template: string;
+					template_id: string;
+					template_name: string;
+					template_variables: Json;
 				}[];
 			};
 			get_campaign_recipients: {
@@ -3930,31 +4453,32 @@ export type Database = {
 			get_email_template_data: {
 				Args: { template_name_param: string };
 				Returns: {
+					category: string;
 					default_from_email: string;
+					default_from_name: string;
+					email_type_id: string;
+					html_template: string;
+					standard_variables: string[];
+					subject_template: string;
 					template_id: string;
 					template_name: string;
-					subject_template: string;
-					html_template: string;
-					email_type_id: string;
+					template_variables: Json;
 					type_name: string;
-					category: string;
-					default_from_name: string;
-					standard_variables: string[];
 				}[];
 			};
 			render_email_template: {
 				Args: { template_uuid: string; variables: Json };
 				Returns: {
-					subject: string;
 					html_content: string;
+					subject: string;
 				}[];
 			};
 			send_transactional_email: {
 				Args: {
 					p_template_name: string;
 					p_to_email: string;
-					p_variables?: Json;
 					p_user_id?: string;
+					p_variables?: Json;
 				};
 				Returns: Json;
 			};
@@ -3969,6 +4493,23 @@ export type Database = {
 				| 'delivered'
 				| 'opened'
 				| 'clicked';
+		};
+		CompositeTypes: {
+			[_ in never]: never;
+		};
+	};
+	public: {
+		Tables: {
+			[_ in never]: never;
+		};
+		Views: {
+			[_ in never]: never;
+		};
+		Functions: {
+			[_ in never]: never;
+		};
+		Enums: {
+			[_ in never]: never;
 		};
 		CompositeTypes: {
 			[_ in never]: never;
@@ -4085,6 +4626,9 @@ export type CompositeTypes<
 	: never;
 
 export const Constants = {
+	abi_api: {
+		Enums: {},
+	},
 	abi_auth: {
 		Enums: {},
 	},
@@ -4115,21 +4659,7 @@ export const Constants = {
 		Enums: {},
 	},
 	abi_llm: {
-		Enums: {
-			token_type: [
-				'input',
-				'output',
-				'cache_read',
-				'anthropic_cache_read',
-				'anthropic_cache_write_5min',
-				'anthropic_cache_write_60min',
-				'openai_batch_input',
-				'openai_batch_output',
-				'openai_reasoning',
-				'cohere_rerank',
-				'perplexity_search',
-			],
-		},
+		Enums: {},
 	},
 	abi_marketing: {
 		Enums: {
@@ -4144,5 +4674,8 @@ export const Constants = {
 				'clicked',
 			],
 		},
+	},
+	public: {
+		Enums: {},
 	},
 } as const;

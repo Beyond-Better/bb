@@ -36,6 +36,7 @@ export default class LLMToolMCP extends LLMTool {
 		super(name, description, toolConfig);
 	}
 
+	// deno-lint-ignore require-await
 	override async init() {
 		// Get the MCP manager (this would be replaced with proper injection mechanism)
 		//logger.debug(`LLMToolMCP: Initialized MCP tool ${this.name} for server ${this._serverId}`);
@@ -91,9 +92,9 @@ export default class LLMToolMCP extends LLMTool {
 	}
 
 	async runTool(
-		_interaction: LLMConversationInteraction,
+		interaction: LLMConversationInteraction,
 		toolUse: LLMAnswerToolUse,
-		_projectEditor: ProjectEditor,
+		projectEditor: ProjectEditor,
 	): Promise<LLMToolRunResult> {
 		//const { toolInput } = toolUse;
 
@@ -105,17 +106,26 @@ export default class LLMToolMCP extends LLMTool {
 				this._serverId,
 				this._toolName,
 				toolUse,
+				projectEditor, // Pass project context for sampling support
+				interaction.id, // Pass interaction id for sampling support
 			);
+
+			// Build tool response, appending MCP toolResponse if available
+			let toolResponse = `MCP tool ${this.name} executed successfully`;
+			if (mcpResult.toolResponse) {
+				toolResponse += `: ${mcpResult.toolResponse}`;
+			}
 
 			// Return the actual MCP result as toolResults
 			return {
-				toolResults: mcpResult,
-				toolResponse: `MCP tool ${this.name} executed successfully`,
+				toolResults: mcpResult.content,
+				toolResponse: toolResponse,
 				bbResponse: {
 					data: {
 						toolName: this.name,
 						serverId: this._serverId,
-						result: mcpResult,
+						response: mcpResult.toolResponse,
+						result: mcpResult.content,
 					},
 				},
 			};
