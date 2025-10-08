@@ -147,7 +147,7 @@ export default class ApiClient {
 
 	async listDirectory(dirPath: string, options: { only?: 'files' | 'directories'; matchingString?: string } = {}) {
 		try {
-			const response = await this.post('/api/v1/files/list-directory', {
+			const response = await this.post('/api/v1/resources/list-directory', {
 				dirPath,
 				...options,
 			});

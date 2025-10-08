@@ -33,6 +33,6 @@ export interface LLMToolRenameResourcesResponseData {
 }
 
 export interface LLMToolRenameResourcesResult {
-	toolResult: LLMToolRunResultContent;
+	toolResults: LLMToolRunResultContent;
 	bbResponse: LLMToolRenameResourcesResponseData;
 }

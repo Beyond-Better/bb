@@ -17,6 +17,169 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+## [0.9.10] - 2025-10-04
+
+### Added
+
+- support resource autocomplete suggestions for all datasource types
+- option to exclude datasource from autocomplete suggestions
+- UI controls to filter list of message entries
+- new tool for download_resource
+- support for remote MCP servers
+- support for MCP oAuth
+- support for MCP sampling
+- support for 'best model' selection for sampling requests 
+- foundation for session management - multi-user in API, with auth from bui/cli
+
+### Changed
+
+- updated default model to Claude Sonnet 4.5
+- fetch timeout for bbLLM
+- updated deps for MCP SDK
+- UI for MCP server configs
+
+### Fixed
+
+- reading PDF documents with Claude
+- project/request context in McpManager
+- reconnection for MCP sessions
+
+
+## [0.9.9] - 2025-09-05
+
+### Added
+
+- [saas] Google File Picker for restricted access to drive contents
+- Conversation export and copy to clipboard
+
+### Changed
+
+- filtered instructions for datasources
+- additional datasource instructions for utility tools (rename, remove, etc)
+
+### Fixed
+
+- [saas] file rename for google datasource
+
+
+## [0.9.8] - 2025-08-31
+
+### Added
+
+- [saas] google auth flow in app (dui)
+
+### Changed
+
+
+### Fixed
+
+- searching collaborations
+
+
+## [0.9.7] - 2025-08-30
+
+### Added
+
+- [saas] support for Google Sheets editing
+
+### Changed
+
+- [saas] refactored google datasource for better extensibility
+
+### Fixed
+
+
+## [0.9.6] - 2025-08-17
+
+### Added
+
+- deep research (using new web_search tool)
+
+### Changed
+
+- [saas] google datasource supports resource rename and delete
+- [saas] google datasource supports loading non-doc resources (eg image files)
+- [saas] google and notion datasources support more robust resource searching
+
+### Fixed
+
+- save message history after fatal conversation errors
+- caching for feature access checks
+
+
+## [0.9.5] - 2025-08-14
+
+### Added
+
+- support for pricing tiers for models with large context windows
+- UI feedback for tiers in progress bar
+
+### Changed
+
+- Claude Sonnet uses 1 million token context window
+
+### Fixed
+
+- updated details for capabilities & pricing for Anthropic, Google and OpenAI models
+
+
+## [0.9.4] - 2025-08-12
+
+### Added
+
+- support for Claude Opus 4.1
+- support for ChatGPT 5 (& mini & nano)
+
+### Changed
+
+
+### Fixed
+
+
+## [0.9.3] - 2025-08-12
+
+### Added
+
+- datasource instructions for writeResource content formats
+
+### Changed
+
+- less verbose system prompts (rely on datasource instructions instead)
+
+### Fixed
+
+- [saas] google datasource supports structured content for writeResource tool
+- ensure terminal detachment during app self-update
+- [saas] invalidate stale auth config after updating google auth in BUI
+
+
+## [0.9.2] - 2025-08-11
+
+### Added
+
+
+### Changed
+
+
+### Fixed
+
+- [saas] oAuth flow targets and config
+
+
+## [0.9.1] - 2025-08-10
+
+### Added
+
+
+### Changed
+
+- additional editing instructions for different datasources
+
+### Fixed
+
+- [saas] apply range edits in descending order to avoid index shifting with multiple operations
+
+
 ## [0.9.0] - 2025-08-09
 
 ### Notes
@@ -24,28 +187,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Major Upgrade
 
 Beyond Better now supports both read and write editing for external data sources. Notion and Google Docs
-are currently supported with more providers coming soon. See the "Data Sources" help page to learn how to 
+are currently supported with more providers coming soon [saas]. See the "Data Sources" help page to learn how to 
 add data sources and configure authentication. 
 
 - https://https://beyondbetter.app/docs/datasources
 
 ### Added
 
-
-### Changed
-
-- releases moved to BB storage bucket
-
-
-### Fixed
-
-
-## [0.8.16] - 2025-08-08
-
-### Added
-
-- read/write support for editing Notion documents (saas only)
-- read/write support for editing GoogleDocs documents (saas only)
+- [saas] read/write support for editing Notion documents
+- [saas] read/write support for editing Google documents
 - dynamic loading for third-party datasources
 - integration tests for datasources
 
@@ -54,6 +204,7 @@ add data sources and configure authentication.
 - remaining tools updated to use datasource accessors
 - deprecated searchAndReplace and rewriteResource tools in favour of editResource and writeResource
 - support for contentFormat and editTypes to all resource tools
+- releases moved to BB storage bucket
 
 ### Fixed
 
@@ -754,7 +905,7 @@ location of project config; changes format of storage and configurations; and mo
 
 ### Added
 
-- http/websocket proxy in BUI to work around mixed content warnings in webview
+- http/websocket proxy in DUI to work around mixed content warnings in webview
 - persisting windows size/position
 - dark mode support
 

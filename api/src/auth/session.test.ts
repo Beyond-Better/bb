@@ -1,6 +1,6 @@
 import { assertEquals, assertRejects, assertThrows } from 'testing/asserts.ts';
-import { SessionManager } from './session.ts';
-import { ConfigFetchError } from '../types/auth.ts';
+import { UserAuthSession } from './userAuthSession.ts';
+import { ConfigFetchError } from 'api/types/auth.ts';
 
 // Mock Supabase client
 const mockSession = {
@@ -48,13 +48,13 @@ globalThis.localStorage = {
 	},
 };
 
-Deno.test('SessionManager', async (t) => {
-	let manager: SessionManager;
+Deno.test('UserAuthSession', async (t) => {
+	let manager: UserAuthSession;
 
 	// Setup fresh manager for each test
 	function setupManager() {
 		mockStorage.clear();
-		manager = new SessionManager();
+		manager = new UserAuthSession();
 		return { manager };
 	}
 
@@ -112,7 +112,7 @@ Deno.test('SessionManager', async (t) => {
 		assertThrows(
 			() => manager.getClient(),
 			Error,
-			'SessionManager not initialized',
+			'UserAuthSession not initialized',
 		);
 	});
 
@@ -122,7 +122,7 @@ Deno.test('SessionManager', async (t) => {
 		await assertRejects(
 			() => manager.getSession(),
 			Error,
-			'SessionManager not initialized',
+			'UserAuthSession not initialized',
 		);
 	});
 
@@ -147,7 +147,7 @@ Deno.test('SessionManager', async (t) => {
 		assertThrows(
 			() => manager.getClient(),
 			Error,
-			'SessionManager not initialized',
+			'UserAuthSession not initialized',
 		);
 	});
 

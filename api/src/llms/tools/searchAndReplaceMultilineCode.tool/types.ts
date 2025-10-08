@@ -25,7 +25,7 @@ export interface LLMToolSearchAndReplaceMultilineCodeOperation {
  * Result of a search_and_replace_multiline_code tool operation.
  */
 export interface LLMToolSearchAndReplaceMultilineCodeResult {
-	toolResult: LLMToolRunResultContent;
+	toolResults: LLMToolRunResultContent;
 	bbResponse: string;
 	//bbResponse: {
 	//	data: {

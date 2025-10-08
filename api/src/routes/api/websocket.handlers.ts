@@ -8,7 +8,7 @@ import type { StatementParams } from 'shared/types/collaboration.ts';
 import EventManager from 'shared/eventManager.ts';
 import type { EventMap, EventName } from 'shared/eventManager.ts';
 import { getVersionInfo } from 'shared/version.ts';
-import type { SessionManager } from 'api/auth/session.ts';
+import type { UserContext } from 'shared/types/app.ts';
 import { isError, isLLMError } from 'api/errors/error.ts';
 
 class WebSocketChatHandler {
@@ -23,7 +23,7 @@ class WebSocketChatHandler {
 
 	private readonly LOAD_TIMEOUT = 10000; // 10 seconds timeout for loading collaborations
 
-	handleConnection(ws: WebSocket, collaborationId: CollaborationId, sessionManager: SessionManager) {
+	handleConnection(ws: WebSocket, collaborationId: CollaborationId, userContext: UserContext) {
 		try {
 			// Check if there's an existing connection for this collaboration ID
 			const existingConnection = this.activeConnections.get(collaborationId);
@@ -61,7 +61,7 @@ class WebSocketChatHandler {
 					clearTimeout(loadTimeout);
 
 					const message = JSON.parse(event.data);
-					await this.handleMessage(collaborationId, message, sessionManager);
+					await this.handleMessage(collaborationId, message, userContext);
 				} catch (error) {
 					logger.error(
 						`WebSocketChatHandler: Error handling message for collaborationId: ${collaborationId}:`,
@@ -108,7 +108,7 @@ class WebSocketChatHandler {
 			filesToAttach?: string[]; // Array of file IDs to include in message
 			dataSourceIdForAttach?: string; // Data source to load attached files from
 		},
-		sessionManager: SessionManager,
+		userContext: UserContext,
 	) {
 		try {
 			const {
@@ -122,7 +122,7 @@ class WebSocketChatHandler {
 				dataSourceIdForAttach,
 			} = message;
 			logger.info(`WebSocketChatHandler: handleMessage for collaborationId ${collaborationId}, task: ${task}`);
-			//logger.info('WebSocketChatHandler: sessionManager', sessionManager);
+			//logger.info('WebSocketChatHandler: userAuthSession', userAuthSession);
 
 			if (!projectId) {
 				logger.error(
@@ -139,7 +139,7 @@ class WebSocketChatHandler {
 			const projectEditor = await projectEditorManager.getOrCreateEditor(
 				projectId,
 				collaborationId,
-				sessionManager,
+				userContext,
 			);
 
 			//if (!projectEditor && task !== 'greeting' && task !== 'cancel') {
@@ -442,21 +442,21 @@ const appHandler = new WebSocketAppHandler();
 // Router endpoint handlers
 export const websocketCollaboration = (ctx: Context) => {
 	logger.debug('WebSocketHandler: websocketCollaboration called from router');
-	//logger.info('WebSocketHandler: sessionManager', ctx.app.state.auth.sessionManager);
+	//logger.info('WebSocketHandler: userAuthSession', ctx.state.userContext.userAuthSession);
 
 	try {
 		const { id } = (ctx as RouterContext<'/collaboration/:id', { id: string }>).params;
 		const collaborationId: CollaborationId = id;
-		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
+		const userContext: UserContext = ctx.state.userContext;
 
-		if (!sessionManager) {
+		if (!userContext) {
 			ctx.throw(400, 'No session manager configured');
 		}
 		if (!ctx.isUpgradable) {
 			ctx.throw(400, 'Cannot upgrade to WebSocket');
 		}
 		const ws = ctx.upgrade();
-		chatHandler.handleConnection(ws, collaborationId, sessionManager);
+		chatHandler.handleConnection(ws, collaborationId, userContext);
 		ctx.response.status = 200;
 	} catch (error) {
 		logger.error(`WebSocketHandler: Error in websocketCollaboration: ${(error as Error).message}`, error);

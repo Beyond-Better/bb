@@ -113,6 +113,6 @@ export interface LLMToolRemoveResourcesResponseData {
 }
 
 export interface LLMToolRemoveResourcesResult {
-	toolResult: LLMToolRunResultContent;
+	toolResults: LLMToolRunResultContent;
 	bbResponse: LLMToolRemoveResourcesResponseData;
 }

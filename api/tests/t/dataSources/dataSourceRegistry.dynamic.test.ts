@@ -46,6 +46,23 @@ Deno.test({
 });
 
 Deno.test({
+	name: 'DataSourceRegistry - Dynamic Loading - Conditional loading based on product variant',
+	sanitizeResources: false,
+	sanitizeOps: false,
+	async fn() {
+		const registry = await DataSourceRegistry.getTestInstance('conditional-test');
+		const variant = registry.getProductVariant();
+		const providers = registry.getAllProviders();
+
+		// Filesystem should always be available
+		const filesystemProvider = registry.getProvider('filesystem', 'bb');
+		assert(filesystemProvider, 'Filesystem provider should always be available');
+
+		console.log(`Product variant: ${variant}, Available providers: ${providers.length}`);
+	},
+});
+
+Deno.test({
 	name: 'DataSourceRegistry - Dynamic Loading - Global config integration',
 	sanitizeResources: false,
 	sanitizeOps: false,

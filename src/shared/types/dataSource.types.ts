@@ -5,7 +5,7 @@ export type DataSourceProviderType =
 	| 'filesystem' // Local file system
 	| 'database' // Database connections
 	| 'notion' // Notion workspaces
-	| 'googledocs' // Google Drive
+	| 'google' // Google Drive
 	//| 'supabase' // Supabase projects
 	| 'mcp' // Model Context Protocol servers
 	| string; // Future extensions and MCP types
@@ -59,7 +59,7 @@ export type AcceptedContentType = 'plainTextContent' | 'structuredContent' | 'bi
 /**
  * Edit approach that a data source supports
  */
-export type AcceptedEditType = 'searchReplace' | 'blocks' | 'raqnge' | 'structuredData';
+export type AcceptedEditType = 'searchReplace' | 'blocks' | 'range' | 'cellOperations' | 'structuredData';
 
 /**
  * Primary content type classification for data sources
@@ -116,8 +116,6 @@ export interface DataSourceMetadata {
 	resourceTypes: Record<string, number>;
 	lastScanned: string;
 	filesystem?: DataSourceMetadataFilesystem;
-	notion?: DataSourceMetadataNotion;
-	googledocs?: DataSourceMetadataGoogleDocs;
 }
 
 // Filesystem-specific metadata
@@ -158,30 +156,6 @@ export interface DataSourceMetadataFilesystem {
 	};
 }
 
-// Notion-specific metadata
-export interface DataSourceMetadataNotion {
-	totalPages: number;
-	totalDatabases: number;
-	pageTypes: Record<string, number>; // e.g., { 'database': 5, 'page': 25 }
-	workspaceInfo?: {
-		name: string;
-		id: string;
-	};
-}
-
-// GoogleDocs-specific metadata
-export interface DataSourceMetadataGoogleDocs {
-	totalDocuments: number;
-	folderId?: string;
-	driveId?: string;
-
-	documentTypes?: Record<string, number>; // e.g., { 'text': 5, 'spreadsheet': 25 }
-	workspaceInfo?: {
-		name: string;
-		id: string;
-	};
-}
-
 /**
  * Access method for data sources - critical architectural distinction
  * How BB accesses the data source
@@ -198,11 +172,13 @@ export type DataSourceEditCapability =
 	| 'searchReplaceOperations'
 	| 'rangeOperations'
 	| 'blockOperations'
+	| 'cellOperations'
 	| 'textFormatting'
 	| 'paragraphFormatting'
 	| 'tables'
 	| 'colors'
-	| 'fonts';
+	| 'fonts'
+	| 'formulas';
 export type DataSourceSearchCapability =
 	| 'textSearch'
 	| 'regexSearch'
@@ -260,4 +236,50 @@ export interface DataSourceAuth {
 export interface MCPConfig {
 	serverId: string; // ID of the MCP server
 	description?: string; // Optional description
+}
+
+// =============================================================================
+// DATASOURCE CONFIGURATION TYPES
+// =============================================================================
+
+/**
+ * Structured configuration interface for data sources
+ * Provides organized, extensible config sections while maintaining backward compatibility
+ */
+export interface DataSourceConfig {
+	/** Resource suggestion behavior */
+	suggestions?: {
+		enabled?: boolean; // Master toggle for suggestions (default: true)
+		maxDepth?: number; // Search depth limit
+		maxResults?: number; // Result count limit
+		searchPatterns?: string[]; // Include patterns
+		excludePatterns?: string[]; // Exclude patterns
+		followSymlinks?: boolean; // For filesystem types
+		caseSensitive?: boolean; // Search behavior
+	};
+
+	/** UI and user experience settings */
+	ui?: {
+		displayOrder?: number; // Custom ordering in UI lists
+		hideFromLists?: boolean; // Hide from certain UI lists
+		customIcon?: string; // Custom icon identifier
+	};
+
+	/** Feature toggles and capabilities */
+	features?: {
+		disabledFeatures?: string[]; // ['search', 'write', 'delete']
+		experimentalFeatures?: string[];
+		readOnly?: boolean;
+		requireConfirmation?: string[]; // Operations requiring confirmation
+	};
+
+	// === PROVIDER-SPECIFIC CONFIGURATION ===
+	// These maintain backward compatibility with existing flat config keys
+
+	// Filesystem provider
+	dataSourceRoot?: string; // filesystem
+	strictRoot?: boolean; // filesystem
+
+	// Allow additional provider-specific config
+	[key: string]: unknown;
 }

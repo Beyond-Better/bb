@@ -2,6 +2,21 @@ import { FreshContext, MiddlewareHandlerContext } from '$fresh/server.ts';
 import { FreshAppState } from 'bui/types/state.ts'; // Augment Fresh context state types
 
 export async function handler(req: Request, ctx: MiddlewareHandlerContext<FreshAppState>) {
+	if (req.method == 'OPTIONS') {
+		const resp = new Response(null, {
+			status: 204,
+		});
+		const origin = req.headers.get('Origin') || '*';
+		const headers = resp.headers;
+		headers.set('Access-Control-Allow-Origin', origin);
+		headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS, GET, PUT, DELETE');
+		headers.set(
+			'Access-Control-Allow-Headers',
+			'Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With',
+		);
+		headers.set('Access-Control-Allow-Credentials', 'true');
+		return resp;
+	}
 	const origin = req.headers.get('Origin') || '*';
 	const resp = await ctx.next();
 	const headers = resp.headers;

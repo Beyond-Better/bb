@@ -6,7 +6,7 @@ import { fireEvent, render } from '@testing-library/preact';
 
 describe('ChatInput', () => {
 	const mockApiClient = {
-		suggestFiles: stub().resolves({
+		suggestResources: stub().resolves({
 			suggestions: [
 				{ path: 'docs/README.md', isDirectory: false },
 				{ path: 'docs/API.md', isDirectory: false },
@@ -31,7 +31,7 @@ describe('ChatInput', () => {
 	describe('File Suggestions', () => {
 		it('should show suggestions when Tab is pressed without a path separator', async () => {
 			const onChange = stub();
-			mockApiClient.suggestFiles.resolves({
+			mockApiClient.suggestResources.resolves({
 				suggestions: [
 					{ path: 'docs/README.md', isDirectory: false },
 					{ path: 'docs/API.md', isDirectory: false },
@@ -51,9 +51,9 @@ describe('ChatInput', () => {
 			await fireEvent.keyDown(textarea, { key: 'Tab' });
 
 			// Verify suggestions were requested
-			assertSpyCalls(mockApiClient.suggestFiles, 1);
+			assertSpyCalls(mockApiClient.suggestResources, 1);
 			assertEquals(
-				mockApiClient.suggestFiles.calls[0].args,
+				mockApiClient.suggestResources.calls[0].args,
 				['docs', '/test/project'],
 			);
 
@@ -64,7 +64,7 @@ describe('ChatInput', () => {
 
 		it('should show suggestions when slash is typed', async () => {
 			const onChange = stub();
-			mockApiClient.suggestFiles.resolves({
+			mockApiClient.suggestResources.resolves({
 				suggestions: [
 					{ path: 'src/', isDirectory: true },
 					{ path: 'docs/', isDirectory: true },
@@ -84,9 +84,9 @@ describe('ChatInput', () => {
 			await fireEvent.input(textarea, { target: { value: '/' } });
 
 			// Verify suggestions were requested
-			assertSpyCalls(mockApiClient.suggestFiles, 1);
+			assertSpyCalls(mockApiClient.suggestResources, 1);
 			assertEquals(
-				mockApiClient.suggestFiles.calls[0].args,
+				mockApiClient.suggestResources.calls[0].args,
 				['/', '/test/project'],
 			);
 
@@ -97,7 +97,7 @@ describe('ChatInput', () => {
 
 		it('should auto-select single suggestion when tab triggered', async () => {
 			const onChange = stub();
-			mockApiClient.suggestFiles.resolves({
+			mockApiClient.suggestResources.resolves({
 				suggestions: [
 					{ path: 'docs/README.md', isDirectory: false },
 				],
@@ -128,7 +128,7 @@ describe('ChatInput', () => {
 
 		it('should handle keyboard navigation of suggestions', async () => {
 			const onChange = stub();
-			mockApiClient.suggestFiles.resolves({
+			mockApiClient.suggestResources.resolves({
 				suggestions: [
 					{ path: 'docs/README.md', isDirectory: false },
 					{ path: 'docs/API.md', isDirectory: false },
@@ -164,7 +164,7 @@ describe('ChatInput', () => {
 		});
 
 		it('should handle escape to close suggestions', async () => {
-			mockApiClient.suggestFiles.resolves({
+			mockApiClient.suggestResources.resolves({
 				suggestions: [
 					{ path: 'docs/README.md', isDirectory: false },
 					{ path: 'docs/API.md', isDirectory: false },

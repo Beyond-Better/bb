@@ -1,20 +1,6 @@
-import { IS_BROWSER } from '$fresh/runtime.ts';
+//import { IS_BROWSER } from '$fresh/runtime.ts';
 
-export function isDuiEnvironment(forUrl?: string): boolean {
-	// Check if running in a Tauri environment using multiple detection methods
-	const hasTauriGlobals = typeof (globalThis as any).__TAURI_INTERNALS__ !== 'undefined';
-	const hasTauriPlatform = typeof globalThis.location !== 'undefined' &&
-		(globalThis.location.hash.includes('platform=dui') || globalThis.location.hash.includes('platform=tauri'));
-	//console.log('[DOWNLOAD HELPER] isDuiEnvironment', {
-	//	hasTauriGlobals,
-	//	hasTauriPlatform,
-	//	location: globalThis.location,
-	//	forUrl,
-	//});
-
-	// Check if running in a DUI environment using the platform parameter method
-	return (hasTauriGlobals || hasTauriPlatform);
-}
+import { isDuiEnvironment } from './environmentHelper.utils.ts';
 
 /**
  * Utility function to generate appropriate download URLs based on the environment.

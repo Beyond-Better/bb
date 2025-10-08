@@ -9,3 +9,4 @@ export type SupabaseClientLlm = SupabaseClientWithSchema<'abi_llm'>;
 export type SupabaseClientAuth = SupabaseClientWithSchema<'abi_auth'>;
 export type SupabaseClientCore = SupabaseClientWithSchema<'abi_core'>;
 export type SupabaseClientMarketing = SupabaseClientWithSchema<'abi_marketing'>;
+export type SupabaseClientPublic = SupabaseClientWithSchema<'public'>;

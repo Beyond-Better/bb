@@ -17,6 +17,8 @@ import { createError, ErrorType } from 'api/utils/error.ts';
 import type { DataSourceHandlingErrorOptions, ToolHandlingErrorOptions } from 'api/errors/error.ts';
 import { isResourceNotFoundError } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
+import { checkDatasourceAccess } from 'api/utils/featureAccess.ts';
+import { enhanceDatasourceError } from '../../../utils/datasourceErrorEnhancement.ts';
 
 export default class LLMToolRenameResources extends LLMTool {
 	get inputSchema(): LLMToolInputSchema {
@@ -26,7 +28,7 @@ export default class LLMToolRenameResources extends LLMTool {
 				dataSourceId: {
 					type: 'string',
 					description:
-						"Data source ID to operate on. Defaults to the primary data source if omitted. Examples: 'primary', 'filesystem-1', 'db-staging'. Data sources are identified by their name (e.g., 'primary', 'local-2', 'supabase').",
+						"Data source ID to operate on. Defaults to the primary data source if omitted. Examples: 'primary', 'filesystem-1', 'db-staging'. Data sources are identified by their name (e.g., 'primary', 'local-2', 'supabase'). **IMPORTANT: Different data sources have different path format requirements - use loadDataSource with returnType='instructions' and operations=['utility'] or ['rename'] to get provider-specific rename guidance before using this tool.**",
 				},
 				operations: {
 					type: 'array',
@@ -46,26 +48,34 @@ export default class LLMToolRenameResources extends LLMTool {
 						},
 						required: ['source', 'destination'],
 					},
-					description: `Array of rename operations to perform. Important considerations:
+					description:
+						`Array of rename operations to perform. **CRITICAL: Path format requirements vary by data source provider - load provider instructions first.**
 
-1. Path Requirements:
+1. **Provider-Specific Path Requirements**:
+   * **Filesystem**: Standard relative paths like "src/file.ts", "tests/directory"
+   * **Google**: Logical paths like "document/my-file", "spreadsheet/budget-2024"
+   * **Notion**: Page paths like "page/meeting-notes", "database/project-tracker"
+   * **Other providers**: Check provider documentation for specific formats
+
+2. **General Path Requirements**:
    * All paths must be relative to data source root
    * Both source and destination must be within data source
    * Source must exist (unless overwrite is true)
    * Parent directories in destination path must exist (unless createMissingDirectories is true)
 
-2. Common Rename Patterns:
+3. **Common Rename Patterns**:
    * File extension update: "file.js" -> "file.ts"
    * Name convention change: "oldName.ts" -> "new-name.ts"
    * Directory restructure: "old/path/file.ts" -> "new/path/file.ts"
 
-3. Safety Considerations:
+4. **Safety Considerations**:
+   * **ALWAYS load provider instructions first** using loadDataSource
    * Check for existing resources at destination
    * Consider impact on imports and references
    * Batch related renames together
    * Use overwrite with caution
 
-4. Examples of Batch Operations:
+5. **Examples of Batch Operations**:
    * Rename resource and its test:
      [
        { source: "src/handler.ts", destination: "src/processor.ts" },
@@ -74,7 +84,9 @@ export default class LLMToolRenameResources extends LLMTool {
    * Move directory with contents:
      [
        { source: "old/config", destination: "new/config" }
-     ]`,
+     ]
+
+**🚨 WORKFLOW REMINDER**: Use \`loadDataSource\` with \`returnType='instructions'\` and \`operations=['rename']\` or \`operations=['utility']\` to get detailed, provider-specific path format requirements and rename workflows before using this tool.`,
 				},
 				overwrite: {
 					type: 'boolean',
@@ -142,6 +154,23 @@ export default class LLMToolRenameResources extends LLMTool {
 			} as DataSourceHandlingErrorOptions);
 		}
 
+		// Check datasource write access
+		const hasWriteAccess = await checkDatasourceAccess(
+			projectEditor.userContext,
+			dsConnectionToUse.providerType,
+			'write',
+		);
+		if (!hasWriteAccess) {
+			throw createError(
+				ErrorType.ToolHandling,
+				'Datasource write access not available on your current plan',
+				{
+					toolName: 'rename_resources',
+					operation: 'capability-check',
+				} as ToolHandlingErrorOptions,
+			);
+		}
+
 		// [TODO] check that dsConnectionToUse is type filesystem
 
 		const resourceAccessor = await dsConnectionToUse.getResourceAccessor();
@@ -161,19 +190,46 @@ export default class LLMToolRenameResources extends LLMTool {
 			for (const { source, destination } of operations) {
 				const sourceResourceUri = dsConnectionToUse.getUriForResource(`file:./${source}`);
 				const destinationResourceUri = dsConnectionToUse.getUriForResource(`file:./${destination}`);
-				if (
-					!await dsConnectionToUse.isResourceWithinDataSource(sourceResourceUri) ||
-					!await dsConnectionToUse.isResourceWithinDataSource(destinationResourceUri)
-				) {
+				logger.debug(`LLMToolRenameResources: Renaming operation`, {
+					source,
+					destination,
+					sourceResourceUri,
+					destinationResourceUri,
+					dataSourceType: dsConnectionToUse.providerType,
+				});
+
+				// Check source resource validation
+				const sourceValid = await dsConnectionToUse.isResourceWithinDataSource(sourceResourceUri);
+				const destinationValid = await dsConnectionToUse.isResourceWithinDataSource(destinationResourceUri);
+
+				if (!sourceValid || !destinationValid) {
+					let errorMessage = 'Source or destination path is outside the data source';
+					if (!sourceValid && !destinationValid) {
+						errorMessage =
+							`Invalid URI format for both source (${source}) and destination (${destination})`;
+					} else if (!sourceValid) {
+						errorMessage = `Invalid URI format for source path: ${source}`;
+					} else {
+						errorMessage = `Invalid URI format for destination path: ${destination}`;
+					}
+
+					// Enhance error message with datasource-specific guidance
+					const enhancedErrorMessage = enhanceDatasourceError(
+						errorMessage,
+						dsConnectionToUse.provider,
+						'rename',
+						source, // resource path for context
+						interaction,
+					);
+
 					toolResultContentParts.push({
 						type: 'text',
-						text:
-							`Error renaming resource ${source}: Source or destination path is outside the data source`,
+						text: `Error renaming resource ${source}: ${enhancedErrorMessage}`,
 					} as LLMMessageContentPartTextBlock);
 					renamedError.push({
 						source,
 						destination,
-						error: 'Source or destination path is outside the data source.',
+						error: enhancedErrorMessage,
 					});
 					continue;
 				}

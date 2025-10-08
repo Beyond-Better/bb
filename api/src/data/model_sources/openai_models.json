@@ -1,9 +1,186 @@
 {
-	"lastUpdated": "2025-06-04T04:30:00.000Z",
-	"source": "Official OpenAI documentation research",
+	"lastUpdated": "2025-08-13T03:49:00.000Z",
+	"source": "Official OpenAI documentation research - Updated pricing and cache structure for all models",
 	"pricingUnit": "per_1M_tokens",
-	"notes": "All pricing verified from official OpenAI docs as of June 2025. Reasoning models charge for reasoning tokens. Batch API offers 50% savings. Cache pricing applies to prompt caching feature.",
+	"notes": "All pricing verified from official OpenAI docs as of August 2025. GPT-5, GPT-4.1, o3, and o4-mini models now available. Updated cache pricing structure to new format. Batch API offers 50% savings. Realtime API has separate pricing for audio vs text tokens.",
 	"models": [
+		{
+			"modelId": "gpt-5-2025-08-07",
+			"alias": "gpt-5",
+			"displayName": "GPT-5",
+			"family": "GPT-5",
+			"contextWindow": 400000,
+			"maxOutputTokens": 128000,
+			"pricing": {
+				"inputTokens": {
+					"basePrice": 1.25,
+					"cacheTypes": {
+						"read": {
+							"description": "Prompt cache read operations",
+							"inheritsTiers": false,
+							"multiplier": 0.1,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 0.125 }
+								]
+							}
+						}
+					}
+				},
+				"outputTokens": {
+					"basePrice": 10.00
+				},
+				"thoughtTokens": {
+					"basePrice": 10.00,
+					"description": "Tokens used for extended thinking operations"
+				},
+				"currency": "USD",
+				"effectiveDate": "2025-08-13"
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": true,
+				"promptCaching": true,
+				"extendedThinking": true
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 32768,
+				"extendedThinking": false
+			},
+			"constraints": {
+				"temperature": { "min": 0.0, "max": 2.0 }
+			},
+			"systemPromptBehavior": "optional",
+			"trainingCutoff": "2024-09-30",
+			"releaseDate": "2025-08-07",
+			"responseSpeed": "medium",
+			"cost": "very-high",
+			"intelligence": "very-high",
+			"modality": "text-and-vision",
+			"description": "Flagship model for coding, reasoning, and agentic tasks across domains",
+			"deprecated": false
+		},
+		{
+			"modelId": "gpt-5-mini-2025-08-07",
+			"alias": "gpt-5-mini",
+			"displayName": "GPT-5 Mini",
+			"family": "GPT-5",
+			"contextWindow": 400000,
+			"maxOutputTokens": 128000,
+			"pricing": {
+				"inputTokens": {
+					"basePrice": 0.25,
+					"cacheTypes": {
+						"read": {
+							"description": "Prompt cache read operations",
+							"inheritsTiers": false,
+							"multiplier": 0.1,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 0.025 }
+								]
+							}
+						}
+					}
+				},
+				"outputTokens": {
+					"basePrice": 2.00
+				},
+				"thoughtTokens": {
+					"basePrice": 2.00,
+					"description": "Tokens used for extended thinking operations"
+				},
+				"currency": "USD",
+				"effectiveDate": "2025-08-13"
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": true,
+				"promptCaching": true,
+				"extendedThinking": true
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 32768,
+				"extendedThinking": false
+			},
+			"constraints": {
+				"temperature": { "min": 0.0, "max": 2.0 }
+			},
+			"systemPromptBehavior": "optional",
+			"trainingCutoff": "2024-05-31",
+			"releaseDate": "2025-08-07",
+			"responseSpeed": "fast",
+			"cost": "medium",
+			"intelligence": "high",
+			"modality": "text-and-vision",
+			"description": "Faster, more cost-efficient version of GPT-5 for well-defined tasks",
+			"deprecated": false
+		},
+		{
+			"modelId": "gpt-5-nano-2025-08-07",
+			"alias": "gpt-5-nano",
+			"displayName": "GPT-5 Nano",
+			"family": "GPT-5",
+			"contextWindow": 400000,
+			"maxOutputTokens": 128000,
+			"pricing": {
+				"inputTokens": {
+					"basePrice": 0.05,
+					"cacheTypes": {
+						"read": {
+							"description": "Prompt cache read operations",
+							"inheritsTiers": false,
+							"multiplier": 0.1,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 0.005 }
+								]
+							}
+						}
+					}
+				},
+				"outputTokens": {
+					"basePrice": 0.40
+				},
+				"thoughtTokens": {
+					"basePrice": 0.40,
+					"description": "Tokens used for extended thinking operations"
+				},
+				"currency": "USD",
+				"effectiveDate": "2025-08-13"
+			},
+			"supportedFeatures": {
+				"functionCalling": true,
+				"json": true,
+				"streaming": true,
+				"vision": true,
+				"promptCaching": true,
+				"extendedThinking": true
+			},
+			"defaults": {
+				"temperature": 0.7,
+				"maxTokens": 32768,
+				"extendedThinking": false
+			},
+			"constraints": {
+				"temperature": { "min": 0.0, "max": 2.0 }
+			},
+			"systemPromptBehavior": "optional",
+			"trainingCutoff": "2024-05-31",
+			"releaseDate": "2025-08-07",
+			"responseSpeed": "very fast",
+			"cost": "low",
+			"intelligence": "medium",
+			"modality": "text-and-vision",
+			"description": "Fastest, cheapest version of GPT-5 for summarization and classification tasks",
+			"deprecated": false
+		},
 		{
 			"modelId": "gpt-4.1",
 			"displayName": "GPT-4.1",
@@ -13,13 +190,24 @@
 			"pricing": {
 				"inputTokens": {
 					"basePrice": 2.00,
-					"cachedPrice": 0.50
+					"cacheTypes": {
+						"read": {
+							"description": "Prompt cache read operations",
+							"inheritsTiers": false,
+							"multiplier": 0.25,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 0.50 }
+								]
+							}
+						}
+					}
 				},
 				"outputTokens": {
 					"basePrice": 8.00
 				},
 				"currency": "USD",
-				"effectiveDate": "2025-04-14"
+				"effectiveDate": "2025-08-13"
 			},
 			"supportedFeatures": {
 				"functionCalling": true,
@@ -55,13 +243,24 @@
 			"pricing": {
 				"inputTokens": {
 					"basePrice": 0.40,
-					"cachedPrice": 0.10
+					"cacheTypes": {
+						"read": {
+							"description": "Prompt cache read operations",
+							"inheritsTiers": false,
+							"multiplier": 0.25,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 0.10 }
+								]
+							}
+						}
+					}
 				},
 				"outputTokens": {
 					"basePrice": 1.60
 				},
 				"currency": "USD",
-				"effectiveDate": "2025-04-14"
+				"effectiveDate": "2025-08-13"
 			},
 			"supportedFeatures": {
 				"functionCalling": true,
@@ -97,13 +296,24 @@
 			"pricing": {
 				"inputTokens": {
 					"basePrice": 0.10,
-					"cachedPrice": 0.025
+					"cacheTypes": {
+						"read": {
+							"description": "Prompt cache read operations",
+							"inheritsTiers": false,
+							"multiplier": 0.25,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 0.025 }
+								]
+							}
+						}
+					}
 				},
 				"outputTokens": {
 					"basePrice": 0.40
 				},
 				"currency": "USD",
-				"effectiveDate": "2025-04-14"
+				"effectiveDate": "2025-08-13"
 			},
 			"supportedFeatures": {
 				"functionCalling": true,
@@ -138,14 +348,47 @@
 			"maxOutputTokens": 16384,
 			"pricing": {
 				"inputTokens": {
-					"basePrice": 2.50,
-					"cachedPrice": 1.25
+					"basePrice": 5.00,
+					"cacheTypes": {
+						"read": {
+							"description": "Prompt cache read operations",
+							"inheritsTiers": false,
+							"multiplier": 0.5,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 2.50 }
+								]
+							}
+						}
+					},
+					"contentTypes": {
+						"text": { "multiplier": 1.0 },
+						"audio": {
+							"multiplier": 8.0,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 40.00 }
+								]
+							}
+						}
+					}
 				},
 				"outputTokens": {
-					"basePrice": 10.00
+					"basePrice": 20.00,
+					"contentTypes": {
+						"text": { "multiplier": 1.0 },
+						"audio": {
+							"multiplier": 4.0,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 80.00 }
+								]
+							}
+						}
+					}
 				},
 				"currency": "USD",
-				"effectiveDate": "2024-05-13"
+				"effectiveDate": "2025-08-13"
 			},
 			"supportedFeatures": {
 				"functionCalling": true,
@@ -180,14 +423,47 @@
 			"maxOutputTokens": 16384,
 			"pricing": {
 				"inputTokens": {
-					"basePrice": 0.15,
-					"cachedPrice": 0.075
+					"basePrice": 0.60,
+					"cacheTypes": {
+						"read": {
+							"description": "Prompt cache read operations",
+							"inheritsTiers": false,
+							"multiplier": 0.5,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 0.30 }
+								]
+							}
+						}
+					},
+					"contentTypes": {
+						"text": { "multiplier": 1.0 },
+						"audio": {
+							"multiplier": 16.67,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 10.00 }
+								]
+							}
+						}
+					}
 				},
 				"outputTokens": {
-					"basePrice": 0.60
+					"basePrice": 2.40,
+					"contentTypes": {
+						"text": { "multiplier": 1.0 },
+						"audio": {
+							"multiplier": 8.33,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 20.00 }
+								]
+							}
+						}
+					}
 				},
 				"currency": "USD",
-				"effectiveDate": "2024-07-18"
+				"effectiveDate": "2025-08-13"
 			},
 			"supportedFeatures": {
 				"functionCalling": true,
@@ -223,13 +499,28 @@
 			"pricing": {
 				"inputTokens": {
 					"basePrice": 10.00,
-					"cachedPrice": 2.50
+					"cacheTypes": {
+						"read": {
+							"description": "Prompt cache read operations",
+							"inheritsTiers": false,
+							"multiplier": 0.25,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 2.50 }
+								]
+							}
+						}
+					}
 				},
 				"outputTokens": {
 					"basePrice": 40.00
 				},
+				"thoughtTokens": {
+					"basePrice": 40.00,
+					"description": "Tokens used for reasoning/thinking operations"
+				},
 				"currency": "USD",
-				"effectiveDate": "2025-04-16"
+				"effectiveDate": "2025-08-13"
 			},
 			"supportedFeatures": {
 				"functionCalling": true,
@@ -265,13 +556,28 @@
 			"pricing": {
 				"inputTokens": {
 					"basePrice": 1.10,
-					"cachedPrice": 0.275
+					"cacheTypes": {
+						"read": {
+							"description": "Prompt cache read operations",
+							"inheritsTiers": false,
+							"multiplier": 0.25,
+							"explicitPricing": {
+								"tiers": [
+									{ "tier": 0, "price": 0.275 }
+								]
+							}
+						}
+					}
 				},
 				"outputTokens": {
 					"basePrice": 4.40
 				},
+				"thoughtTokens": {
+					"basePrice": 4.40,
+					"description": "Tokens used for reasoning/thinking operations"
+				},
 				"currency": "USD",
-				"effectiveDate": "2025-04-16"
+				"effectiveDate": "2025-08-13"
 			},
 			"supportedFeatures": {
 				"functionCalling": true,

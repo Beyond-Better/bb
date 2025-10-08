@@ -8,7 +8,7 @@
  */
 
 import { IS_BROWSER } from '$fresh/runtime.ts';
-import { isDuiEnvironment } from 'shared/externalLinkHelper.ts';
+import { isDuiEnvironment } from 'shared/environmentHelper.ts';
 
 export interface NotificationOptions {
 	title: string;

@@ -24,6 +24,6 @@ export interface LLMToolMoveResourcesResponseData {
 }
 
 export interface LLMToolMoveResourcesResult {
-	toolResult: LLMToolRunResultContent;
+	toolResults: LLMToolRunResultContent;
 	bbResponse: LLMToolMoveResourcesResponseData;
 }

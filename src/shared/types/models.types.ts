@@ -11,8 +11,8 @@ export interface DefaultModelsPartial {
 }
 
 export const DefaultModelsConfigDefaults: Readonly<DefaultModels> = {
-	orchestrator: 'claude-sonnet-4-20250514',
-	agent: 'claude-sonnet-4-20250514',
+	orchestrator: 'claude-sonnet-4-5-20250929',
+	agent: 'claude-sonnet-4-5-20250929',
 	chat: 'claude-3-5-haiku-20241022',
 };
 
@@ -28,26 +28,19 @@ export const DefaultModelsConfigDefaults: Readonly<DefaultModels> = {
  */
 
 /**
- * Token types for LLM pricing - must match abi_llm.token_type ENUM in database
+ * Token types for LLM pricing - dynamic string type supporting tiered pricing
  *
- * @see abi/supabase/migrations/20250604220505_create_llm_tables.sql
+ * The tiered pricing system generates dynamic token types based on:
+ * - Base types: 'input', 'output', 'thought'
+ * - Tier suffixes: '_tier0', '_tier1', '_tier2', etc.
+ * - Cache prefixes: 'cache_read', 'cache_write_time1', etc.
+ * - Content types: 'audio', 'image', 'video', etc.
+ *
+ * Examples: 'input_tier1', 'cache_read_tier0', 'output_image_tier1', 'thought'
+ *
+ * @see abi/supabase/migrations/20250813120000_create_pricing_validation_functions.sql
  */
-export type TokenTypeEnum =
-	// Universal types (all providers)
-	| 'input'
-	| 'output'
-	| 'cache_read'
-	// Anthropic-specific
-	| 'anthropic_cache_read'
-	| 'anthropic_cache_write_5min'
-	| 'anthropic_cache_write_60min'
-	// OpenAI-specific
-	| 'openai_batch_input'
-	| 'openai_batch_output'
-	| 'openai_reasoning'
-	// Other providers
-	| 'cohere_rerank'
-	| 'perplexity_search';
+export type TokenTypeEnum = string; // Dynamic token type strings
 
 /**
  * Dynamic token pricing structure

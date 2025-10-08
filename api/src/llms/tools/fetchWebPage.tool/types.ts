@@ -16,6 +16,6 @@ export interface LLMToolFetchWebPageResponseData {
 }
 
 export interface LLMToolFetchWebPageResult {
-	toolResult: LLMToolRunResultContent;
+	toolResults: LLMToolRunResultContent;
 	bbResponse: LLMToolFetchWebPageResponseData;
 }

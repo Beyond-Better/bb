@@ -1,18 +1,26 @@
 import { JSX } from 'preact';
 import { useCallback, useState } from 'preact/hooks';
 import { MessageEntry } from './MessageEntry.tsx';
-import type { CollaborationLogDataEntry, ProjectId } from 'shared/types.ts';
-import type { ApiClient } from '../utils/apiClient.utils.ts';
+import type { CollaborationLogDataEntry, CollaborationLogEntry, ProjectId } from 'shared/types.ts';
+import type { ApiClient, LogEntryFormatResponse } from '../utils/apiClient.utils.ts';
 import { getInitialCollapseState, saveCollapseState } from '../utils/messageUtils.utils.tsx';
+import type { ProjectConfig } from 'shared/config/types.ts';
+import type { LogEntryFilterState } from '../types/logEntryFilter.types.ts';
 
 interface MessageEntryAgentTaskGroupProps {
 	entries: CollaborationLogDataEntry[];
 	parentEntry: CollaborationLogDataEntry;
 	parentIndex: number;
-	onCopy: (text: string) => void;
+	onCopy: (text: string, html?: string, toastMessage?: string) => void;
+	onFormattedLogEntry: (
+		logEntry: CollaborationLogEntry,
+		formattedLogEntry: LogEntryFormatResponse['formattedResult'],
+	) => void;
 	apiClient: ApiClient;
 	projectId: ProjectId;
 	collaborationId: string;
+	projectConfig?: ProjectConfig | null; // Project configuration
+	filterState?: LogEntryFilterState; // Filter state for nested entries
 }
 
 export function MessageEntryAgentTaskGroup({
@@ -20,9 +28,12 @@ export function MessageEntryAgentTaskGroup({
 	parentEntry: _parentEntry,
 	parentIndex,
 	onCopy,
+	onFormattedLogEntry,
 	apiClient,
 	projectId,
 	collaborationId,
+	projectConfig,
+	filterState,
 }: MessageEntryAgentTaskGroupProps): JSX.Element {
 	const agentInteractionId = entries.length > 0 ? entries[0].agentInteractionId : null;
 
@@ -137,9 +148,12 @@ export function MessageEntryAgentTaskGroup({
 							logDataEntry={entry}
 							index={parentIndex * 1000 + idx} // Use a composite index to avoid conflicts
 							onCopy={onCopy}
+							onFormattedLogEntry={onFormattedLogEntry}
 							apiClient={apiClient}
 							projectId={projectId}
 							collaborationId={collaborationId}
+							projectConfig={projectConfig}
+							filterState={filterState}
 						/>
 					))}
 				</div>

@@ -1,11 +1,7 @@
 import { JSX } from 'preact';
 import { useCallback, useEffect, useState } from 'preact/hooks';
 import { ApiClient } from '../utils/apiClient.utils.ts';
-import type {
-	CollaborationLogDataEntry,
-	//CollaborationLogEntry
-	ProjectId,
-} from 'shared/types.ts';
+import type { CollaborationLogDataEntry, CollaborationLogEntry, ProjectId } from 'shared/types.ts';
 import type { LogEntryFormatResponse } from '../utils/apiClient.utils.ts';
 import { getDefaultTokenUsage, logDataEntryHasChildren, logDataEntryHasLogEntry } from '../utils/typeGuards.utils.ts';
 import { marked } from 'marked';
@@ -19,14 +15,23 @@ import {
 	messageStyles,
 	saveCollapseState,
 } from '../utils/messageUtils.utils.tsx';
+import type { ProjectConfig } from 'shared/config/types.ts';
+import type { LogEntryFilterState } from '../types/logEntryFilter.types.ts';
+import { getVisibleAgentChildCount } from '../utils/logEntryFilterState.utils.ts';
 
 interface MessageEntryProps {
 	logDataEntry: CollaborationLogDataEntry;
 	index: number;
-	onCopy: (text: string) => void;
+	onCopy: (text: string, html?: string, toastMessage?: string) => void;
+	onFormattedLogEntry: (
+		logEntry: CollaborationLogEntry,
+		formattedLogEntry: LogEntryFormatResponse['formattedResult'],
+	) => void;
 	apiClient: ApiClient;
 	projectId: ProjectId;
 	collaborationId: string;
+	projectConfig?: ProjectConfig | null; // Project configuration
+	filterState?: LogEntryFilterState; // Filter state for agent children
 }
 
 marked.setOptions({
@@ -60,11 +65,15 @@ export function MessageEntry({
 	logDataEntry,
 	index,
 	onCopy,
+	onFormattedLogEntry,
 	apiClient,
 	projectId,
 	collaborationId,
+	projectConfig,
+	filterState,
 }: MessageEntryProps & { allEntries?: CollaborationLogDataEntry[] }): JSX.Element {
 	const [showToast, setShowToast] = useState(false);
+	//const [isLoading, setIsLoading] = useState(false);
 	const [isExpanded, setIsExpanded] = useState(() =>
 		getInitialCollapseState(
 			collaborationId,
@@ -80,6 +89,7 @@ export function MessageEntry({
 	useEffect(() => {
 		const fetchFormatted = async () => {
 			if (!logDataEntryHasLogEntry(logDataEntry)) return;
+			//setIsLoading(true);
 
 			try {
 				const response = await apiClient.formatLogEntry(
@@ -89,10 +99,13 @@ export function MessageEntry({
 					collaborationId,
 				);
 				if (response) {
+					onFormattedLogEntry(logDataEntry.logEntry, response.formattedResult);
 					setFormatted(response);
 				}
 			} catch (error) {
 				console.error('Error fetching formatted entry:', error);
+			} finally {
+				// setIsLoading(false);
 			}
 		};
 
@@ -441,6 +454,11 @@ export function MessageEntry({
 	const renderAgentTasks = () => {
 		//if (!isExpanded) return null;
 
+		// If agent type is not in filter, don't render agent children
+		if (filterState && !filterState.customTypes.has('agent')) {
+			return null;
+		}
+
 		//console.log('MessageEntry: agent parent', { isAgentParent, logDataEntry });
 		// Handle delegate_tasks with agent tasks
 		//console.log('MessageEntry: Entry is agent parent', { children: logDataEntry.children });
@@ -460,6 +478,13 @@ export function MessageEntry({
 					)*/
 					}
 
+					{/* Show agent count if agents are hidden */}
+					{filterState && !filterState.customTypes.has('agent') && logDataEntry.children && (
+						<div className='p-4 mt-2 text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700'>
+							{Object.keys(logDataEntry.children).length} agent task group(s) hidden by filter
+						</div>
+					)}
+
 					{/* Then render each agent group */}
 					{logDataEntry.children &&
 						Object.entries(logDataEntry.children).map((
@@ -472,9 +497,12 @@ export function MessageEntry({
 								parentEntry={logDataEntry}
 								parentIndex={index * 1000 + groupIndex}
 								onCopy={onCopy}
+								onFormattedLogEntry={onFormattedLogEntry}
 								apiClient={apiClient}
 								projectId={projectId}
 								collaborationId={collaborationId}
+								projectConfig={projectConfig}
+								filterState={filterState}
 							/>
 						))}
 
@@ -504,10 +532,12 @@ export function MessageEntry({
 						type='input'
 						toolName={logDataEntry.logEntry.toolName || 'Unknown Tool'}
 						content={logDataEntry.logEntry.content}
+						onFormattedLogEntry={onFormattedLogEntry}
 						apiClient={apiClient}
 						projectId={projectId}
 						collaborationId={collaborationId}
 						logEntry={logDataEntry.logEntry}
+						projectConfig={projectConfig}
 					/>
 				</>
 			);
@@ -520,10 +550,12 @@ export function MessageEntry({
 					toolName={logDataEntry.logEntry.toolName || 'Unknown Tool'}
 					content={logDataEntry.logEntry.content}
 					//onCopy={handleCopy}
+					onFormattedLogEntry={onFormattedLogEntry}
 					apiClient={apiClient}
 					projectId={projectId}
 					collaborationId={collaborationId}
 					logEntry={logDataEntry.logEntry}
+					projectConfig={projectConfig}
 				/>
 			);
 		}
@@ -645,6 +677,13 @@ export function MessageEntry({
 													__html: formatted.formattedResult.subtitle as string,
 												}}
 											/>
+										)}
+										{/* Show agent count for delegate_tasks */}
+										{isAgentParent && filterState && logDataEntry.children && (
+											<span className='text-xs text-gray-600 dark:text-gray-400 ml-2'>
+												({Object.keys(logDataEntry.children).length}{' '}
+												agent task{Object.keys(logDataEntry.children).length !== 1 ? 's' : ''})
+											</span>
 										)}
 									</button>
 								</div>

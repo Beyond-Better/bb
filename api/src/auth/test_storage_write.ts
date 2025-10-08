@@ -1,4 +1,4 @@
-import { KVStorage } from '../../shared/storage/kvStorage.ts';
+import { KVStorage } from 'shared/kvStorage.ts';
 import { delay } from '@std/async';
 
 const timestamp = new Date().toISOString();

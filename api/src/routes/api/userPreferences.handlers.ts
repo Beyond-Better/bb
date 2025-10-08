@@ -7,7 +7,7 @@
 
 import type { Context } from '@oak/oak';
 import { logger } from 'shared/logger.ts';
-import type { SessionManager } from 'api/auth/session.ts';
+import { SupabaseClientFactory } from 'api/auth/supabaseClientFactory.ts';
 
 export interface UserPreferences {
 	theme: 'light' | 'dark' | 'system';
@@ -71,23 +71,15 @@ export interface EdgeFunctionUserProfile {
  */
 export async function getUserPreferences(ctx: Context) {
 	try {
-		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
-		if (!sessionManager) {
-			logger.warn(
-				`UserPreferencesHandler: getUserPreferences: No session manager configured`,
-			);
+		const userContext = ctx.state.userContext;
+		if (!userContext) {
+			logger.warn('UserPreferencesHandler: No user context configured');
 			ctx.response.status = 400;
-			ctx.response.body = { error: 'No session manager configured' };
+			ctx.response.body = { error: 'No user context configured' };
 			return;
 		}
 
-		const supabaseClient = sessionManager.getClient();
-		const session = await sessionManager.getSession();
-		if (!session?.user?.id) {
-			ctx.response.status = 401;
-			ctx.response.body = { error: 'Unauthorized' };
-			return;
-		}
+		const supabaseClient = await SupabaseClientFactory.getClient(userContext);
 
 		// Use edge function to get user profile
 		const { data: profileData, error } = await supabaseClient.functions.invoke('user-profile', {
@@ -168,7 +160,9 @@ function transformEdgeProfileToPreferences(edgeProfile: EdgeFunctionUserProfile)
 /**
  * Transform our UserPreferences format to edge function update payload
  */
+// deno-lint-ignore no-explicit-any
 function transformPreferencesToEdgeFormat(preferences: Partial<UserPreferences>): any {
+	// deno-lint-ignore no-explicit-any
 	const payload: any = {};
 
 	// Map theme directly
@@ -227,22 +221,15 @@ function transformPreferencesToEdgeFormat(preferences: Partial<UserPreferences>)
  */
 export async function updateUserPreferences(ctx: Context) {
 	try {
-		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
-		if (!sessionManager) {
-			logger.warn(
-				`UserPreferencesHandler: updateUserPreferences: No session manager configured`,
-			);
+		const userContext = ctx.state.userContext;
+		if (!userContext) {
+			logger.warn('UserPreferencesHandler: No user context configured');
 			ctx.response.status = 400;
-			ctx.response.body = { error: 'No session manager configured' };
+			ctx.response.body = { error: 'No user context configured' };
 			return;
 		}
 
-		const session = await sessionManager.getSession();
-		if (!session?.user?.id) {
-			ctx.response.status = 401;
-			ctx.response.body = { error: 'Unauthorized' };
-			return;
-		}
+		const supabaseClient = await SupabaseClientFactory.getClient(userContext);
 
 		const body = await ctx.request.body.json();
 		const { preferences } = body;
@@ -263,8 +250,6 @@ export async function updateUserPreferences(ctx: Context) {
 		// 	`UserPreferencesHandler: updateUserPreferences:`,
 		// 	updatePayload,
 		// );
-
-		const supabaseClient = sessionManager.getClient();
 
 		// Use edge function to update user profile
 		const { data: profileData, error } = await supabaseClient.functions.invoke('user-profile', {
@@ -294,11 +279,11 @@ export async function updateUserPreferences(ctx: Context) {
 		const edgeProfile: EdgeFunctionUserProfile = profileData.data;
 		const updatedPreferences: UserPreferences = transformEdgeProfileToPreferences(edgeProfile);
 
-		//logger.info(`UserPreferencesHandler: Updated preferences for user ${session.user.id}`);
+		//logger.info(`UserPreferencesHandler: Updated preferences for user ${userContext.userId}`);
 
 		ctx.response.status = 200;
-		//ctx.response.body = { preferences: updatedPreferences };
-		ctx.response.body = { preferences: {} };
+		ctx.response.body = { preferences: updatedPreferences };
+		//ctx.response.body = { preferences: {} };
 	} catch (error) {
 		logger.error('UserPreferencesHandler: updateUserPreferences error:', error);
 		ctx.response.status = 500;

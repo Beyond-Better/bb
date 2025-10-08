@@ -6,7 +6,6 @@ This directory contains the enhanced test scaffolding that supports testing with
 
 The test scaffolding consists of several key components:
 
-1. **Mock Clients** (`mockClients.ts`) - Mock implementations of `NotionClient` and `GoogleDocsClient` that store data in portable text format
 2. **Test Providers** (`testProviders.ts`) - Test-specific providers that inject mock clients instead of real API clients
 3. **Test Data** (`testData.ts`) - Comprehensive predefined datasets covering common and edge cases
 4. **Enhanced Test Setup** (`testSetup.ts`) - Extended setup functions that support additional datasources
@@ -32,41 +31,7 @@ Deno.test({
 });
 ```
 
-### Working with Mock Clients
-
-```typescript
-// Get access to the test provider and mock client
-const notionProvider = await getTestProvider(projectEditor, 'notion');
-if (notionProvider) {
-	const mockClient = notionProvider.getMockClient();
-
-	// Inspect what data was created/modified
-	const allPages = mockClient.getAllPagesData();
-	const specificPage = mockClient.getPageData('page-id-123');
-
-	// Set up custom test data
-	mockClient.setPageData('custom-page', {
-		id: 'custom-page',
-		title: 'Custom Test Page',
-		blocks: [/* ... */],
-	});
-
-	// Trigger errors for testing error handling
-	mockClient.triggerError('getPage');
-}
-```
-
 ## Architecture
-
-### Mock Clients
-
-The mock clients (`MockNotionClient` and `MockGoogleDocsClient`) extend the real client classes but:
-
-- Store all data internally as portable text structures (JSON)
-- Provide setup methods for configuring test data
-- Provide inspection methods for verifying changes
-- Convert between portable text and native formats automatically
-- Support error simulation for testing error handling
 
 #### Key Features:
 
@@ -74,54 +39,6 @@ The mock clients (`MockNotionClient` and `MockGoogleDocsClient`) extend the real
 - **Predefined Test Data**: Comes loaded with comprehensive test datasets covering various scenarios
 - **Error Simulation**: Can simulate API errors for testing error handling paths
 - **Data Inspection**: Easy methods to check what data was created, modified, or deleted
-
-### Test Providers
-
-Test providers (`TestNotionProvider` and `TestGoogleDocsProvider`) replace the real providers in the datasource registry during testing:
-
-- Extend the real provider classes for compatibility
-- Override `createAccessor()` to inject mock clients instead of real ones
-- Provide access to mock clients for test setup and inspection
-
-### Test Data
-
-The test data module provides extensive predefined datasets:
-
-#### Notion Test Data:
-
-- **Simple Page**: Basic content for straightforward testing
-- **Complex Page**: Various formatting and edge cases
-- **Empty Page**: Edge case testing
-- **Minimal Page**: Single paragraph content
-- **Structured Page**: Hierarchical content with headings
-
-#### Google Docs Test Data:
-
-- **Simple Document**: Basic content
-- **Complex Document**: Various formatting
-- **Empty Document**: Edge case testing
-- **Minimal Document**: Single paragraph
-- **Structured Document**: Hierarchical content
-
-## Available Datasource Types
-
-### Notion (`'notion'`)
-
-Provides access to Notion pages and blocks through the mock Notion API:
-
-- **Default Test Data**: 5 predefined pages covering various scenarios
-- **Capabilities**: `blockRead`, `blockEdit`, `list`, `search`, `delete`
-- **Authentication**: Mock API key authentication
-- **URI Format**: `bb+notion+test-notion-connection+notion://page/{pageId}`
-
-### Google Docs (`'googledocs'`)
-
-Provides access to Google Docs documents through the mock Google API:
-
-- **Default Test Data**: 5 predefined documents covering various scenarios
-- **Capabilities**: `blockRead`, `blockEdit`, `list`, `search`, `delete`
-- **Authentication**: Mock OAuth2 authentication
-- **URI Format**: `bb+googledocs+test-googledocs-connection+googledocs://document/{documentId}`
 
 ## Test Patterns
 
@@ -131,7 +48,7 @@ Provides access to Google Docs documents through the mock Google API:
 Deno.test({
 	name: 'Test write_resource with structured content',
 	async fn() {
-		const extraDatasources = ['notion', 'googledocs'];
+		const extraDatasources = ['notion', 'google'];
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			// Setup
 			const projectEditor = await getProjectEditor(testProjectId);
@@ -206,7 +123,7 @@ mockClient.setPageData('custom-id', customPage);
 Deno.test({
 	name: 'My test',
 	async fn() {
-		const extraDatasources = ['notion', 'googledocs']; // Clear and visible
+		const extraDatasources = ['notion', 'google']; // Clear and visible
 		await withTestProject(async (testProjectId, testProjectRoot) => {
 			// Test implementation
 		}, extraDatasources);

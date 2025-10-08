@@ -52,7 +52,7 @@ export default class LLMToolDisplayResource extends LLMTool {
 				dataSourceId: {
 					type: 'string',
 					description:
-						"Data source ID to operate on. Defaults to the primary data source if omitted. Examples: 'primary', 'filesystem-1', 'db-staging'. Data sources are identified by their name (e.g., 'primary', 'local-2', 'supabase').",
+						"Data source ID to operate on. Defaults to the primary data source if omitted. Examples: 'primary', 'filesystem-1', 'db-staging'. Data sources are identified by their name (e.g., 'primary', 'local-2', 'supabase'). **IMPORTANT: Different data sources have different path format requirements - use loadDataSource with returnType='instructions' and operations=['utility'] to get provider-specific resource path guidance.**",
 				},
 				resourcePath: {
 					type: 'string',

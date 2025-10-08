@@ -19,6 +19,10 @@ import { type ModelInfo, ModelInfoPanel } from './ModelInfoPanel.tsx';
 //import { DataSourceSummary } from './DataSourceSummary.tsx';
 import type { ClientProjectWithConfigSources } from 'shared/types/project.ts';
 import { focusChatInputSync } from '../utils/focusManagement.utils.ts';
+import type { CollaborationLogDataEntry } from 'shared/types.ts';
+import type { ProjectConfig } from 'shared/config/types.ts';
+import type { LogEntryFormatResponse } from '../utils/apiClient.utils.ts';
+import { MessageFilter } from './MessageFilter.tsx';
 
 // Initialize collapse state signal from localStorage if available, otherwise default to true
 const getInitialCollapsedState = () => {
@@ -53,6 +57,9 @@ interface CollaborationHeaderProps {
 	projectId: ProjectId;
 	apiClient: ApiClient;
 	currentProject?: ClientProjectWithConfigSources;
+	projectConfig?: ProjectConfig | null; // Project configuration
+	onCopy: (text: string, html?: string, toastMessage?: string) => void;
+	getFormattedLogEntry: (logDataEntry: CollaborationLogDataEntry) => LogEntryFormatResponse['formattedResult'] | null;
 }
 
 export function CollaborationHeader({
@@ -70,12 +77,17 @@ export function CollaborationHeader({
 	chatInputRef,
 	disabled,
 	projectId,
+	projectConfig,
 	//apiClient,
 	//currentProject,
+	onCopy,
+	getFormattedLogEntry,
 }: CollaborationHeaderProps): JSX.Element {
 	const [isModelInfoOpen, setIsModelInfoOpen] = useState(false);
 	// Use selectedCollaboration from chatState for better reactivity
 	const currentCollaboration = useComputed(() => chatState.value.selectedCollaboration);
+	// Create computed signal for log entries to ensure reactivity
+	const logDataEntries = useComputed(() => chatState.value.logDataEntries);
 	//console.log('CollaborationHeader: ', currentCollaboration.value);
 
 	// Find the latest assistant message that might have request params
@@ -309,9 +321,26 @@ export function CollaborationHeader({
 						disabled={disabled}
 						projectId={projectId}
 						apiClient={chatState.value.apiClient!}
+						logDataEntries={chatState.value.logDataEntries}
+						onCopy={onCopy}
+						getFormattedLogEntry={getFormattedLogEntry}
+						collaborationTitle={currentCollaboration.value?.title || ''}
+						collaborationId={currentCollaboration.value?.id}
+						projectConfig={projectConfig}
 					/>
 				</div>
 			</div>
+
+			{/* Message Filter */}
+			{currentCollaboration.value && (
+				<div className='mt-3'>
+					<MessageFilter
+						logDataEntries={logDataEntries.value}
+						collaborationId={currentCollaboration.value.id}
+					/>
+				</div>
+			)}
+
 			{/* Model Info Panel */}
 			<ModelInfoPanel
 				isOpen={isModelInfoOpen}

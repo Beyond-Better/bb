@@ -27,6 +27,6 @@ export interface LLMToolRewriteResourceResponseData {
 }
 
 export interface LLMToolRewriteResourceResult {
-	toolResult: LLMToolRunResultContent;
+	toolResults: LLMToolRunResultContent;
 	bbResponse: LLMToolRewriteResourceResponseData;
 }

@@ -7,20 +7,17 @@
 
 import type { Context } from '@oak/oak';
 import { logger } from 'shared/logger.ts';
-import type { SessionManager } from 'api/auth/session.ts';
+import { FEATURE_KEYS } from 'shared/featureAccess.ts';
+//import type { UserAuthSession } from 'api/auth/userAuthSession.ts';
 import {
-	CacheManagement,
-	checkFeatureAccess,
-	DatasourceAccess,
-	FEATURE_KEYS,
+	clearUserCache,
+	getAllRateLimits,
+	getAvailableDatasources,
+	getAvailableModels,
 	getFeatureAccess,
 	getUserFeatureProfile as getUserFeatureProfileFromUtils,
-	ModelAccess,
-	RateLimits,
-	SupportAccess,
-	ToolsAccess,
-} from 'shared/features.ts';
-import type { SupabaseClientWithSchema } from 'shared/types/supabase.ts';
+	hasExternalToolsAccess,
+} from 'api/utils/featureAccess.ts';
 
 export interface FeatureCheckRequest {
 	featureKey: string;
@@ -34,6 +31,7 @@ export interface BatchFeatureCheckRequest {
 
 export interface FeatureAccessResponse {
 	access_granted: boolean;
+	// deno-lint-ignore no-explicit-any
 	feature_value: any;
 	access_reason: string;
 	resolved_from: string;
@@ -54,18 +52,6 @@ export interface UserFeatureProfile {
 		dedicatedCSM: boolean;
 		onPremises: boolean;
 	};
-}
-
-/**
- * Get Supabase clients from session manager
- */
-async function getSupabaseClients(sessionManager: SessionManager): Promise<{
-	coreClient: SupabaseClientWithSchema<'abi_core'>;
-	billingClient: SupabaseClientWithSchema<'abi_billing'>;
-}> {
-	const coreClient = sessionManager.getCoreClient() as SupabaseClientWithSchema<'abi_core'>;
-	const billingClient = sessionManager.getBillingClient() as SupabaseClientWithSchema<'abi_billing'>;
-	return { coreClient, billingClient };
 }
 
 /**
@@ -92,23 +78,15 @@ async function getSupabaseClients(sessionManager: SessionManager): Promise<{
  */
 export async function getUserFeatureProfile(ctx: Context) {
 	try {
-		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
-		if (!sessionManager) {
-			logger.warn('FeaturesHandler: getUserFeatureProfile: No session manager configured');
+		const userContext = ctx.state.userContext;
+		if (!userContext) {
+			logger.warn('FeaturesHandler: No user context configured');
 			ctx.response.status = 400;
-			ctx.response.body = { error: 'No session manager configured' };
+			ctx.response.body = { error: 'No user context configured' };
 			return;
 		}
 
-		const session = await sessionManager.getSession();
-		if (!session?.user?.id) {
-			ctx.response.status = 401;
-			ctx.response.body = { error: 'Unauthorized' };
-			return;
-		}
-
-		const { coreClient, billingClient } = await getSupabaseClients(sessionManager);
-		const profile = await getUserFeatureProfileFromUtils(coreClient, billingClient, session.user.id);
+		const profile = await getUserFeatureProfileFromUtils(userContext);
 
 		ctx.response.status = 200;
 		ctx.response.body = { profile };
@@ -156,18 +134,11 @@ export async function getUserFeatureProfile(ctx: Context) {
  */
 export async function checkUserFeatureAccess(ctx: Context) {
 	try {
-		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
-		if (!sessionManager) {
-			logger.warn('FeaturesHandler: checkUserFeatureAccess: No session manager configured');
+		const userContext = ctx.state.userContext;
+		if (!userContext) {
+			logger.warn('FeaturesHandler: No user context configured');
 			ctx.response.status = 400;
-			ctx.response.body = { error: 'No session manager configured' };
-			return;
-		}
-
-		const session = await sessionManager.getSession();
-		if (!session?.user?.id) {
-			ctx.response.status = 401;
-			ctx.response.body = { error: 'Unauthorized' };
+			ctx.response.body = { error: 'No user context configured' };
 			return;
 		}
 
@@ -180,8 +151,7 @@ export async function checkUserFeatureAccess(ctx: Context) {
 			return;
 		}
 
-		const { coreClient, billingClient } = await getSupabaseClients(sessionManager);
-		const result = await getFeatureAccess(coreClient, billingClient, session.user.id, featureKey);
+		const result = await getFeatureAccess(userContext, featureKey);
 
 		ctx.response.status = 200;
 		ctx.response.body = { result };
@@ -236,18 +206,11 @@ export async function checkUserFeatureAccess(ctx: Context) {
  */
 export async function batchCheckUserFeatureAccess(ctx: Context) {
 	try {
-		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
-		if (!sessionManager) {
-			logger.warn('FeaturesHandler: batchCheckUserFeatureAccess: No session manager configured');
+		const userContext = ctx.state.userContext;
+		if (!userContext) {
+			logger.warn('FeaturesHandler: No user context configured');
 			ctx.response.status = 400;
-			ctx.response.body = { error: 'No session manager configured' };
-			return;
-		}
-
-		const session = await sessionManager.getSession();
-		if (!session?.user?.id) {
-			ctx.response.status = 401;
-			ctx.response.body = { error: 'Unauthorized' };
+			ctx.response.body = { error: 'No user context configured' };
 			return;
 		}
 
@@ -260,12 +223,11 @@ export async function batchCheckUserFeatureAccess(ctx: Context) {
 			return;
 		}
 
-		const { coreClient, billingClient } = await getSupabaseClients(sessionManager);
 		const results: Record<string, FeatureAccessResponse> = {};
 
 		// Process all feature checks in parallel
 		const checkPromises = featureKeys.map(async (featureKey) => {
-			const result = await getFeatureAccess(coreClient, billingClient, session.user.id, featureKey);
+			const result = await getFeatureAccess(userContext, featureKey);
 			results[featureKey] = result;
 		});
 
@@ -310,23 +272,15 @@ export async function batchCheckUserFeatureAccess(ctx: Context) {
  */
 export async function getUserAvailableModels(ctx: Context) {
 	try {
-		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
-		if (!sessionManager) {
-			logger.warn('FeaturesHandler: getUserAvailableModels: No session manager configured');
+		const userContext = ctx.state.userContext;
+		if (!userContext) {
+			logger.warn('FeaturesHandler: No user context configured');
 			ctx.response.status = 400;
-			ctx.response.body = { error: 'No session manager configured' };
+			ctx.response.body = { error: 'No user context configured' };
 			return;
 		}
 
-		const session = await sessionManager.getSession();
-		if (!session?.user?.id) {
-			ctx.response.status = 401;
-			ctx.response.body = { error: 'Unauthorized' };
-			return;
-		}
-
-		const { coreClient, billingClient } = await getSupabaseClients(sessionManager);
-		const models = await ModelAccess.getAvailableModels(coreClient, billingClient, session.user.id);
+		const models = await getAvailableModels(userContext);
 
 		ctx.response.status = 200;
 		ctx.response.body = { models };
@@ -374,27 +328,15 @@ export async function getUserAvailableModels(ctx: Context) {
  */
 export async function getUserAvailableDatasources(ctx: Context) {
 	try {
-		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
-		if (!sessionManager) {
-			logger.warn('FeaturesHandler: getUserAvailableDatasources: No session manager configured');
+		const userContext = ctx.state.userContext;
+		if (!userContext) {
+			logger.warn('FeaturesHandler: No user context configured');
 			ctx.response.status = 400;
-			ctx.response.body = { error: 'No session manager configured' };
+			ctx.response.body = { error: 'No user context configured' };
 			return;
 		}
 
-		const session = await sessionManager.getSession();
-		if (!session?.user?.id) {
-			ctx.response.status = 401;
-			ctx.response.body = { error: 'Unauthorized' };
-			return;
-		}
-
-		const { coreClient, billingClient } = await getSupabaseClients(sessionManager);
-		const datasources = await DatasourceAccess.getAvailableDatasources(
-			coreClient,
-			billingClient,
-			session.user.id,
-		);
+		const datasources = await getAvailableDatasources(userContext);
 
 		ctx.response.status = 200;
 		ctx.response.body = { datasources };
@@ -438,23 +380,15 @@ export async function getUserAvailableDatasources(ctx: Context) {
  */
 export async function getUserRateLimits(ctx: Context) {
 	try {
-		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
-		if (!sessionManager) {
-			logger.warn('FeaturesHandler: getUserRateLimits: No session manager configured');
+		const userContext = ctx.state.userContext;
+		if (!userContext) {
+			logger.warn('FeaturesHandler: No user context configured');
 			ctx.response.status = 400;
-			ctx.response.body = { error: 'No session manager configured' };
+			ctx.response.body = { error: 'No user context configured' };
 			return;
 		}
 
-		const session = await sessionManager.getSession();
-		if (!session?.user?.id) {
-			ctx.response.status = 401;
-			ctx.response.body = { error: 'Unauthorized' };
-			return;
-		}
-
-		const { coreClient, billingClient } = await getSupabaseClients(sessionManager);
-		const limits = await RateLimits.getAllLimits(coreClient, billingClient, session.user.id);
+		const limits = await getAllRateLimits(userContext);
 
 		ctx.response.status = 200;
 		ctx.response.body = { limits };
@@ -498,24 +432,16 @@ export async function getUserRateLimits(ctx: Context) {
  */
 export async function getUserHasExternalTools(ctx: Context) {
 	try {
-		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
-		if (!sessionManager) {
-			logger.warn('FeaturesHandler: getUserHasExternalTools: No session manager configured');
+		const userContext = ctx.state.userContext;
+		if (!userContext) {
+			logger.warn('FeaturesHandler: No user context configured');
 			ctx.response.status = 400;
-			ctx.response.body = { error: 'No session manager configured' };
+			ctx.response.body = { error: 'No user context configured' };
 			return;
 		}
 
-		const session = await sessionManager.getSession();
-		if (!session?.user?.id) {
-			ctx.response.status = 401;
-			ctx.response.body = { error: 'Unauthorized' };
-			return;
-		}
-
-		const { coreClient, billingClient } = await getSupabaseClients(sessionManager);
-		const hasAccess = await ToolsAccess.hasExternalTools(coreClient, billingClient, session.user.id);
-		const result = await getFeatureAccess(coreClient, billingClient, session.user.id, FEATURE_KEYS.TOOLS.EXTERNAL);
+		const hasAccess = await hasExternalToolsAccess(userContext);
+		const result = await getFeatureAccess(userContext, FEATURE_KEYS.TOOLS.EXTERNAL);
 		//console.log('FeaturesHandler: getUserHasExternalTools:', { hasAccess, result });
 
 		ctx.response.status = 200;
@@ -558,23 +484,15 @@ export async function getUserHasExternalTools(ctx: Context) {
  */
 export async function refreshUserFeatureCache(ctx: Context) {
 	try {
-		const sessionManager: SessionManager = ctx.app.state.auth.sessionManager;
-		if (!sessionManager) {
-			logger.warn('FeaturesHandler: refreshUserFeatureCache: No session manager configured');
+		const userContext = ctx.state.userContext;
+		if (!userContext) {
+			logger.warn('FeaturesHandler: No user context configured');
 			ctx.response.status = 400;
-			ctx.response.body = { error: 'No session manager configured' };
+			ctx.response.body = { error: 'No user context configured' };
 			return;
 		}
 
-		const session = await sessionManager.getSession();
-		if (!session?.user?.id) {
-			ctx.response.status = 401;
-			ctx.response.body = { error: 'Unauthorized' };
-			return;
-		}
-
-		const { coreClient, billingClient } = await getSupabaseClients(sessionManager);
-		const refreshed = await CacheManagement.refreshCache(coreClient, billingClient, session.user.id);
+		const refreshed = await clearUserCache(userContext);
 
 		ctx.response.status = 200;
 		ctx.response.body = { refreshed };

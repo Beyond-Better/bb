@@ -1,8 +1,8 @@
-import { assertEquals, assertExists, assertThrows } from '../../deps.ts';
-import OrchestratorController from '../../../src/controllers/orchestratorController.ts';
-import InteractionManager from '../../../src/llms/interactions/interactionManager.ts';
-import LLMConversationInteraction from '../../../src/llms/interactions/conversationInteraction.ts';
-import { InteractionId } from 'shared/types.ts';
+//import { assertEquals, assertExists, assertThrows } from 'api/tests/deps.ts';
+//import OrchestratorController from 'api/controllers/orchestratorController.ts';
+import { InteractionManager } from 'api/llms/interactionManager.ts';
+//import LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
+//import { InteractionId } from 'shared/types.ts';
 
 // Mock dependencies
 class MockInteractionManager extends InteractionManager {
@@ -15,6 +15,7 @@ class MockLLMProvider {
 
 class MockPromptManager {
 	async init() {}
+	// deno-lint-ignore require-await
 	async getPrompt() {
 		return 'mock prompt';
 	}

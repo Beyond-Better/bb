@@ -11,6 +11,13 @@ import type {
 	DataSourceCapability,
 } from 'shared/types/dataSource.ts';
 import type { AcceptedContentType, AcceptedEditType, ContentTypeGuidance } from 'shared/types/dataSource.ts';
+import type { InstructionFilters } from 'api/types/instructionFilters.ts';
+import type {
+	URIConstructionOptions,
+	URIContext,
+	ValidationMode,
+	ValidationResult,
+} from 'shared/types/resourceValidation.ts';
 
 /**
  * DataSourceProvider interface
@@ -109,4 +116,58 @@ export interface DataSourceProvider {
 	 * @returns ContentTypeGuidance object with usage examples and constraints
 	 */
 	getContentTypeGuidance(): ContentTypeGuidance;
+
+	/**
+	 * Get detailed editing instructions for LLM tool usage
+	 * Must be implemented by subclasses to provide comprehensive editing guidance
+	 * @param filters Optional filters to customize instruction content
+	 * @returns Detailed instruction text with provider-specific examples and workflows
+	 */
+	getDetailedInstructions(filters?: InstructionFilters): string;
+
+	/**
+	 * Get error-specific guidance for LLM tool usage
+	 * Provides context-aware error messaging based on error type and operation
+	 * @param errorType The type of error encountered
+	 * @param operation The operation that failed
+	 * @param hasLoadedInstructions Whether the LLM has already loaded instructions
+	 * @returns Object with enhanced error message and guidance type
+	 */
+	getErrorGuidance(
+		errorType:
+			| 'not_found'
+			| 'permission_denied'
+			| 'invalid_format'
+			| 'workflow_violation'
+			| 'configuration'
+			| 'unknown',
+		operation: string,
+		hasLoadedInstructions?: boolean,
+	): { message: string; type: 'workflow' | 'instructions' | 'configuration' | 'format' };
+
+	/**
+	 * Build a datasource-specific URI from a partial path
+	 * Each provider can implement its own URI construction logic
+	 * @param partialPath Partial path or resource identifier
+	 * @param options Construction options with context
+	 * @returns Properly formatted URI for this datasource type
+	 */
+	buildResourceUri?(partialPath: string, options: URIConstructionOptions): string;
+
+	/**
+	 * Validate a resource URI with datasource-specific rules
+	 * @param resourceUri URI to validate
+	 * @param mode Validation mode to use
+	 * @returns Detailed validation result
+	 */
+	validateResourceUri?(resourceUri: string, mode?: ValidationMode): ValidationResult;
+
+	/**
+	 * Check if a partial path could be valid for this datasource
+	 * Used for autocomplete and suggestion filtering
+	 * @param partialPath Partial path being typed
+	 * @param context Context for the validation
+	 * @returns Whether the partial path is potentially valid
+	 */
+	isPartialPathValid?(partialPath: string, context?: URIContext): boolean;
 }

@@ -1,15 +1,18 @@
 import type { Context } from '@oak/oak';
-import type { SessionManager } from '../../auth/session.ts';
+import type { UserAuthSession } from 'api/auth/userAuthSession.ts';
+import { SupabaseClientFactory } from 'api/auth/supabaseClientFactory.ts';
+import { SessionRegistry } from 'api/auth/sessionRegistry.ts';
 import { logger } from 'shared/logger.ts';
-import type { BbState } from '../../types/app.types.ts';
-//import type { AuthError } from "../../types/auth.ts";
+import type { BbState } from 'api/types/app.ts';
+//import type { AuthError } from "api/types/auth.ts";
 import type { EmailOtpType, VerifyTokenHashParams } from '@supabase/supabase-js';
 
 /**
- * Get the session manager from app state
+ * Get the session userAuthSession from app state
  */
-function getSessionManager(ctx: Context<BbState>): SessionManager {
-	return ctx.app.state.auth.sessionManager;
+function getUserAuthSession(ctx: Context<BbState>): UserAuthSession {
+	// auth middleware guarantees userContext is defined, or returns early
+	return ctx.state.userContext!.userAuthSession;
 }
 
 /**
@@ -32,14 +35,15 @@ export async function handleLogin(ctx: Context<BbState>) {
 			return;
 		}
 
-		const manager = getSessionManager(ctx);
-		const client = manager.getClient();
+		// Use clientWithAuth for login - needs auth storage to persist new session
+		const clientWithAuthNoUser = await SupabaseClientFactory.getClient(null);
 
-		const { data, error } = await client.auth.signInWithPassword({
+		const { data, error } = await clientWithAuthNoUser.auth.signInWithPassword({
 			email,
 			password,
 		});
-		//logger.error('AuthHandler: handleLogin:', { data, error });
+		//logger.info('AuthHandler: handleLogin:', { data, error });
+		//logger.info('AuthHandler: handleLogin:', data.session);
 
 		if (error) {
 			ctx.response.status = 401;
@@ -51,6 +55,26 @@ export async function handleLogin(ctx: Context<BbState>) {
 				},
 			};
 			return;
+		}
+
+		// Register session in sessionRegistry if login successful
+		if (data.session && data.user?.id) {
+			try {
+				//logger.info(`AuthHandler: handleLogin: registering session for user: ${data.user.id}`);
+				await SessionRegistry.getInstance().registerSession(data.user.id);
+				logger.info(`AuthHandler: Registered session in sessionRegistry for user: ${data.user.id}`);
+			} catch (registryError) {
+				logger.error(`AuthHandler: Failed to register session in sessionRegistry:`, registryError);
+				// If sessionRegistry fails, login should fail - no valid session management
+				ctx.response.status = 500;
+				ctx.response.body = {
+					error: {
+						code: 'SESSION_REGISTRATION_ERROR',
+						message: 'Failed to establish user session',
+					},
+				};
+				return;
+			}
 		}
 
 		ctx.response.status = 200;
@@ -75,8 +99,21 @@ export async function handleLogin(ctx: Context<BbState>) {
  */
 export async function handleLogout(ctx: Context<BbState>) {
 	try {
-		const manager = getSessionManager(ctx);
-		await manager.clearSession();
+		const userAuthSession = getUserAuthSession(ctx);
+
+		// Remove session from sessionRegistry before clearing
+		try {
+			const session = await userAuthSession.getSession();
+			if (session?.user?.id) {
+				await SessionRegistry.getInstance().removeSession(session.user.id);
+				logger.info(`AuthHandler: Removed session from sessionRegistry for user: ${session.user.id}`);
+			}
+		} catch (registryError) {
+			logger.warn(`AuthHandler: Error removing session from sessionRegistry (continuing):`, registryError);
+			// Continue with logout even if registry removal fails
+		}
+
+		await userAuthSession.clearSession();
 
 		ctx.response.status = 200;
 		ctx.response.body = {
@@ -99,8 +136,8 @@ export async function handleLogout(ctx: Context<BbState>) {
  */
 export async function handleStatus(ctx: Context<BbState>) {
 	try {
-		const manager = getSessionManager(ctx);
-		const session = await manager.getSession();
+		const userAuthSession = getUserAuthSession(ctx);
+		const session = await userAuthSession.getSession();
 		//logger.error('AuthHandler: handleStatus:', { session });
 
 		ctx.response.status = 200;
@@ -141,14 +178,15 @@ export async function handleSignup(ctx: Context<BbState>) {
 			return;
 		}
 
-		// Get verifyUrl from session manager
-		const manager = getSessionManager(ctx);
-		const client = manager.getClient();
-		const verifyUrl = manager.getVerifyUrl();
+		// Use clientWithAuth for signup - needs auth storage for potential session persistence
+		const clientWithAuthNoUser = await SupabaseClientFactory.getClient(null);
+		// Still need userAuthSession for verifyUrl
+		const userAuthSession = getUserAuthSession(ctx);
+		const verifyUrl = userAuthSession.getVerifyUrl();
 
 		logger.info(`AuthHandler: Signup attempt for email: ${email}`);
 
-		const { data, error } = await client.auth.signUp({
+		const { data, error } = await clientWithAuthNoUser.auth.signUp({
 			email,
 			password,
 			options: {
@@ -205,12 +243,12 @@ export async function handleCallback(ctx: Context<BbState>) {
 			return;
 		}
 
-		const manager = getSessionManager(ctx);
-		const client = manager.getClient();
+		// Use clientWithAuth for callback verification - needs auth storage to persist verified session
+		const clientWithAuthNoUser = await SupabaseClientFactory.getClient(null);
 
 		//logger.info('AuthHandler: Verifying token hash', { token_hash, type });
 		const verifyParams: VerifyTokenHashParams = { token_hash, type };
-		const { data, error } = await client.auth.verifyOtp(verifyParams);
+		const { data, error } = await clientWithAuthNoUser.auth.verifyOtp(verifyParams);
 		//logger.error('AuthHandler: handleCallback:', { data, error });
 
 		// 		// Get code from query params
@@ -250,6 +288,25 @@ export async function handleCallback(ctx: Context<BbState>) {
 
 		logger.info('AuthHandler: Verify token successful, session established');
 
+		// Register session in sessionRegistry if verification successful
+		if (data.session && data.user?.id) {
+			try {
+				await SessionRegistry.getInstance().registerSession(data.user.id);
+				logger.info(`AuthHandler: Registered session in sessionRegistry for user: ${data.user.id}`);
+			} catch (registryError) {
+				logger.error(`AuthHandler: Failed to register session in sessionRegistry:`, registryError);
+				// If sessionRegistry fails, verification should fail - no valid session management
+				ctx.response.status = 500;
+				ctx.response.body = {
+					error: {
+						code: 'SESSION_REGISTRATION_ERROR',
+						message: 'Failed to establish user session',
+					},
+				};
+				return;
+			}
+		}
+
 		ctx.response.status = 200;
 		ctx.response.body = {
 			user: data.user,
@@ -287,13 +344,13 @@ export async function handleCheckEmailVerification(ctx: Context<BbState>) {
 			return;
 		}
 
-		const manager = getSessionManager(ctx);
-		const client = manager.getClient();
+		// Use clientWithAuth for email verification check - needs auth storage for function calls
+		const clientWithAuthNoUser = await SupabaseClientFactory.getClient(null);
 
 		logger.info(`AuthHandler: Checking email verification status for: ${email}`);
 
 		// Call Supabase Edge Function to check email verification status
-		const { data, error } = await client.functions.invoke('check-email-verification', {
+		const { data, error } = await clientWithAuthNoUser.functions.invoke('check-email-verification', {
 			body: { email },
 		});
 
@@ -342,13 +399,16 @@ export async function handleResetPassword(ctx: Context<BbState>) {
 			return;
 		}
 
-		const manager = getSessionManager(ctx);
-		const client = manager.getClient();
+		// Use clientWithAuth for password reset - needs auth storage for reset process
+		const clientWithAuthNoUser = await SupabaseClientFactory.getClient(null);
+		// Still need userAuthSession for verifyUrl
+		const userAuthSession = getUserAuthSession(ctx);
 
 		logger.info(`AuthHandler: Password reset request for email: ${email}`);
 
-		const { error } = await client.auth.resetPasswordForEmail(email, {
-			redirectTo: options?.redirectTo || `${manager.getVerifyUrl()}?type=recovery&next=/auth/update-password`,
+		const { error } = await clientWithAuthNoUser.auth.resetPasswordForEmail(email, {
+			redirectTo: options?.redirectTo ||
+				`${userAuthSession.getVerifyUrl()}?type=recovery&next=/auth/update-password`,
 		});
 
 		if (error) {
@@ -401,12 +461,14 @@ export async function handleUpdatePassword(ctx: Context<BbState>) {
 			return;
 		}
 
-		const manager = getSessionManager(ctx);
-		const client = manager.getClient();
+		//const userAuthSession = getUserAuthSession(ctx);
+
+		// Use clientWithAuth for password update - requires user authentication for updateUser
+		const clientWithAuthWithUser = await SupabaseClientFactory.getClient(ctx.state.userContext!);
 
 		logger.info('AuthHandler: Password update request');
 
-		const { data, error } = await client.auth.updateUser({
+		const { data, error } = await clientWithAuthWithUser.auth.updateUser({
 			password,
 		});
 
@@ -461,12 +523,12 @@ export async function handleResendVerification(ctx: Context<BbState>) {
 			return;
 		}
 
-		const manager = getSessionManager(ctx);
-		const client = manager.getClient();
+		// Use clientWithAuth for resend verification - needs auth storage for resend process
+		const clientWithAuthNoUser = await SupabaseClientFactory.getClient(null);
 
 		logger.info(`AuthHandler: Resending verification email for: ${email}`);
 
-		const { error } = await client.auth.resend({
+		const { error } = await clientWithAuthNoUser.auth.resend({
 			type: type,
 			email,
 			options,

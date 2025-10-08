@@ -38,7 +38,7 @@ export interface LLMToolSearchAndReplaceResponseData {
  * Result of a search_and_replace tool operation.
  */
 export interface LLMToolSearchAndReplaceResult {
-	toolResult: LLMToolRunResultContent;
+	toolResults: LLMToolRunResultContent;
 	bbResponse: string;
 	//bbResponse: LLMToolSearchAndReplaceResponseData;
 }

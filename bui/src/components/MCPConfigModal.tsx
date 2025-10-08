@@ -1,4 +1,13 @@
-import { MCPServerConfig } from 'shared/config/types.ts';
+/*
+ * IMPORTANT: This component (MCPConfigModal.tsx) appears to be deprecated.
+ * The actual MCP server configuration interface used by the application is in:
+ * bui/src/islands/AppSettings/MCPServerItem.tsx
+ *
+ * If you need to modify MCP server configuration UI, please update MCPServerItem.tsx instead.
+ * This file has been kept for reference but may not be used in the active application.
+ */
+
+import type { MCPServerConfig } from 'shared/config/types.ts';
 import { useEffect, useState } from 'preact/hooks';
 
 interface MCPConfigModalProps {
@@ -36,6 +45,9 @@ export default function MCPConfigModal({
 	// For managing a new environment variable
 	const [newEnvKey, setNewEnvKey] = useState('');
 	const [newEnvValue, setNewEnvValue] = useState('');
+	// OAuth authorization state
+	const [authorizationUrl, setAuthorizationUrl] = useState<string | null>(null);
+	const [isAuthorizing, setIsAuthorizing] = useState(false);
 
 	// Initialize edited servers from props
 	useEffect(() => {
@@ -67,8 +79,39 @@ export default function MCPConfigModal({
 			errors.id = 'Server ID is required';
 		}
 
-		if (!server.command) {
-			errors.command = 'Command is required';
+		if (!server.transport) {
+			errors.transport = 'Transport type is required';
+		}
+
+		if (server.transport === 'stdio') {
+			if (!server.command) {
+				errors.command = 'Command is required for STDIO transport';
+			}
+		} else if (server.transport === 'http') {
+			if (!server.url) {
+				errors.url = 'URL is required for HTTP transport';
+			} else {
+				try {
+					const url = new URL(server.url);
+					if (url.protocol !== 'https:' && url.hostname !== 'localhost' && !url.hostname.startsWith('127.')) {
+						errors.url = 'HTTPS is required for remote servers (localhost allowed)';
+					}
+				} catch {
+					errors.url = 'Invalid URL format';
+				}
+			}
+
+			if (server.oauth) {
+				if (!server.oauth.clientId) {
+					errors.oauthClientId = 'Client ID is required for OAuth';
+				}
+				if (!server.oauth.clientSecret) {
+					errors.oauthClientSecret = 'Client Secret is required for OAuth';
+				}
+				if (server.oauth.grantType === 'authorization_code' && !server.oauth.redirectUri) {
+					errors.oauthRedirectUri = 'Redirect URI is required for authorization code flow';
+				}
+			}
 		}
 
 		// Check for duplicate IDs (only if this is a new server or ID changed)
@@ -88,13 +131,16 @@ export default function MCPConfigModal({
 
 	// Add a new server
 	const handleAddServer = () => {
-		setNewServer({
+		const newServerConfig = {
 			id: '',
 			name: '',
+			transport: 'stdio' as const, // Default to STDIO for backward compatibility
 			command: '',
 			args: [],
 			env: {},
-		});
+		};
+		console.log('MCPConfigModal: Creating new server', newServerConfig);
+		setNewServer(newServerConfig);
 	};
 
 	// Edit an existing server
@@ -109,12 +155,24 @@ export default function MCPConfigModal({
 
 	// Update server being edited
 	const handleUpdateServer = (field: keyof MCPServerConfig, value: string | string[] | Record<string, string>) => {
+		// Debug logging
+		console.log('MCPConfigModal: handleUpdateServer called', {
+			field,
+			value,
+			editingServer: !!editingServer,
+			newServer: !!newServer,
+		});
+
 		if (editingServer) {
 			const updated = { ...editingServer, [field]: value };
+			console.log('MCPConfigModal: Updating editingServer', { before: editingServer, after: updated });
 			setEditingServer(updated);
 		} else if (newServer) {
 			const updated = { ...newServer, [field]: value };
+			console.log('MCPConfigModal: Updating newServer', { before: newServer, after: updated });
 			setNewServer(updated);
+		} else {
+			console.warn('MCPConfigModal: handleUpdateServer called but no server being edited');
 		}
 	};
 
@@ -193,10 +251,87 @@ export default function MCPConfigModal({
 		return Object.entries(env).map(([key, value]) => ({ key, value }));
 	};
 
+	// Handle OAuth authorization for authorization_code flow
+	const handleOAuthAuthorize = async (server: MCPServerConfig) => {
+		if (!server.oauth || server.oauth.grantType !== 'authorization_code') return;
+
+		setIsAuthorizing(true);
+		try {
+			const response = await fetch(`/api/v1/mcp/servers/${server.id}/authorize`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+			});
+
+			if (response.ok) {
+				const data = await response.json();
+				setAuthorizationUrl(data.authorizationUrl);
+				// Open authorization URL in a new window
+				window.open(data.authorizationUrl, '_blank', 'width=600,height=700');
+			} else {
+				console.error('Failed to generate authorization URL:', await response.text());
+			}
+		} catch (error) {
+			console.error('Error generating authorization URL:', error);
+		} finally {
+			setIsAuthorizing(false);
+		}
+	};
+
+	// Handle OAuth client credentials flow
+	const handleClientCredentialsFlow = async (server: MCPServerConfig) => {
+		if (!server.oauth || server.oauth.grantType !== 'client_credentials') return;
+
+		setIsAuthorizing(true);
+		try {
+			const response = await fetch(`/api/v1/mcp/servers/${server.id}/client-credentials`, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+			});
+
+			if (response.ok) {
+				const data = await response.json();
+				// Update the server config with token info
+				if (editingServer) {
+					setEditingServer({
+						...editingServer,
+						oauth: {
+							...editingServer.oauth!,
+							accessToken: 'obtained', // Don't expose actual token in UI
+							expiresAt: data.expiresAt ? new Date(data.expiresAt).getTime() : undefined,
+						},
+					});
+				} else if (newServer) {
+					setNewServer({
+						...newServer,
+						oauth: {
+							...newServer.oauth!,
+							accessToken: 'obtained', // Don't expose actual token in UI
+							expiresAt: data.expiresAt ? new Date(data.expiresAt).getTime() : undefined,
+						},
+					});
+				}
+			} else {
+				console.error('Client credentials flow failed:', await response.text());
+			}
+		} catch (error) {
+			console.error('Error in client credentials flow:', error);
+		} finally {
+			setIsAuthorizing(false);
+		}
+	};
+
 	// Save the edited/new server
 	const handleSaveServer = () => {
 		const serverToSave = editingServer || newServer;
-		if (!serverToSave) return;
+		console.log('MCPConfigModal: handleSaveServer called', { serverToSave });
+		if (!serverToSave) {
+			console.warn('MCPConfigModal: No server to save');
+			return;
+		}
 
 		// Check if there's an unsaved argument in the input field and add it
 		if (newArgument.trim()) {
@@ -244,9 +379,13 @@ export default function MCPConfigModal({
 		}
 
 		const validationErrors = validateServer(serverToSave);
+		console.log('MCPConfigModal: Validation results', { validationErrors, serverToSave });
 		if (Object.keys(validationErrors).length > 0) {
+			console.error('MCPConfigModal: Validation failed', validationErrors);
 			setErrors(validationErrors);
 			return;
+		} else {
+			console.log('MCPConfigModal: Validation passed');
 		}
 
 		if (editingServer) {
@@ -348,164 +487,281 @@ export default function MCPConfigModal({
 										/>
 									</div>
 
-									{/* Command */}
+									{/* Transport Type */}
 									<div>
-										<label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
-											Command <span className='text-red-500'>*</span>
+										<label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
+											Transport Type <span className='text-red-500'>*</span>
 										</label>
-										<input
-											type='text'
-											value={(editingServer || newServer)?.command}
-											onChange={(e) =>
-												handleUpdateServer('command', (e.target as HTMLInputElement).value)}
-											className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
-												errors.command
-													? 'border-red-500'
-													: 'border-gray-300 dark:border-gray-600'
-											}`}
-											placeholder='npx'
-										/>
-										{errors.command && (
+										<div className='space-y-2'>
+											<label className='flex items-center'>
+												<input
+													type='radio'
+													name='transport'
+													value='stdio'
+													checked={(editingServer || newServer)?.transport === 'stdio'}
+													onChange={(e) =>
+														handleUpdateServer(
+															'transport',
+															(e.target as HTMLInputElement).value,
+														)}
+													className='mr-2 text-blue-600 focus:ring-blue-500'
+												/>
+												<span className='text-sm text-gray-700 dark:text-gray-300'>
+													STDIO (Local Process)
+												</span>
+											</label>
+											<label className='flex items-center'>
+												<input
+													type='radio'
+													name='transport'
+													value='http'
+													checked={(editingServer || newServer)?.transport === 'http'}
+													onChange={(e) =>
+														handleUpdateServer(
+															'transport',
+															(e.target as HTMLInputElement).value,
+														)}
+													className='mr-2 text-blue-600 focus:ring-blue-500'
+												/>
+												<span className='text-sm text-gray-700 dark:text-gray-300'>
+													HTTP (Remote Server)
+												</span>
+											</label>
+										</div>
+										{errors.transport && (
 											<p className='mt-1 text-sm text-red-600 dark:text-red-400'>
-												{errors.command}
+												{errors.transport}
 											</p>
 										)}
 									</div>
 
-									{/* Arguments */}
-									<div>
-										<label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
-											Arguments
-										</label>
-
-										<div className='space-y-2'>
-											{/* Existing arguments */}
-											{((editingServer || newServer)?.args || []).map((arg, index) => (
-												<div key={index} className='flex items-center space-x-2'>
-													<input
-														type='text'
-														value={arg}
-														onChange={(e) =>
-															handleUpdateArgument(
-																index,
-																(e.target as HTMLInputElement).value,
-															)}
-														className='flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100'
-													/>
-													<button
-														type='button'
-														onClick={() =>
-															handleRemoveArgument(index)}
-														className='p-2 text-gray-400 hover:text-red-500 focus:outline-none'
-														aria-label='Remove argument'
-													>
-														<svg
-															className='h-5 w-5'
-															fill='none'
-															stroke='currentColor'
-															viewBox='0 0 24 24'
-														>
-															<path
-																strokeLinecap='round'
-																strokeLinejoin='round'
-																strokeWidth={2}
-																d='M6 18L18 6M6 6l12 12'
-															/>
-														</svg>
-													</button>
-												</div>
-											))}
-
-											{/* Add new argument field */}
-											<div className='flex items-center space-x-2'>
+									{/* Conditional Fields Based on Transport Type */}
+									{(() => {
+										const currentTransport = (editingServer || newServer)?.transport;
+										console.log(
+											'MCPConfigModal: Current transport for conditional rendering:',
+											currentTransport,
+										);
+										return null;
+									})()}
+									{(editingServer || newServer)?.transport === 'stdio' && (
+										<>
+											{/* Command */}
+											<div>
+												<label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
+													Command <span className='text-red-500'>*</span>
+												</label>
 												<input
 													type='text'
-													value={newArgument}
+													value={(editingServer || newServer)?.command}
 													onChange={(e) =>
-														setNewArgument((e.target as HTMLInputElement).value)}
-													placeholder='Add argument...'
-													className='flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100'
-													onKeyDown={(e) => {
-														if (e.key === 'Enter' && newArgument.trim()) {
-															e.preventDefault();
-															handleAddArgument();
-														}
-													}}
+														handleUpdateServer(
+															'command',
+															(e.target as HTMLInputElement).value,
+														)}
+													className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
+														errors.command
+															? 'border-red-500'
+															: 'border-gray-300 dark:border-gray-600'
+													}`}
+													placeholder='npx'
 												/>
-												<button
-													type='button'
-													onClick={handleAddArgument}
-													className='p-2 text-gray-400 hover:text-blue-500 focus:outline-none'
-													aria-label='Add argument'
-													disabled={!newArgument.trim()}
-												>
-													<svg
-														className='h-5 w-5'
-														fill='none'
-														stroke='currentColor'
-														viewBox='0 0 24 24'
-													>
-														<path
-															strokeLinecap='round'
-															strokeLinejoin='round'
-															strokeWidth={2}
-															d='M12 4v16m8-8H4'
-														/>
-													</svg>
-												</button>
+												{errors.command && (
+													<p className='mt-1 text-sm text-red-600 dark:text-red-400'>
+														{errors.command}
+													</p>
+												)}
 											</div>
 
-											{/* Helper text */}
-											<p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
-												Press Enter or click + to add each argument. Each value will be passed
-												as a separate argument to the command.
-											</p>
-										</div>
-									</div>
+											{/* Arguments */}
+											<div>
+												<label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
+													Arguments
+												</label>
 
-									{/* Environment Variables */}
-									<div>
-										<div className='flex justify-between items-center mb-1'>
-											<label className='block text-sm font-medium text-gray-700 dark:text-gray-300'>
-												Environment Variables
-											</label>
+												<div className='space-y-2'>
+													{/* Existing arguments */}
+													{((editingServer || newServer)?.args || []).map((arg, index) => (
+														<div key={index} className='flex items-center space-x-2'>
+															<input
+																type='text'
+																value={arg}
+																onChange={(e) =>
+																	handleUpdateArgument(
+																		index,
+																		(e.target as HTMLInputElement).value,
+																	)}
+																className='flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+															/>
+															<button
+																type='button'
+																onClick={() =>
+																	handleRemoveArgument(index)}
+																className='p-2 text-gray-400 hover:text-red-500 focus:outline-none'
+																aria-label='Remove argument'
+															>
+																<svg
+																	className='h-5 w-5'
+																	fill='none'
+																	stroke='currentColor'
+																	viewBox='0 0 24 24'
+																>
+																	<path
+																		strokeLinecap='round'
+																		strokeLinejoin='round'
+																		strokeWidth={2}
+																		d='M6 18L18 6M6 6l12 12'
+																	/>
+																</svg>
+															</button>
+														</div>
+													))}
 
-											<button
-												type='button'
-												onClick={() => setShowSensitive(!showSensitive)}
-												className='text-xs px-2 py-1 rounded-md bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-											>
-												{showSensitive ? 'Hide' : 'Show'} Values
-											</button>
-										</div>
+													{/* Add new argument field */}
+													<div className='flex items-center space-x-2'>
+														<input
+															type='text'
+															value={newArgument}
+															onChange={(e) =>
+																setNewArgument((e.target as HTMLInputElement).value)}
+															placeholder='Add argument...'
+															className='flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+															onKeyDown={(e) => {
+																if (e.key === 'Enter' && newArgument.trim()) {
+																	e.preventDefault();
+																	handleAddArgument();
+																}
+															}}
+														/>
+														<button
+															type='button'
+															onClick={handleAddArgument}
+															className='p-2 text-gray-400 hover:text-blue-500 focus:outline-none'
+															aria-label='Add argument'
+															disabled={!newArgument.trim()}
+														>
+															<svg
+																className='h-5 w-5'
+																fill='none'
+																stroke='currentColor'
+																viewBox='0 0 24 24'
+															>
+																<path
+																	strokeLinecap='round'
+																	strokeLinejoin='round'
+																	strokeWidth={2}
+																	d='M12 4v16m8-8H4'
+																/>
+															</svg>
+														</button>
+													</div>
 
-										{/* Existing environment variables */}
-										<div className='space-y-2 mb-3'>
-											{Object.entries((editingServer || newServer)?.env || {}).map((
-												[key, value],
-											) => (
-												<div key={key} className='flex items-center space-x-2'>
+													{/* Helper text */}
+													<p className='text-xs text-gray-500 dark:text-gray-400 mt-1'>
+														Press Enter or click + to add each argument. Each value will be
+														passed as a separate argument to the command.
+													</p>
+												</div>
+											</div>
+
+											{/* Environment Variables */}
+											<div>
+												<div className='flex justify-between items-center mb-1'>
+													<label className='block text-sm font-medium text-gray-700 dark:text-gray-300'>
+														Environment Variables
+													</label>
+
+													<button
+														type='button'
+														onClick={() => setShowSensitive(!showSensitive)}
+														className='text-xs px-2 py-1 rounded-md bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+													>
+														{showSensitive ? 'Hide' : 'Show'} Values
+													</button>
+												</div>
+
+												{/* Existing environment variables */}
+												<div className='space-y-2 mb-3'>
+													{Object.entries((editingServer || newServer)?.env || {}).map((
+														[key, value],
+													) => (
+														<div key={key} className='flex items-center space-x-2'>
+															<input
+																type='text'
+																value={key}
+																readOnly
+																className='flex-[0.4] px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-mono'
+															/>
+															<input
+																type={showSensitive ? 'text' : 'password'}
+																value={value}
+																onChange={(e) =>
+																	handleUpdateEnvValue(
+																		key,
+																		(e.target as HTMLInputElement).value,
+																	)}
+																className='flex-[0.6] px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-mono'
+															/>
+															<button
+																type='button'
+																onClick={() => handleRemoveEnvVar(key)}
+																className='p-2 text-gray-400 hover:text-red-500 focus:outline-none'
+																aria-label='Remove environment variable'
+															>
+																<svg
+																	className='h-5 w-5'
+																	fill='none'
+																	stroke='currentColor'
+																	viewBox='0 0 24 24'
+																>
+																	<path
+																		strokeLinecap='round'
+																		strokeLinejoin='round'
+																		strokeWidth={2}
+																		d='M6 18L18 6M6 6l12 12'
+																	/>
+																</svg>
+															</button>
+														</div>
+													))}
+												</div>
+
+												{/* Add new environment variable */}
+												<div className='flex items-center space-x-2'>
 													<input
 														type='text'
-														value={key}
-														readOnly
-														className='flex-[0.4] px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-mono'
+														value={newEnvKey}
+														onChange={(e) =>
+															setNewEnvKey((e.target as HTMLInputElement).value)}
+														placeholder='Key'
+														className='flex-[0.4] px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+														onKeyDown={(e) => {
+															if (e.key === 'Enter' && newEnvKey.trim()) {
+																e.preventDefault();
+																handleAddEnvVar();
+															}
+														}}
 													/>
 													<input
 														type={showSensitive ? 'text' : 'password'}
-														value={value}
+														value={newEnvValue}
 														onChange={(e) =>
-															handleUpdateEnvValue(
-																key,
-																(e.target as HTMLInputElement).value,
-															)}
-														className='flex-[0.6] px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-mono'
+															setNewEnvValue((e.target as HTMLInputElement).value)}
+														placeholder='Value'
+														className='flex-[0.6] px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+														onKeyDown={(e) => {
+															if (e.key === 'Enter' && newEnvKey.trim()) {
+																e.preventDefault();
+																handleAddEnvVar();
+															}
+														}}
 													/>
 													<button
 														type='button'
-														onClick={() => handleRemoveEnvVar(key)}
-														className='p-2 text-gray-400 hover:text-red-500 focus:outline-none'
-														aria-label='Remove environment variable'
+														onClick={handleAddEnvVar}
+														className='p-2 text-gray-400 hover:text-blue-500 focus:outline-none'
+														aria-label='Add environment variable'
+														disabled={!newEnvKey.trim()}
 													>
 														<svg
 															className='h-5 w-5'
@@ -517,71 +773,377 @@ export default function MCPConfigModal({
 																strokeLinecap='round'
 																strokeLinejoin='round'
 																strokeWidth={2}
-																d='M6 18L18 6M6 6l12 12'
+																d='M12 4v16m8-8H4'
 															/>
 														</svg>
 													</button>
 												</div>
-											))}
-										</div>
 
-										{/* Add new environment variable */}
-										<div className='flex items-center space-x-2'>
-											<input
-												type='text'
-												value={newEnvKey}
-												onChange={(e) => setNewEnvKey((e.target as HTMLInputElement).value)}
-												placeholder='Key'
-												className='flex-[0.4] px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100'
-												onKeyDown={(e) => {
-													if (e.key === 'Enter' && newEnvKey.trim()) {
-														e.preventDefault();
-														handleAddEnvVar();
-													}
-												}}
-											/>
-											<input
-												type={showSensitive ? 'text' : 'password'}
-												value={newEnvValue}
-												onChange={(e) => setNewEnvValue((e.target as HTMLInputElement).value)}
-												placeholder='Value'
-												className='flex-[0.6] px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100'
-												onKeyDown={(e) => {
-													if (e.key === 'Enter' && newEnvKey.trim()) {
-														e.preventDefault();
-														handleAddEnvVar();
-													}
-												}}
-											/>
-											<button
-												type='button'
-												onClick={handleAddEnvVar}
-												className='p-2 text-gray-400 hover:text-blue-500 focus:outline-none'
-												aria-label='Add environment variable'
-												disabled={!newEnvKey.trim()}
-											>
-												<svg
-													className='h-5 w-5'
-													fill='none'
-													stroke='currentColor'
-													viewBox='0 0 24 24'
-												>
-													<path
-														strokeLinecap='round'
-														strokeLinejoin='round'
-														strokeWidth={2}
-														d='M12 4v16m8-8H4'
-													/>
-												</svg>
-											</button>
-										</div>
+												{/* Helper text */}
+												<p className='text-xs text-gray-500 dark:text-gray-400 mt-2'>
+													Environment variables are passed to the MCP server when it runs. Use
+													these to provide API keys and configuration.
+												</p>
+											</div>
+										</>
+									)}
 
-										{/* Helper text */}
-										<p className='text-xs text-gray-500 dark:text-gray-400 mt-2'>
-											Environment variables are passed to the MCP server when it runs. Use these
-											to provide API keys and configuration.
-										</p>
-									</div>
+									{/* HTTP Transport Configuration */}
+									{(editingServer || newServer)?.transport === 'http' && (
+										<>
+											{/* Server URL */}
+											<div>
+												<label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
+													Server URL <span className='text-red-500'>*</span>
+												</label>
+												<input
+													type='url'
+													value={(editingServer || newServer)?.url || ''}
+													onChange={(e) =>
+														handleUpdateServer('url', (e.target as HTMLInputElement).value)}
+													className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
+														errors.url
+															? 'border-red-500'
+															: 'border-gray-300 dark:border-gray-600'
+													}`}
+													placeholder='https://your-mcp-server.com/mcp'
+												/>
+												{errors.url && (
+													<p className='mt-1 text-sm text-red-600 dark:text-red-400'>
+														{errors.url}
+													</p>
+												)}
+												<p className='mt-1 text-xs text-gray-500 dark:text-gray-400'>
+													HTTPS is required for remote servers. Localhost is allowed over HTTP
+													for development.
+												</p>
+											</div>
+
+											{/* OAuth Configuration */}
+											<div className='border border-gray-200 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-800'>
+												<div className='flex items-center justify-between mb-3'>
+													<h4 className='text-sm font-medium text-gray-900 dark:text-gray-100'>
+														OAuth Configuration
+													</h4>
+													<label className='flex items-center'>
+														<input
+															type='checkbox'
+															checked={!!(editingServer || newServer)?.oauth}
+															onChange={(e) => {
+																const checked = (e.target as HTMLInputElement).checked;
+																if (checked) {
+																	handleUpdateServer('oauth', {
+																		grantType: 'authorization_code',
+																		clientId: '',
+																		clientSecret: '',
+																		tokenEndpoint: '',
+																		redirectUri: '',
+																		scopes: [],
+																	});
+																} else {
+																	handleUpdateServer('oauth', undefined as any);
+																}
+															}}
+															className='mr-2 text-blue-600 focus:ring-blue-500'
+														/>
+														<span className='text-sm text-gray-700 dark:text-gray-300'>
+															Enable OAuth
+														</span>
+													</label>
+												</div>
+
+												{(editingServer || newServer)?.oauth && (
+													<div className='space-y-4'>
+														{/* Grant Type */}
+														<div>
+															<label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2'>
+																Grant Type
+															</label>
+															<div className='space-y-2'>
+																<label className='flex items-center'>
+																	<input
+																		type='radio'
+																		name='grantType'
+																		value='authorization_code'
+																		checked={(editingServer || newServer)?.oauth
+																			?.grantType === 'authorization_code'}
+																		onChange={(e) => {
+																			const currentOAuth =
+																				(editingServer || newServer)?.oauth;
+																			if (currentOAuth) {
+																				handleUpdateServer('oauth', {
+																					...currentOAuth,
+																					grantType:
+																						(e.target as HTMLInputElement)
+																							.value as 'authorization_code',
+																				});
+																			}
+																		}}
+																		className='mr-2 text-blue-600 focus:ring-blue-500'
+																	/>
+																	<span className='text-sm text-gray-700 dark:text-gray-300'>
+																		Authorization Code (User Auth)
+																	</span>
+																</label>
+																<label className='flex items-center'>
+																	<input
+																		type='radio'
+																		name='grantType'
+																		value='client_credentials'
+																		checked={(editingServer || newServer)?.oauth
+																			?.grantType === 'client_credentials'}
+																		onChange={(e) => {
+																			const currentOAuth =
+																				(editingServer || newServer)?.oauth;
+																			if (currentOAuth) {
+																				handleUpdateServer('oauth', {
+																					...currentOAuth,
+																					grantType:
+																						(e.target as HTMLInputElement)
+																							.value as 'client_credentials',
+																				});
+																			}
+																		}}
+																		className='mr-2 text-blue-600 focus:ring-blue-500'
+																	/>
+																	<span className='text-sm text-gray-700 dark:text-gray-300'>
+																		Client Credentials (App-to-App)
+																	</span>
+																</label>
+															</div>
+														</div>
+
+														{/* Client ID */}
+														<div>
+															<label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
+																Client ID <span className='text-red-500'>*</span>
+															</label>
+															<input
+																type='text'
+																value={(editingServer || newServer)?.oauth?.clientId ||
+																	''}
+																onChange={(e) => {
+																	const currentOAuth = (editingServer || newServer)
+																		?.oauth;
+																	if (currentOAuth) {
+																		handleUpdateServer('oauth', {
+																			...currentOAuth,
+																			clientId:
+																				(e.target as HTMLInputElement).value,
+																		});
+																	}
+																}}
+																className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
+																	errors.oauthClientId
+																		? 'border-red-500'
+																		: 'border-gray-300 dark:border-gray-600'
+																}`}
+																placeholder='your-client-id'
+															/>
+															{errors.oauthClientId && (
+																<p className='mt-1 text-sm text-red-600 dark:text-red-400'>
+																	{errors.oauthClientId}
+																</p>
+															)}
+														</div>
+
+														{/* Client Secret */}
+														<div>
+															<label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
+																Client Secret <span className='text-red-500'>*</span>
+															</label>
+															<input
+																type='password'
+																value={(editingServer || newServer)?.oauth
+																	?.clientSecret || ''}
+																onChange={(e) => {
+																	const currentOAuth = (editingServer || newServer)
+																		?.oauth;
+																	if (currentOAuth) {
+																		handleUpdateServer('oauth', {
+																			...currentOAuth,
+																			clientSecret:
+																				(e.target as HTMLInputElement).value,
+																		});
+																	}
+																}}
+																className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
+																	errors.oauthClientSecret
+																		? 'border-red-500'
+																		: 'border-gray-300 dark:border-gray-600'
+																}`}
+																placeholder='your-client-secret'
+															/>
+															{errors.oauthClientSecret && (
+																<p className='mt-1 text-sm text-red-600 dark:text-red-400'>
+																	{errors.oauthClientSecret}
+																</p>
+															)}
+														</div>
+
+														{/* Redirect URI - only for authorization_code flow */}
+														{(editingServer || newServer)?.oauth?.grantType ===
+																'authorization_code' && (
+															<div>
+																<label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
+																	Redirect URI <span className='text-red-500'>*</span>
+																</label>
+																<input
+																	type='url'
+																	value={(editingServer || newServer)?.oauth
+																		?.redirectUri || ''}
+																	onChange={(e) => {
+																		const currentOAuth =
+																			(editingServer || newServer)?.oauth;
+																		if (currentOAuth) {
+																			handleUpdateServer('oauth', {
+																				...currentOAuth,
+																				redirectUri:
+																					(e.target as HTMLInputElement)
+																						.value,
+																			});
+																		}
+																	}}
+																	className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 ${
+																		errors.oauthRedirectUri
+																			? 'border-red-500'
+																			: 'border-gray-300 dark:border-gray-600'
+																	}`}
+																	placeholder='https://your-app.com/oauth/callback'
+																/>
+																{errors.oauthRedirectUri && (
+																	<p className='mt-1 text-sm text-red-600 dark:text-red-400'>
+																		{errors.oauthRedirectUri}
+																	</p>
+																)}
+															</div>
+														)}
+
+														{/* Scopes */}
+														<div>
+															<label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
+																Scopes (comma-separated)
+															</label>
+															<input
+																type='text'
+																value={(editingServer || newServer)?.oauth?.scopes
+																	?.join(', ') || ''}
+																onChange={(e) => {
+																	const currentOAuth = (editingServer || newServer)
+																		?.oauth;
+																	if (currentOAuth) {
+																		const scopes = (e.target as HTMLInputElement)
+																			.value
+																			.split(',')
+																			.map((s) => s.trim())
+																			.filter((s) => s.length > 0);
+																		handleUpdateServer('oauth', {
+																			...currentOAuth,
+																			scopes,
+																		});
+																	}
+																}}
+																className='w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+																placeholder='read, write, admin'
+															/>
+															<p className='mt-1 text-xs text-gray-500 dark:text-gray-400'>
+																Optional. Specify the OAuth scopes your application
+																needs.
+															</p>
+														</div>
+
+														{/* Token Endpoint */}
+														<div>
+															<label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
+																Token Endpoint
+															</label>
+															<input
+																type='url'
+																value={(editingServer || newServer)?.oauth
+																	?.tokenEndpoint || ''}
+																onChange={(e) => {
+																	const currentOAuth = (editingServer || newServer)
+																		?.oauth;
+																	if (currentOAuth) {
+																		handleUpdateServer('oauth', {
+																			...currentOAuth,
+																			tokenEndpoint:
+																				(e.target as HTMLInputElement).value,
+																		});
+																	}
+																}}
+																className='w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+																placeholder='https://your-server.com/oauth/token'
+															/>
+															<p className='mt-1 text-xs text-gray-500 dark:text-gray-400'>
+																Optional. If not specified, will try to discover from
+																server.
+															</p>
+														</div>
+
+														{/* Authorization Actions */}
+														<div className='bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-3'>
+															<h5 className='text-sm font-medium text-blue-900 dark:text-blue-100 mb-2'>
+																Authorization
+															</h5>
+															{(editingServer || newServer)?.oauth?.grantType ===
+																	'authorization_code'
+																? (
+																	<div>
+																		<p className='text-xs text-blue-800 dark:text-blue-200 mb-2'>
+																			Save the server configuration first, then
+																			click Authorize to start the OAuth flow.
+																		</p>
+																		<button
+																			type='button'
+																			onClick={() =>
+																				handleOAuthAuthorize(
+																					editingServer || newServer!,
+																				)}
+																			disabled={isAuthorizing ||
+																				!(editingServer || newServer)?.oauth
+																					?.clientId ||
+																				!(editingServer || newServer)?.oauth
+																					?.clientSecret}
+																			className='inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed'
+																		>
+																			{isAuthorizing
+																				? 'Authorizing...'
+																				: 'Authorize'}
+																		</button>
+																	</div>
+																)
+																: (
+																	<div>
+																		<p className='text-xs text-blue-800 dark:text-blue-200 mb-2'>
+																			Client credentials flow will be performed
+																			automatically when the server is saved.
+																		</p>
+																		<button
+																			type='button'
+																			onClick={() =>
+																				handleClientCredentialsFlow(
+																					editingServer || newServer!,
+																				)}
+																			disabled={isAuthorizing ||
+																				!(editingServer || newServer)?.oauth
+																					?.clientId ||
+																				!(editingServer || newServer)?.oauth
+																					?.clientSecret}
+																			className='inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed'
+																		>
+																			{isAuthorizing
+																				? 'Getting Token...'
+																				: 'Get Access Token'}
+																		</button>
+																	</div>
+																)}
+														</div>
+													</div>
+												)}
+											</div>
+										</>
+									)}
 								</div>
 
 								<div className='mt-6 flex justify-end space-x-3'>
@@ -650,33 +1212,100 @@ export default function MCPConfigModal({
 																	<span className='ml-1 font-mono'>{server.id}</span>
 																</div>
 																<div className='flex items-center'>
-																	<span className='font-medium'>Command:</span>
-																	<span className='ml-1 font-mono'>
-																		{server.command}
+																	<span className='font-medium'>Transport:</span>
+																	<span
+																		className={`ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+																			server.transport === 'http'
+																				? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
+																				: 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+																		}`}
+																	>
+																		{server.transport?.toUpperCase() || 'STDIO'}
 																	</span>
 																</div>
-																{server.args && server.args.length > 0 && (
-																	<div className='flex items-start'>
-																		<span className='font-medium'>Args:</span>
-																		<span className='ml-1 font-mono'>
-																			{server.args.join(', ')}
-																		</span>
-																	</div>
-																)}
-																{server.env && Object.keys(server.env).length > 0 && (
-																	<div>
-																		<span className='font-medium'>
-																			Environment:
-																		</span>
-																		<span className='ml-1'>
-																			{Object.keys(server.env).length}{' '}
-																			variable{Object.keys(server.env).length !==
-																					1
-																				? 's'
-																				: ''}
-																		</span>
-																	</div>
-																)}
+
+																{/* Transport-specific information */}
+																{server.transport === 'stdio' || !server.transport
+																	? (
+																		<>
+																			<div className='flex items-center'>
+																				<span className='font-medium'>
+																					Command:
+																				</span>
+																				<span className='ml-1 font-mono'>
+																					{server.command}
+																				</span>
+																			</div>
+																			{server.args && server.args.length > 0 && (
+																				<div className='flex items-start'>
+																					<span className='font-medium'>
+																						Args:
+																					</span>
+																					<span className='ml-1 font-mono'>
+																						{server.args.join(', ')}
+																					</span>
+																				</div>
+																			)}
+																			{server.env &&
+																				Object.keys(server.env).length > 0 && (
+																				<div>
+																					<span className='font-medium'>
+																						Environment:
+																					</span>
+																					<span className='ml-1'>
+																						{Object.keys(server.env).length}
+																						{' '}
+																						variable{Object.keys(server.env)
+																								.length !== 1
+																							? 's'
+																							: ''}
+																					</span>
+																				</div>
+																			)}
+																		</>
+																	)
+																	: (
+																		<>
+																			<div className='flex items-center'>
+																				<span className='font-medium'>
+																					URL:
+																				</span>
+																				<span className='ml-1 font-mono text-blue-600 dark:text-blue-400'>
+																					{server.url}
+																				</span>
+																			</div>
+																			{server.oauth && (
+																				<div className='flex items-center'>
+																					<span className='font-medium'>
+																						OAuth:
+																					</span>
+																					<div className='ml-1 flex items-center space-x-2'>
+																						<span className='text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-0.5 rounded'>
+																							{server.oauth.grantType
+																								.replace('_', ' ')
+																								.toUpperCase()}
+																						</span>
+																						{server.oauth.accessToken && (
+																							<span className='text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-0.5 rounded'>
+																								Authorized
+																							</span>
+																						)}
+																					</div>
+																				</div>
+																			)}
+																			{server.oauth?.scopes &&
+																				server.oauth.scopes.length > 0 && (
+																				<div className='flex items-center'>
+																					<span className='font-medium'>
+																						Scopes:
+																					</span>
+																					<span className='ml-1 text-xs'>
+																						{server.oauth.scopes.join(', ')}
+																					</span>
+																				</div>
+																			)}
+																		</>
+																	)}
 															</div>
 														</div>
 

@@ -2,9 +2,10 @@ import { expect } from './deps.ts';
 import { render, screen, fireEvent } from '@testing-library/preact';
 import { ExternalLink } from '../src/components/ExternalLink.tsx';
 import * as externalLinkHelper from 'shared/externalLinkHelper.ts';
+import * as environmentHelper from 'shared/environmentHelper.ts';
 
 // Mock the externalLinkHelper functions
-const mockIsDuiEnvironment = vi.spyOn(externalLinkHelper, 'isDuiEnvironment');
+const mockIsDuiEnvironment = vi.spyOn(environmentHelper, 'isDuiEnvironment');
 const mockGetExternalHref = vi.spyOn(externalLinkHelper, 'getExternalHref');
 const mockGetExternalClickHandler = vi.spyOn(externalLinkHelper, 'getExternalClickHandler');
 

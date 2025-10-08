@@ -29,30 +29,36 @@ import { applyFixHandler, checkHandler, reportHandler } from './api/doctor.handl
 import { getInstanceOverviewHandler } from './api/instanceInspector.handlers.ts';
 import projectRouter from './api/projectRouter.ts';
 import datasourceRouter from './api/datasourceRouter.ts';
-import fileRouter from './api/fileRouter.ts';
+import resourceRouter from './api/resourceRouter.ts';
 import authRouter from './api/authRouter.ts';
 import userRouter from './api/userRouter.ts';
 import subscriptionRouter from './api/subscriptionRouter.ts';
 import configRouter from './api/configRouter.ts';
 import teamRouter from './api/teamRouter.ts';
+import mcpRouter from './api/mcpRouter.ts';
 
 const apiRouter = new Router();
 
-// Define protected routes
-const protectedPaths = [
-	'/api/v1/ws/collaboration/*',
-	'/api/v1/collaborations/*',
-	'/api/v1/project/*',
-	'/api/v1/files/*',
-	'/api/v1/model',
-	'/api/v1/user/*', // Protect all user routes including subscription
-	'/api/v1/team/*', // Protect all team routes
-	'/api/v1/config/*', // Protect all config routes
+// Define public routes (all other routes are protected by default)
+const publicPaths = [
+	// Auth routes that should be publicly accessible
+	'/api/v1/auth/login',
+	'/api/v1/auth/signup',
+	'/api/v1/auth/callback',
+	'/api/v1/auth/check-email-verification',
+	'/api/v1/auth/resend-verification',
+	// Status and monitoring endpoints
+	'/api/v1/status',
+	'/api/v1/meta',
+	'/api/v1/debug/instances',
+	// System maintenance endpoints
+	'/api/v1/upgrade',
+	'/api/v1/doctor/*',
 ];
 
 apiRouter
-	// Apply auth middleware to protected routes
-	.use(requireAuth(protectedPaths))
+	// Apply auth middleware to all routes except public paths
+	.use(requireAuth(publicPaths))
 	.get('/v1/status', getStatus)
 	.get('/v1/meta', getMeta)
 	.get('/v1/debug/instances', getInstanceOverviewHandler)
@@ -234,12 +240,13 @@ apiRouter
 	// Mount sub-routers
 	.use('/v1/project', projectRouter.routes(), projectRouter.allowedMethods())
 	.use('/v1/datasource', datasourceRouter.routes(), datasourceRouter.allowedMethods())
-	.use('/v1/files', fileRouter.routes(), fileRouter.allowedMethods())
+	.use('/v1/resources', resourceRouter.routes(), resourceRouter.allowedMethods())
 	.use('/v1/auth', authRouter.routes(), authRouter.allowedMethods())
 	.use('/v1/user', userRouter.routes(), userRouter.allowedMethods())
 	.use('/v1/team', teamRouter.routes(), teamRouter.allowedMethods())
 	.use('/v1/subscription', subscriptionRouter.routes(), subscriptionRouter.allowedMethods())
-	.use('/v1/config', configRouter.routes(), configRouter.allowedMethods());
+	.use('/v1/config', configRouter.routes(), configRouter.allowedMethods())
+	.use('/v1/mcp', mcpRouter.routes(), mcpRouter.allowedMethods());
 
 /*
     // NOT IMPLEMENTED

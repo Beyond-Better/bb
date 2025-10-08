@@ -1,0 +1,83 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "oauth-capability",
+  "description": "Capability for OAuth authentication windows",
+  "platforms": [
+    "macOS",
+    "windows",
+    "linux"
+  ],
+  "windows": [
+    "oauth_window*"
+  ],
+  "webviews": [
+    "oauth_window*"
+  ],
+  "permissions": [
+    "core:window:default",
+    "core:window:allow-show",
+    "core:window:allow-close",
+    "core:window:allow-destroy",
+    "core:window:allow-set-position",
+    "core:webview:allow-set-webview-position",
+    "core:webview:default",
+    "core:webview:allow-create-webview-window",
+    "core:event:default",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten",
+    "core:event:allow-emit",
+    "core:event:allow-emit-to",
+    "store:allow-load",
+    "store:default"
+  ],
+  "remote": {
+    "urls": [
+      "https://accounts.google.com/**",
+      "https://oauth2.googleapis.com/**",
+      "https://chat.beyondbetter.app/**",
+      "https://chat.beyondbetter.dev/**",
+      "https://chat.beyondbetter.team/**",
+      "https://localhost:8080/**",
+      "http://localhost:8080/**"
+    ]
+  },
+  "webviewConfig": {
+    "allowedNavigateOrigins": [
+      "ipc://localhost",
+      "https://accounts.google.com",
+      "https://oauth2.googleapis.com",
+      "https://chat.beyondbetter.app",
+      "https://chat.beyondbetter.dev",
+      "https://chat.beyondbetter.team",
+      "https://localhost:8080",
+      "http://localhost:8080"
+    ],
+    "allowedProtocols": [
+      "ipc",
+      "ws",
+      "wss",
+      "http",
+      "https"
+    ],
+    "csp": "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; connect-src * ws: wss: http: https:",
+    "dangerousDisableAspectRatioCSP": true,
+    "dangerousRemoteDomainIpcAccess": [
+      {
+        "domain": "localhost",
+        "enableTauriAPI": true
+      },
+      {
+        "domain": "chat.beyondbetter.app",
+        "enableTauriAPI": true
+      },
+      {
+        "domain": "chat.beyondbetter.dev",
+        "enableTauriAPI": true
+      },
+      {
+        "domain": "chat.beyondbetter.team",
+        "enableTauriAPI": true
+      }
+    ]
+  }
+}

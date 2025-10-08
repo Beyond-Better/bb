@@ -23,6 +23,8 @@ import type {
 } from 'api/errors/error.ts';
 import { isResourceNotFoundError } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
+import { checkDatasourceAccess } from 'api/utils/featureAccess.ts';
+import { enhanceDatasourceError } from '../../../utils/datasourceErrorEnhancement.ts';
 
 import type { SearchReplaceOperation } from 'shared/types/dataSourceResource.ts';
 
@@ -52,13 +54,23 @@ export default class LLMToolEditResource extends LLMTool {
 				operations: {
 					type: 'array',
 					description:
-						'Array of editing operations to apply in sequence. Each operation must specify its editType.',
+						`Array of editing operations to apply in sequence. Each operation must specify its editType.
+
+**CRITICAL WORKFLOW:** Before editing, ALWAYS:
+1. Load resource with load_resources using contentFormat="structured" 
+2. Review current structure/indices for range operations or array data for cell operations
+3. Plan operations using actual values from loaded content
+4. Apply operations using this tool
+
+**For Google Sheets:** Load with structured format to see tabular arrays for A1 notation
+**For Google Docs:** Load with structured format to see character indices for range operations
+**For Files:** Load first to see current content before making changes`,
 					items: {
 						type: 'object',
 						properties: {
 							editType: {
 								type: 'string',
-								enum: ['searchReplace', 'range', 'blocks', 'structuredData'],
+								enum: ['searchReplace', 'range', 'blocks', 'structuredData', 'cell'],
 								description: 'Type of edit operation to perform.',
 							},
 							// Search and replace properties
@@ -109,7 +121,8 @@ export default class LLMToolEditResource extends LLMTool {
 								properties: {
 									index: {
 										type: 'number',
-										description: 'Character index for insertion (0-based)',
+										description:
+											'Character index for insertion (1-based: index 1 = first character). IMPORTANT: Google Docs API uses 1-based indexing. Load resource with structured format first to see current indices.',
 									},
 									tabId: {
 										type: 'string',
@@ -125,11 +138,13 @@ export default class LLMToolEditResource extends LLMTool {
 								properties: {
 									startIndex: {
 										type: 'number',
-										description: 'Start character index (0-based, inclusive)',
+										description:
+											'Start character index (1-based, inclusive: index 1 = first character). IMPORTANT: Google Docs API uses 1-based indexing.',
 									},
 									endIndex: {
 										type: 'number',
-										description: 'End character index (0-based, exclusive)',
+										description:
+											'End character index (1-based, exclusive: index after last character). IMPORTANT: Google Docs API uses 1-based indexing.',
 									},
 									tabId: {
 										type: 'string',
@@ -266,6 +281,142 @@ export default class LLMToolEditResource extends LLMTool {
 								description:
 									'Structured data operation details (structuredData only, future implementation).',
 							},
+							// Cell operation properties (for spreadsheet editing)
+							cell_operationType: {
+								type: 'string',
+								enum: [
+									'setValue',
+									'setFormula',
+									'clear',
+									'format',
+									'insertRows',
+									'insertColumns',
+									'deleteRows',
+									'deleteColumns',
+								],
+								description: 'Type of cell operation to perform (cell only).',
+							},
+							cell_range: {
+								type: 'string',
+								description:
+									'Cell range in A1 notation (cell only). Examples: "A1", "A1:B5", "Sheet1!A1:C10".',
+							},
+							cell_values: {
+								type: 'array',
+								description:
+									'2D array of values for setValue operations (cell only). Example: [["Header1", "Header2"], ["Value1", "Value2"]].',
+								items: {
+									type: 'array',
+									items: {},
+								},
+							},
+							cell_formula: {
+								type: 'string',
+								description:
+									'Formula for setFormula operations (cell only). Must start with = (e.g., "=SUM(A1:A10)").',
+							},
+							cell_format: {
+								type: 'object',
+								description:
+									'Cell formatting options (cell only, for format operations). **BEST PRACTICE:** Use data-type-specific formatting on homogeneous ranges rather than generic formatting on mixed data types. Apply number formats that match column content (currency, dates, percentages). Use smaller, targeted ranges (like "B2:C5") instead of large mixed ranges (like "A1:N10").',
+								properties: {
+									numberFormat: {
+										type: 'string',
+										description: 'Number format pattern (e.g., "0.00", "$#,##0.00")',
+									},
+									backgroundColor: {
+										type: 'string',
+										description: 'Background color as hex code (e.g., "#FFFF00")',
+									},
+									color: { type: 'string', description: 'Text color as hex code (e.g., "#FF0000")' },
+									horizontalAlignment: {
+										type: 'string',
+										enum: ['LEFT', 'CENTER', 'RIGHT'],
+										description: 'Horizontal text alignment',
+									},
+									verticalAlignment: {
+										type: 'string',
+										enum: ['TOP', 'MIDDLE', 'BOTTOM'],
+										description: 'Vertical text alignment',
+									},
+									bold: { type: 'boolean', description: 'Bold text formatting' },
+									italic: { type: 'boolean', description: 'Italic text formatting' },
+									strikethrough: { type: 'boolean', description: 'Strikethrough text formatting' },
+									underline: { type: 'boolean', description: 'Underline text formatting' },
+									fontFamily: { type: 'string', description: 'Font family name' },
+									fontSize: { type: 'number', description: 'Font size in points' },
+									borders: {
+										type: 'object',
+										description: 'Cell border formatting',
+										properties: {
+											top: {
+												type: 'object',
+												description: 'Top border style',
+												properties: {
+													style: {
+														type: 'string',
+														enum: ['NONE', 'SOLID', 'DASHED', 'DOTTED', 'DOUBLE'],
+														description: 'Border line style',
+													},
+													color: {
+														type: 'string',
+														description: 'Border color as hex code (e.g., "#000000")',
+													},
+												},
+											},
+											bottom: {
+												type: 'object',
+												description: 'Bottom border style',
+												properties: {
+													style: {
+														type: 'string',
+														enum: ['NONE', 'SOLID', 'DASHED', 'DOTTED', 'DOUBLE'],
+														description: 'Border line style',
+													},
+													color: {
+														type: 'string',
+														description: 'Border color as hex code (e.g., "#000000")',
+													},
+												},
+											},
+											left: {
+												type: 'object',
+												description: 'Left border style',
+												properties: {
+													style: {
+														type: 'string',
+														enum: ['NONE', 'SOLID', 'DASHED', 'DOTTED', 'DOUBLE'],
+														description: 'Border line style',
+													},
+													color: {
+														type: 'string',
+														description: 'Border color as hex code (e.g., "#000000")',
+													},
+												},
+											},
+											right: {
+												type: 'object',
+												description: 'Right border style',
+												properties: {
+													style: {
+														type: 'string',
+														enum: ['NONE', 'SOLID', 'DASHED', 'DOTTED', 'DOUBLE'],
+														description: 'Border line style',
+													},
+													color: {
+														type: 'string',
+														description: 'Border color as hex code (e.g., "#000000")',
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+							cell_sheetName: {
+								type: 'string',
+								description: 'Target sheet name (cell only). Required for multi-sheet spreadsheets.',
+							},
 						},
 						required: ['editType'],
 					},
@@ -340,10 +491,28 @@ export default class LLMToolEditResource extends LLMTool {
 
 		const dataSourceRoot = dsConnectionToUse.getDataSourceRoot();
 
+		// Check datasource write access
+		const hasWriteAccess = await checkDatasourceAccess(
+			projectEditor.userContext,
+			dsConnectionToUse.providerType,
+			'write',
+		);
+		if (!hasWriteAccess) {
+			throw createError(
+				ErrorType.ToolHandling,
+				`Write access for ${dsConnectionToUse.providerType} not available on your current plan`,
+				{
+					name: 'edit-resource',
+					toolName: 'edit_resource',
+					operation: 'capability-check',
+				} as ToolHandlingErrorOptions,
+			);
+		}
+
 		// Get resource accessor
 		const resourceAccessor = await dsConnectionToUse.getResourceAccessor();
-		if (!resourceAccessor.writeResource) {
-			throw createError(ErrorType.ToolHandling, `No writeResource method on resourceAccessor`, {
+		if (!resourceAccessor.editResource) {
+			throw createError(ErrorType.ToolHandling, `No editResource method on resourceAccessor`, {
 				name: 'edit-resource',
 				toolName: 'edit_resource',
 				operation: 'interface-check',
@@ -355,12 +524,14 @@ export default class LLMToolEditResource extends LLMTool {
 				`LLMToolEditResource: Applying ${operations.length} operations to resource: ${resourcePath}`,
 			);
 
+			/*
 			if (!resourceAccessor.editResource) {
 				throw createError(ErrorType.ToolHandling, `No writeResource method on resourceAccessor`, {
 					toolName: 'write_resource',
 					operation: 'tool-run',
 				} as ToolHandlingErrorOptions);
 			}
+ */
 			// Validate resource path is within datasource
 			const resourceUri = (resourcePath.includes('://') || resourcePath.startsWith('file:'))
 				? dsConnectionToUse.getUriForResource(resourcePath) // Already a URI, use as is
@@ -454,12 +625,22 @@ export default class LLMToolEditResource extends LLMTool {
 
 			return { toolResults, toolResponse, bbResponse };
 		} catch (error) {
-			const errorMessage = `Failed to apply unified edit operations to ${resourcePath}: ${
+			const originalErrorMessage = `Failed to apply unified edit operations to ${resourcePath}: ${
 				(error as Error).message
 			}`;
-			logger.error(`LLMToolEditResource: ${errorMessage}`);
 
-			throw createError(ErrorType.ResourceHandling, errorMessage, {
+			// Enhance error message with datasource-specific guidance
+			const enhancedErrorMessage = enhanceDatasourceError(
+				originalErrorMessage,
+				dsConnectionToUse.provider,
+				'edit',
+				resourcePath,
+				interaction,
+			);
+
+			logger.error(`LLMToolEditResource: ${enhancedErrorMessage}`);
+
+			throw createError(ErrorType.ResourceHandling, enhancedErrorMessage, {
 				name: 'edit-resource',
 				filePath: resourcePath,
 				operation: 'edit',
@@ -522,7 +703,7 @@ export default class LLMToolEditResource extends LLMTool {
 				);
 			}
 
-			const validEditTypes = ['searchReplace', 'range', 'blocks', 'structuredData'];
+			const validEditTypes = ['searchReplace', 'range', 'blocks', 'structuredData', 'cell'];
 			if (!validEditTypes.includes(operation.editType)) {
 				throw createError(
 					ErrorType.ToolHandling,
@@ -533,6 +714,91 @@ export default class LLMToolEditResource extends LLMTool {
 						operation: 'tool-input',
 					} as ToolHandlingErrorOptions,
 				);
+			}
+
+			// 🚨 CLAUDE 4.5 INPUT CORRECTION SAFEGUARDS 🚨
+			// Claude 4.5 frequently ignores tool schemas and uses incorrect property names
+			// This correction logic fixes the LLM's mistakes automatically
+			const keyCorrections: Record<string, Record<string, string>> = {
+				searchReplace: {
+					'search': 'searchReplace_search',
+					'replace': 'searchReplace_replace',
+					'regexPattern': 'searchReplace_regexPattern',
+					'replaceAll': 'searchReplace_replaceAll',
+					'caseSensitive': 'searchReplace_caseSensitive',
+				},
+				range: {
+					'rangeType': 'range_rangeType',
+					'location': 'range_location',
+					'range': 'range_range',
+					'text': 'range_text',
+					'textStyle': 'range_textStyle',
+					'paragraphStyle': 'range_paragraphStyle',
+					'fields': 'range_fields',
+				},
+				blocks: {
+					'operationType': 'blocks_operationType',
+					'index': 'blocks_index',
+					'key': 'blocks_key',
+					'content': 'blocks_content',
+					'position': 'blocks_position',
+					'block': 'blocks_block',
+					'from': 'blocks_from',
+					'to': 'blocks_to',
+					'fromKey': 'blocks_fromKey',
+					'toPosition': 'blocks_toPosition',
+				},
+				structuredData: {
+					'operation': 'structuredData_operation',
+				},
+				cell: {
+					'operationType': 'cell_operationType',
+					'range': 'cell_range',
+					'values': 'cell_values',
+					'formula': 'cell_formula',
+					'format': 'cell_format',
+					'sheetName': 'cell_sheetName',
+				},
+			};
+
+			// Apply corrections for LLM mistakes
+			const corrections = keyCorrections[operation.editType];
+			if (corrections) {
+				const correctedKeys: string[] = [];
+				for (const [incorrectKey, correctKey] of Object.entries(corrections)) {
+					if (
+						Object.prototype.hasOwnProperty.call(operation, incorrectKey) &&
+						!Object.prototype.hasOwnProperty.call(operation, correctKey)
+					) {
+						// 🚨 LOUD LOGGING - BLAME THE LLM 🚨
+						logger.error(
+							`🚨🚨🚨 LLM INPUT SCHEMA VIOLATION DETECTED 🚨🚨🚨`,
+						);
+						logger.error(
+							`❌ CLAUDE 4.5 FAILED TO FOLLOW TOOL SCHEMA in operation ${index + 1}`,
+						);
+						logger.error(
+							`❌ LLM used INCORRECT key: '${incorrectKey}' (should be '${correctKey}')`,
+						);
+						logger.error(
+							`🔧 AUTOMATICALLY CORRECTING LLM'S MISTAKE...`,
+						);
+
+						// Apply the correction
+						operation[correctKey] = operation[incorrectKey];
+						delete operation[incorrectKey];
+						correctedKeys.push(`${incorrectKey} → ${correctKey}`);
+					}
+				}
+
+				if (correctedKeys.length > 0) {
+					logger.error(
+						`✅ CORRECTED ${correctedKeys.length} LLM SCHEMA VIOLATIONS: [${correctedKeys.join(', ')}]`,
+					);
+					logger.error(
+						`⚠️  THIS IS A CLAUDE 4.5 BUG - LLM SHOULD FOLLOW THE PROVIDED SCHEMA EXACTLY`,
+					);
+				}
 			}
 
 			// Validate operations only use properties with matching prefixes
@@ -562,17 +828,20 @@ export default class LLMToolEditResource extends LLMTool {
 						);
 					} else {
 						// Invalid property name (no recognized prefix)
-						throw createError(
-							ErrorType.ToolHandling,
-							`Operation ${
-								index + 1
-							}: invalid property '${prop}' for editType '${operation.editType}' (expected prefix: '${expectedPrefix}')`,
-							{
-								name: 'edit-resource',
-								toolName: 'edit_resource',
-								operation: 'tool-input',
-							} as ToolHandlingErrorOptions,
+						logger.error(
+							`LLMToolEditResource: Invalid property ${prop} for operation ${operation.editType} - should start with ${expectedPrefix}`,
 						);
+						// throw createError(
+						// 	ErrorType.ToolHandling,
+						// 	`Operation ${
+						// 		index + 1
+						// 	}: invalid property '${prop}' for editType '${operation.editType}' (expected prefix: '${expectedPrefix}')`,
+						// 	{
+						// 		name: 'edit-resource',
+						// 		toolName: 'edit_resource',
+						// 		operation: 'tool-input',
+						// 	} as ToolHandlingErrorOptions,
+						// );
 					}
 				}
 			}
@@ -588,260 +857,386 @@ export default class LLMToolEditResource extends LLMTool {
 	private validateOperationProperties(operation: any, operationNumber: number): void {
 		switch (operation.editType) {
 			case 'searchReplace':
-				if (typeof operation.searchReplace_search !== 'string') {
-					throw createError(
-						ErrorType.ToolHandling,
-						`Operation ${operationNumber}: searchReplace_search must be a string`,
-						{
-							name: 'edit-resource',
-							toolName: 'edit_resource',
-							operation: 'tool-input',
-						} as ToolHandlingErrorOptions,
-					);
-				}
-				if (typeof operation.searchReplace_replace !== 'string') {
-					throw createError(
-						ErrorType.ToolHandling,
-						`Operation ${operationNumber}: searchReplace_replace must be a string`,
-						{
-							name: 'edit-resource',
-							toolName: 'edit_resource',
-							operation: 'tool-input',
-						} as ToolHandlingErrorOptions,
-					);
+				{
+					if (typeof operation.searchReplace_search !== 'string') {
+						throw createError(
+							ErrorType.ToolHandling,
+							`Operation ${operationNumber}: searchReplace_search must be a string`,
+							{
+								name: 'edit-resource',
+								toolName: 'edit_resource',
+								operation: 'tool-input',
+							} as ToolHandlingErrorOptions,
+						);
+					}
+					if (typeof operation.searchReplace_replace !== 'string') {
+						throw createError(
+							ErrorType.ToolHandling,
+							`Operation ${operationNumber}: searchReplace_replace must be a string`,
+							{
+								name: 'edit-resource',
+								toolName: 'edit_resource',
+								operation: 'tool-input',
+							} as ToolHandlingErrorOptions,
+						);
+					}
 				}
 				break;
 			case 'range':
-				if (!operation.range_rangeType || typeof operation.range_rangeType !== 'string') {
-					throw createError(
-						ErrorType.ToolHandling,
-						`Operation ${operationNumber}: range_rangeType must be a string`,
-						{
-							name: 'edit-resource',
-							toolName: 'edit_resource',
-							operation: 'tool-input',
-						} as ToolHandlingErrorOptions,
-					);
-				}
-				const validRangeTypes = [
-					'insertText',
-					'deleteRange',
-					'replaceRange',
-					'updateTextStyle',
-					'updateParagraphStyle',
-				];
-				if (!validRangeTypes.includes(operation.range_rangeType)) {
-					throw createError(
-						ErrorType.ToolHandling,
-						`Operation ${operationNumber}: range_rangeType must be one of ${validRangeTypes.join(', ')}`,
-						{
-							name: 'edit-resource',
-							toolName: 'edit_resource',
-							operation: 'tool-input',
-						} as ToolHandlingErrorOptions,
-					);
-				}
+				{
+					if (!operation.range_rangeType || typeof operation.range_rangeType !== 'string') {
+						throw createError(
+							ErrorType.ToolHandling,
+							`Operation ${operationNumber}: range_rangeType must be a string`,
+							{
+								name: 'edit-resource',
+								toolName: 'edit_resource',
+								operation: 'tool-input',
+							} as ToolHandlingErrorOptions,
+						);
+					}
+					const validRangeTypes = [
+						'insertText',
+						'deleteRange',
+						'replaceRange',
+						'updateTextStyle',
+						'updateParagraphStyle',
+					];
+					if (!validRangeTypes.includes(operation.range_rangeType)) {
+						throw createError(
+							ErrorType.ToolHandling,
+							`Operation ${operationNumber}: range_rangeType must be one of ${
+								validRangeTypes.join(', ')
+							}`,
+							{
+								name: 'edit-resource',
+								toolName: 'edit_resource',
+								operation: 'tool-input',
+							} as ToolHandlingErrorOptions,
+						);
+					}
 
-				// Validate required properties based on range type
-				switch (operation.range_rangeType) {
-					case 'insertText':
-						if (!operation.range_location || typeof operation.range_location !== 'object') {
-							throw createError(
-								ErrorType.ToolHandling,
-								`Operation ${operationNumber}: insertText requires range_location object`,
-								{
-									name: 'edit-resource',
-									toolName: 'edit_resource',
-									operation: 'tool-input',
-								} as ToolHandlingErrorOptions,
-							);
+					// Validate required properties based on range type
+					switch (operation.range_rangeType) {
+						case 'insertText':
+							{
+								if (!operation.range_location || typeof operation.range_location !== 'object') {
+									throw createError(
+										ErrorType.ToolHandling,
+										`Operation ${operationNumber}: insertText requires range_location object`,
+										{
+											name: 'edit-resource',
+											toolName: 'edit_resource',
+											operation: 'tool-input',
+										} as ToolHandlingErrorOptions,
+									);
+								}
+								if (typeof operation.range_location.index !== 'number') {
+									throw createError(
+										ErrorType.ToolHandling,
+										`Operation ${operationNumber}: range_location.index must be a number`,
+										{
+											name: 'edit-resource',
+											toolName: 'edit_resource',
+											operation: 'tool-input',
+										} as ToolHandlingErrorOptions,
+									);
+								}
+								if (!operation.range_text || typeof operation.range_text !== 'string') {
+									throw createError(
+										ErrorType.ToolHandling,
+										`Operation ${operationNumber}: insertText requires range_text string`,
+										{
+											name: 'edit-resource',
+											toolName: 'edit_resource',
+											operation: 'tool-input',
+										} as ToolHandlingErrorOptions,
+									);
+								}
+							}
+							break;
+						case 'deleteRange':
+							{
+								if (!operation.range_range || typeof operation.range_range !== 'object') {
+									throw createError(
+										ErrorType.ToolHandling,
+										`Operation ${operationNumber}: deleteRange requires range_range object`,
+										{
+											name: 'edit-resource',
+											toolName: 'edit_resource',
+											operation: 'tool-input',
+										} as ToolHandlingErrorOptions,
+									);
+								}
+								if (
+									typeof operation.range_range.startIndex !== 'number' ||
+									typeof operation.range_range.endIndex !== 'number'
+								) {
+									throw createError(
+										ErrorType.ToolHandling,
+										`Operation ${operationNumber}: range_range.startIndex and endIndex must be numbers`,
+										{
+											name: 'edit-resource',
+											toolName: 'edit_resource',
+											operation: 'tool-input',
+										} as ToolHandlingErrorOptions,
+									);
+								}
+							}
+							break;
+						case 'replaceRange':
+							{
+								if (!operation.range_range || typeof operation.range_range !== 'object') {
+									throw createError(
+										ErrorType.ToolHandling,
+										`Operation ${operationNumber}: replaceRange requires range_range object`,
+										{
+											name: 'edit-resource',
+											toolName: 'edit_resource',
+											operation: 'tool-input',
+										} as ToolHandlingErrorOptions,
+									);
+								}
+								if (
+									typeof operation.range_range.startIndex !== 'number' ||
+									typeof operation.range_range.endIndex !== 'number'
+								) {
+									throw createError(
+										ErrorType.ToolHandling,
+										`Operation ${operationNumber}: range_range.startIndex and endIndex must be numbers`,
+										{
+											name: 'edit-resource',
+											toolName: 'edit_resource',
+											operation: 'tool-input',
+										} as ToolHandlingErrorOptions,
+									);
+								}
+								if (!operation.range_text || typeof operation.range_text !== 'string') {
+									throw createError(
+										ErrorType.ToolHandling,
+										`Operation ${operationNumber}: replaceRange requires range_text string`,
+										{
+											name: 'edit-resource',
+											toolName: 'edit_resource',
+											operation: 'tool-input',
+										} as ToolHandlingErrorOptions,
+									);
+								}
+							}
+							break;
+						case 'updateTextStyle':
+						case 'updateParagraphStyle': {
+							if (!operation.range_range || typeof operation.range_range !== 'object') {
+								throw createError(
+									ErrorType.ToolHandling,
+									`Operation ${operationNumber}: ${operation.range_rangeType} requires range_range object`,
+									{
+										name: 'edit-resource',
+										toolName: 'edit_resource',
+										operation: 'tool-input',
+									} as ToolHandlingErrorOptions,
+								);
+							}
+							if (
+								typeof operation.range_range.startIndex !== 'number' ||
+								typeof operation.range_range.endIndex !== 'number'
+							) {
+								throw createError(
+									ErrorType.ToolHandling,
+									`Operation ${operationNumber}: range_range.startIndex and endIndex must be numbers`,
+									{
+										name: 'edit-resource',
+										toolName: 'edit_resource',
+										operation: 'tool-input',
+									} as ToolHandlingErrorOptions,
+								);
+							}
+							// Style validation is optional - if provided, must be objects
+							if (
+								operation.range_rangeType === 'updateTextStyle' && operation.range_textStyle &&
+								typeof operation.range_textStyle !== 'object'
+							) {
+								throw createError(
+									ErrorType.ToolHandling,
+									`Operation ${operationNumber}: range_textStyle must be an object`,
+									{
+										name: 'edit-resource',
+										toolName: 'edit_resource',
+										operation: 'tool-input',
+									} as ToolHandlingErrorOptions,
+								);
+							}
+							if (
+								operation.range_rangeType === 'updateParagraphStyle' &&
+								operation.range_paragraphStyle &&
+								typeof operation.range_paragraphStyle !== 'object'
+							) {
+								throw createError(
+									ErrorType.ToolHandling,
+									`Operation ${operationNumber}: range_paragraphStyle must be an object`,
+									{
+										name: 'edit-resource',
+										toolName: 'edit_resource',
+										operation: 'tool-input',
+									} as ToolHandlingErrorOptions,
+								);
+							}
+							break;
 						}
-						if (typeof operation.range_location.index !== 'number') {
-							throw createError(
-								ErrorType.ToolHandling,
-								`Operation ${operationNumber}: range_location.index must be a number`,
-								{
-									name: 'edit-resource',
-									toolName: 'edit_resource',
-									operation: 'tool-input',
-								} as ToolHandlingErrorOptions,
-							);
-						}
-						if (!operation.range_text || typeof operation.range_text !== 'string') {
-							throw createError(
-								ErrorType.ToolHandling,
-								`Operation ${operationNumber}: insertText requires range_text string`,
-								{
-									name: 'edit-resource',
-									toolName: 'edit_resource',
-									operation: 'tool-input',
-								} as ToolHandlingErrorOptions,
-							);
-						}
-						break;
-					case 'deleteRange':
-						if (!operation.range_range || typeof operation.range_range !== 'object') {
-							throw createError(
-								ErrorType.ToolHandling,
-								`Operation ${operationNumber}: deleteRange requires range_range object`,
-								{
-									name: 'edit-resource',
-									toolName: 'edit_resource',
-									operation: 'tool-input',
-								} as ToolHandlingErrorOptions,
-							);
-						}
-						if (
-							typeof operation.range_range.startIndex !== 'number' ||
-							typeof operation.range_range.endIndex !== 'number'
-						) {
-							throw createError(
-								ErrorType.ToolHandling,
-								`Operation ${operationNumber}: range_range.startIndex and endIndex must be numbers`,
-								{
-									name: 'edit-resource',
-									toolName: 'edit_resource',
-									operation: 'tool-input',
-								} as ToolHandlingErrorOptions,
-							);
-						}
-						break;
-					case 'replaceRange':
-						if (!operation.range_range || typeof operation.range_range !== 'object') {
-							throw createError(
-								ErrorType.ToolHandling,
-								`Operation ${operationNumber}: replaceRange requires range_range object`,
-								{
-									name: 'edit-resource',
-									toolName: 'edit_resource',
-									operation: 'tool-input',
-								} as ToolHandlingErrorOptions,
-							);
-						}
-						if (
-							typeof operation.range_range.startIndex !== 'number' ||
-							typeof operation.range_range.endIndex !== 'number'
-						) {
-							throw createError(
-								ErrorType.ToolHandling,
-								`Operation ${operationNumber}: range_range.startIndex and endIndex must be numbers`,
-								{
-									name: 'edit-resource',
-									toolName: 'edit_resource',
-									operation: 'tool-input',
-								} as ToolHandlingErrorOptions,
-							);
-						}
-						if (!operation.range_text || typeof operation.range_text !== 'string') {
-							throw createError(
-								ErrorType.ToolHandling,
-								`Operation ${operationNumber}: replaceRange requires range_text string`,
-								{
-									name: 'edit-resource',
-									toolName: 'edit_resource',
-									operation: 'tool-input',
-								} as ToolHandlingErrorOptions,
-							);
-						}
-						break;
-					case 'updateTextStyle':
-					case 'updateParagraphStyle':
-						if (!operation.range_range || typeof operation.range_range !== 'object') {
-							throw createError(
-								ErrorType.ToolHandling,
-								`Operation ${operationNumber}: ${operation.range_rangeType} requires range_range object`,
-								{
-									name: 'edit-resource',
-									toolName: 'edit_resource',
-									operation: 'tool-input',
-								} as ToolHandlingErrorOptions,
-							);
-						}
-						if (
-							typeof operation.range_range.startIndex !== 'number' ||
-							typeof operation.range_range.endIndex !== 'number'
-						) {
-							throw createError(
-								ErrorType.ToolHandling,
-								`Operation ${operationNumber}: range_range.startIndex and endIndex must be numbers`,
-								{
-									name: 'edit-resource',
-									toolName: 'edit_resource',
-									operation: 'tool-input',
-								} as ToolHandlingErrorOptions,
-							);
-						}
-						// Style validation is optional - if provided, must be objects
-						if (
-							operation.range_rangeType === 'updateTextStyle' && operation.range_textStyle &&
-							typeof operation.range_textStyle !== 'object'
-						) {
-							throw createError(
-								ErrorType.ToolHandling,
-								`Operation ${operationNumber}: range_textStyle must be an object`,
-								{
-									name: 'edit-resource',
-									toolName: 'edit_resource',
-									operation: 'tool-input',
-								} as ToolHandlingErrorOptions,
-							);
-						}
-						if (
-							operation.range_rangeType === 'updateParagraphStyle' && operation.range_paragraphStyle &&
-							typeof operation.range_paragraphStyle !== 'object'
-						) {
-							throw createError(
-								ErrorType.ToolHandling,
-								`Operation ${operationNumber}: range_paragraphStyle must be an object`,
-								{
-									name: 'edit-resource',
-									toolName: 'edit_resource',
-									operation: 'tool-input',
-								} as ToolHandlingErrorOptions,
-							);
-						}
-						break;
+					}
 				}
 				break;
 			case 'blocks':
-				if (!operation.blocks_operationType || typeof operation.blocks_operationType !== 'string') {
-					throw createError(
-						ErrorType.ToolHandling,
-						`Operation ${operationNumber}: blocks_operationType must be a string`,
-						{
-							name: 'edit-resource',
-							toolName: 'edit_resource',
-							operation: 'tool-input',
-						} as ToolHandlingErrorOptions,
-					);
-				}
-				const validBlockTypes = ['update', 'insert', 'delete', 'move'];
-				if (!validBlockTypes.includes(operation.blocks_operationType)) {
-					throw createError(
-						ErrorType.ToolHandling,
-						`Operation ${operationNumber}: blocks_operationType must be one of ${
-							validBlockTypes.join(', ')
-						}`,
-						{
-							name: 'edit-resource',
-							toolName: 'edit_resource',
-							operation: 'tool-input',
-						} as ToolHandlingErrorOptions,
-					);
+				{
+					if (!operation.blocks_operationType || typeof operation.blocks_operationType !== 'string') {
+						throw createError(
+							ErrorType.ToolHandling,
+							`Operation ${operationNumber}: blocks_operationType must be a string`,
+							{
+								name: 'edit-resource',
+								toolName: 'edit_resource',
+								operation: 'tool-input',
+							} as ToolHandlingErrorOptions,
+						);
+					}
+					const validBlockTypes = ['update', 'insert', 'delete', 'move'];
+					if (!validBlockTypes.includes(operation.blocks_operationType)) {
+						throw createError(
+							ErrorType.ToolHandling,
+							`Operation ${operationNumber}: blocks_operationType must be one of ${
+								validBlockTypes.join(', ')
+							}`,
+							{
+								name: 'edit-resource',
+								toolName: 'edit_resource',
+								operation: 'tool-input',
+							} as ToolHandlingErrorOptions,
+						);
+					}
 				}
 				break;
 			case 'structuredData':
-				// Minimal validation for structured data (future implementation)
-				if (!operation.structuredData_operation || typeof operation.structuredData_operation !== 'object') {
-					throw createError(
-						ErrorType.ToolHandling,
-						`Operation ${operationNumber}: structuredData_operation must be an object`,
-						{
-							name: 'edit-resource',
-							toolName: 'edit_resource',
-							operation: 'tool-input',
-						} as ToolHandlingErrorOptions,
-					);
+				{
+					// Minimal validation for structured data (future implementation)
+					if (!operation.structuredData_operation || typeof operation.structuredData_operation !== 'object') {
+						throw createError(
+							ErrorType.ToolHandling,
+							`Operation ${operationNumber}: structuredData_operation must be an object`,
+							{
+								name: 'edit-resource',
+								toolName: 'edit_resource',
+								operation: 'tool-input',
+							} as ToolHandlingErrorOptions,
+						);
+					}
+				}
+				break;
+			case 'cell':
+				{
+					// Validate cell operations for spreadsheet editing
+					if (!operation.cell_operationType || typeof operation.cell_operationType !== 'string') {
+						throw createError(
+							ErrorType.ToolHandling,
+							`Operation ${operationNumber}: cell_operationType must be a string`,
+							{
+								name: 'edit-resource',
+								toolName: 'edit_resource',
+								operation: 'tool-input',
+							} as ToolHandlingErrorOptions,
+						);
+					}
+					const validCellOperations = [
+						'setValue',
+						'setFormula',
+						'clear',
+						'format',
+						'insertRows',
+						'insertColumns',
+						'deleteRows',
+						'deleteColumns',
+					];
+					if (!validCellOperations.includes(operation.cell_operationType)) {
+						throw createError(
+							ErrorType.ToolHandling,
+							`Operation ${operationNumber}: cell_operationType must be one of ${
+								validCellOperations.join(', ')
+							}`,
+							{
+								name: 'edit-resource',
+								toolName: 'edit_resource',
+								operation: 'tool-input',
+							} as ToolHandlingErrorOptions,
+						);
+					}
+					// Validate cell_range is provided
+					if (!operation.cell_range || typeof operation.cell_range !== 'string') {
+						throw createError(
+							ErrorType.ToolHandling,
+							`Operation ${operationNumber}: cell_range must be a string in A1 notation`,
+							{
+								name: 'edit-resource',
+								toolName: 'edit_resource',
+								operation: 'tool-input',
+							} as ToolHandlingErrorOptions,
+						);
+					}
+					// Operation-specific validation
+					switch (operation.cell_operationType) {
+						case 'setValue':
+							if (!operation.cell_values || !Array.isArray(operation.cell_values)) {
+								throw createError(
+									ErrorType.ToolHandling,
+									`Operation ${operationNumber}: setValue requires cell_values array`,
+									{
+										name: 'edit-resource',
+										toolName: 'edit_resource',
+										operation: 'tool-input',
+									} as ToolHandlingErrorOptions,
+								);
+							}
+							break;
+						case 'setFormula':
+							if (!operation.cell_formula || typeof operation.cell_formula !== 'string') {
+								throw createError(
+									ErrorType.ToolHandling,
+									`Operation ${operationNumber}: setFormula requires cell_formula string`,
+									{
+										name: 'edit-resource',
+										toolName: 'edit_resource',
+										operation: 'tool-input',
+									} as ToolHandlingErrorOptions,
+								);
+							}
+							if (!operation.cell_formula.startsWith('=')) {
+								throw createError(
+									ErrorType.ToolHandling,
+									`Operation ${operationNumber}: cell_formula must start with = (e.g., "=SUM(A1:A10)")`,
+									{
+										name: 'edit-resource',
+										toolName: 'edit_resource',
+										operation: 'tool-input',
+									} as ToolHandlingErrorOptions,
+								);
+							}
+							break;
+						case 'format':
+							if (!operation.cell_format || typeof operation.cell_format !== 'object') {
+								throw createError(
+									ErrorType.ToolHandling,
+									`Operation ${operationNumber}: format requires cell_format object`,
+									{
+										name: 'edit-resource',
+										toolName: 'edit_resource',
+										operation: 'tool-input',
+									} as ToolHandlingErrorOptions,
+								);
+							}
+							break;
+						// Other cell operations (clear, insertRows, deleteColumns, etc.) have minimal requirements
+						default:
+							// cell_range is already validated above
+							break;
+					}
 				}
 				break;
 		}

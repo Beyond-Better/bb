@@ -3,6 +3,7 @@ import type {
 	DataSourceInfo,
 	PlainTextContent,
 	StructuredContent,
+	TabularContent,
 } from 'shared/types/dataSourceResource.ts';
 import type { LLMToolRunResultContent } from 'api/llms/llmTool.ts';
 
@@ -13,9 +14,11 @@ export type {
 	isBinaryContent,
 	isPlainTextContent,
 	isStructuredContent,
+	isTabularContent,
 	PlainTextContent,
 	ResourceUpdateInfo,
 	StructuredContent,
+	TabularContent,
 } from 'shared/types/dataSourceResource.ts';
 
 // =============================================================================
@@ -36,6 +39,7 @@ export interface LLMToolWriteResourceInput {
 	plainTextContent?: PlainTextContent;
 	structuredContent?: StructuredContent;
 	binaryContent?: BinaryContent;
+	tabularContent?: TabularContent;
 }
 
 /**
@@ -60,6 +64,6 @@ export interface LLMToolWriteResourceResponseData {
  * Complete result for write_resource tool
  */
 export interface LLMToolWriteResourceResult {
-	toolResult: LLMToolRunResultContent;
+	toolResults: LLMToolRunResultContent;
 	bbResponse: LLMToolWriteResourceResponseData;
 }

@@ -31,6 +31,6 @@ export interface LLMToolForgetResourcesResponseData {
 }
 
 export interface LLMToolForgetResourcesResult {
-	toolResult: LLMToolRunResultContent;
+	toolResults: LLMToolRunResultContent;
 	bbResponse: LLMToolForgetResourcesResponseData;
 }

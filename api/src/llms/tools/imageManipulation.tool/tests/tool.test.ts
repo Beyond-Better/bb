@@ -800,7 +800,7 @@ Deno.test({
 			const resultConsoleFormat = tool.formatLogEntryToolResult(
 				{
 					bbResponse: result.bbResponse,
-					toolResult: result.toolResults,
+					toolResults: result.toolResults,
 				},
 				'console',
 			);
@@ -819,7 +819,7 @@ Deno.test({
 			const resultBrowserFormat = tool.formatLogEntryToolResult(
 				{
 					bbResponse: result.bbResponse,
-					toolResult: result.toolResults,
+					toolResults: result.toolResults,
 				},
 				'browser',
 			);

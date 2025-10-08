@@ -1,4 +1,4 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
+// import type { SupabaseClient } from '@supabase/supabase-js';
 //import { FunctionsHttpError, FunctionsRelayError, FunctionsFetchError } from "@supabase/supabase-js";
 
 import { AnthropicModel, LLMCallbackType, LLMProvider } from 'api/types.ts';
@@ -13,6 +13,7 @@ import type {
 } from 'api/llms/llmMessage.ts';
 import type LLMTool from 'api/llms/llmTool.ts';
 import { createError } from 'api/utils/error.ts';
+import { errorMessage, isError } from 'shared/error.ts';
 import { ErrorType, isLLMError, type LLMErrorOptions } from 'api/errors/error.ts';
 import { logger } from 'shared/logger.ts';
 import type {
@@ -37,15 +38,15 @@ type LLMMessageContentPartOrString =
 // 		| LLMMessageContentPart
 // 	>;
 class BbLLM extends LLM {
-	private supabaseClient!: SupabaseClient;
+	//private supabaseClient!: SupabaseClient;
 
 	constructor(callbacks: LLMCallbacks) {
 		super(callbacks);
 
 		this.llmProviderName = LLMProvider.BB;
 
-		const projectEditor = this.invokeSync(LLMCallbackType.PROJECT_EDITOR);
-		this.supabaseClient = projectEditor.sessionManager.supabaseClient;
+		//const projectEditor = this.invokeSync(LLMCallbackType.PROJECT_EDITOR);
+		//this.supabaseClient = projectEditor.userContext.userAuthSession.getClient();
 	}
 
 	// Helper function to check for file metadata blocks
@@ -280,10 +281,11 @@ class BbLLM extends LLM {
 	/**
 	 * Determines whether to use direct fetch or Supabase edge function
 	 */
-	private shouldUseDirectFetch(): boolean {
-		// Check if useFallback is configured for Supabase
-		return Boolean(!this.projectConfig.api?.llmProviders?.beyondbetter?.config?.useFallback);
-	}
+	// supabase function is retired
+	// private shouldUseDirectFetch(): boolean {
+	// 	// Check if useFallback is configured for Supabase
+	// 	return Boolean(!this.projectConfig.api?.llmProviders?.beyondbetter?.config?.useFallback);
+	// }
 
 	/**
 	 * Get the base URL for direct fetch calls
@@ -298,16 +300,18 @@ class BbLLM extends LLM {
 	 */
 	private async makeDirectFetchCall(
 		providerMessageRequest: LLMProviderMessageRequest,
+		// deno-lint-ignore no-explicit-any
 	): Promise<{ data: BBLLMResponse | null; error: any }> {
+		const FETCH_TIMEOUT_MINS = 15;
 		try {
 			const baseUrl = this.getBaseUrl();
 
 			// Get session manager to retrieve auth headers
 			const projectEditor = this.invokeSync(LLMCallbackType.PROJECT_EDITOR);
-			const sessionManager = projectEditor.sessionManager;
+			const userAuthSession = projectEditor.userContext.userAuthSession;
 
 			// Get current session for authentication
-			const session = await sessionManager.getSession();
+			const session = await userAuthSession.getSession();
 			//logger.info(`BbLLM:provider[${this.llmProviderName}]: session`, session);
 
 			// Prepare headers - same as what Supabase edge functions receive
@@ -324,6 +328,7 @@ class BbLLM extends LLM {
 				method: 'POST',
 				headers,
 				body: JSON.stringify(providerMessageRequest),
+				signal: AbortSignal.timeout(FETCH_TIMEOUT_MINS * 60 * 1000),
 			});
 
 			if (!response.ok) {
@@ -350,12 +355,19 @@ class BbLLM extends LLM {
 			const data = await response.json() as BBLLMResponse;
 			return { data, error: null };
 		} catch (error) {
+			let errorMsg = errorMessage(error);
+			if (isError(error) && error.name === 'TimeoutError') {
+				errorMsg = `Timeout: It took more than ${FETCH_TIMEOUT_MINS} mins to get the result: ${errorMsg}`;
+			} else if (isError(error) && error.name === 'AbortError') {
+				errorMsg = `Fetch aborted by explicit action: ${errorMsg}`;
+			}
+			logger.error(`BbLLM:provider[${this.llmProviderName}]: fetch failed: ${errorMsg}`);
 			return {
 				data: null,
 				error: {
-					message: (error as Error).message,
+					message: errorMsg,
 					context: {
-						json: () => Promise.resolve({ message: (error as Error).message }),
+						json: () => Promise.resolve({ message: errorMsg }),
 					},
 				},
 			};
@@ -380,24 +392,29 @@ class BbLLM extends LLM {
 				interaction,
 			);
 
-			// Choose between direct fetch and Supabase edge function
-			let data: BBLLMResponse | null;
-			let error: any;
+			logger.info(`BbLLM:provider[${this.llmProviderName}]: Using direct fetch to ${this.getBaseUrl()}`);
+			const result = await this.makeDirectFetchCall(providerMessageRequest);
+			const data: BBLLMResponse | null = result.data;
+			const error = result.error;
 
-			if (this.shouldUseDirectFetch()) {
-				logger.info(`BbLLM:provider[${this.llmProviderName}]: Using direct fetch to ${this.getBaseUrl()}`);
-				const result = await this.makeDirectFetchCall(providerMessageRequest);
-				data = result.data;
-				error = result.error;
-			} else {
-				logger.info(`BbLLM:provider[${this.llmProviderName}]: Using Supabase edge function`);
-				//const { data, error } : {data:BBLLMResponse ; error: FunctionsHttpError, FunctionsRelayError, FunctionsFetchError} = await this.supabaseClient.functions.invoke('llm-proxy', {
-				const result = await this.supabaseClient.functions.invoke('llm-proxy', {
-					body: providerMessageRequest,
-				});
-				data = result.data;
-				error = result.error;
-			}
+			// Choose between direct fetch and Supabase edge function
+			// let data: BBLLMResponse | null;
+			// let error: any;
+			//
+			// if (this.shouldUseDirectFetch()) {
+			// 	logger.info(`BbLLM:provider[${this.llmProviderName}]: Using direct fetch to ${this.getBaseUrl()}`);
+			// 	const result = await this.makeDirectFetchCall(providerMessageRequest);
+			// 	data = result.data;
+			// 	error = result.error;
+			// } else {
+			// 	logger.info(`BbLLM:provider[${this.llmProviderName}]: Using Supabase edge function`);
+			// 	//const { data, error } : {data:BBLLMResponse ; error: FunctionsHttpError, FunctionsRelayError, FunctionsFetchError} = await this.supabaseClient.functions.invoke('llm-proxy', {
+			// 	const result = await this.supabaseClient.functions.invoke('llm-proxy', {
+			// 		body: providerMessageRequest,
+			// 	});
+			// 	data = result.data;
+			// 	error = result.error;
+			// }
 			//logger.info(`BbLLM:provider[${this.llmProviderName}]: llms-bb-data`, data);
 			//logger.info(`BbLLM:provider[${this.llmProviderName}]: llms-bb-error`, error);
 

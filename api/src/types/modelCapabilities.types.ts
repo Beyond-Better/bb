@@ -40,6 +40,52 @@ export interface ModelCapabilities {
 		};
 		billingTier?: string; // Any special billing tier info
 	};
+
+	// Tiered pricing configurations
+	inputTokensTieredConfig?: {
+		tiers: Array<{
+			tier: number;
+			name: string;
+			threshold: { min: number; max: number | null };
+			price: number;
+		}>;
+		tierDeterminedBy: 'totalInputTokens' | 'inputTokens' | 'totalTokens';
+	};
+	outputTokensTieredConfig?: {
+		tiers: Array<{
+			tier: number;
+			name: string;
+			threshold: { min: number; max: number | null };
+			price: number;
+		}>;
+		tierDeterminedBy: 'totalInputTokens' | 'inputTokens' | 'totalTokens';
+	};
+
+	// Cache and content type pricing
+	inputTokensCacheTypes?: Record<string, {
+		description: string;
+		inheritsTiers: boolean;
+		multiplier: number;
+		explicitPricing?: {
+			tiers: Array<{ tier: number; price: number }>;
+		};
+	}>;
+	inputTokensContentTypes?: Record<string, {
+		multiplier: number;
+		explicitPricing?: {
+			tiers: Array<{ tier: number; price: number }>;
+		};
+	}>;
+	outputTokensContentTypes?: Record<string, {
+		multiplier: number;
+		explicitPricing?: {
+			tiers: Array<{ tier: number; price: number }>;
+		};
+	}>;
+	thoughtTokensConfig?: {
+		basePrice: number;
+		description: string;
+	};
 	// Legacy pricing structure for backward compatibility
 	pricing?: {
 		inputTokens: {
@@ -107,7 +153,7 @@ export interface ModelCapabilities {
 	trainingCutoff?: string; // When the model's training data ends
 	releaseDate?: string; // When the model was released
 	deprecated?: boolean; // Whether the model is deprecated
-	responseSpeed?: 'fast' | 'medium' | 'slow'; // Relative speed for planning
+	responseSpeed?: 'very_fast' | 'fast' | 'medium' | 'slow' | 'very_slow'; // Relative speed for planning
 	cost?: 'low' | 'medium' | 'high' | 'very-high'; // Relative cost based on pricing
 	intelligence?: 'medium' | 'high' | 'very-high'; // Relative intelligence/capability level
 }

@@ -1,7 +1,9 @@
 {
 	"name": "fetch_web_page",
-	"description": "Fetches the content of a specified web page. Returns the text content of HTML pages, stripping scripts and styles. For visual content, use fetch_web_screenshot instead. Some sites may block automated access or require authentication. Response size may be limited.",
+	"description": "Fetches web page content using a full headless browser for complete content hydration including JavaScript, dynamic loading, and complex authentication flows. Returns clean text content with scripts and styles removed. Use this when pages require browser context (e.g., GitHub pages, SPAs, dynamic content). For static resources, direct API calls, or raw files, use download_resource instead. For visual content, use fetch_web_screenshot.",
 	"version": "1.0.0",
 	"author": "BB Team",
-	"license": "MIT"
+	"license": "MIT",
+	"enabled": true,
+	"category": "data-retrieval"
 }

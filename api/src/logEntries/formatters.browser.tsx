@@ -177,10 +177,10 @@ export const formatLogEntryContent = (logEntry: CollaborationLogEntry, projectId
 					(match, altText, resourceId) => {
 						const encodedResourceUrl = btoa(`bb+filesystem+uploads+file:./${resourceId}`);
 						const currentProjectId = projectId || 'current';
-						const thumbnailUrl = `${apiBaseUrl}/api/v1/files/serve/${
+						const thumbnailUrl = `${apiBaseUrl}/api/v1/resources/serve/${
 							encodeURIComponent(encodedResourceUrl)
 						}?thumbnail=true&projectId=${currentProjectId}`;
-						const fullUrl = `${apiBaseUrl}/api/v1/files/serve/${
+						const fullUrl = `${apiBaseUrl}/api/v1/resources/serve/${
 							encodeURIComponent(encodedResourceUrl)
 						}?projectId=${currentProjectId}`;
 
@@ -201,7 +201,7 @@ export const formatLogEntryContent = (logEntry: CollaborationLogEntry, projectId
 					(match, linkText, resourceId) => {
 						const encodedResourceUrl = btoa(`bb+filesystem+uploads+file:./${resourceId}`);
 						const currentProjectId = projectId || 'current';
-						const downloadUrl = `${apiBaseUrl}/api/v1/files/serve/${
+						const downloadUrl = `${apiBaseUrl}/api/v1/resources/serve/${
 							encodeURIComponent(encodedResourceUrl)
 						}?projectId=${currentProjectId}`;
 

@@ -1,5 +1,6 @@
 import Anthropic from 'anthropic';
 import type { ClientOptions } from 'anthropic';
+import { decodeBase64 } from '@std/encoding';
 
 import { AnthropicModel, LLMCallbackType, LLMProvider } from 'api/types.ts';
 import { BB_RESOURCE_METADATA_DELIMITER } from 'api/llms/conversationInteraction.ts';
@@ -245,7 +246,7 @@ class AnthropicLLM extends LLM {
 		const lastThreeUserMessages = userMessages.slice(-3);
 		const lastThreeIndices = new Set(lastThreeUserMessages.map((m) => m.index));
 
-		return messages.map((m, index) => {
+		const messagesTransformed = messages.map((m, index) => {
 			const prevContent: AnthropicBlockParamOrArray = m.content as AnthropicBlockParamOrArray;
 			let content: AnthropicBlockParamOrArray;
 
@@ -283,6 +284,11 @@ class AnthropicLLM extends LLM {
 				content: content,
 			} as Anthropic.Messages.MessageParam;
 		});
+
+		// Extract PDF content from tool_result blocks and convert to data blocks
+		const messagesWithExtractedPdfs = this.extractPdfContentFromMessages(messagesTransformed);
+
+		return messagesWithExtractedPdfs;
 	}
 
 	private asProviderToolType(tools: LLMTool[]): Anthropic.Messages.Tool[] {
@@ -292,6 +298,181 @@ class AnthropicLLM extends LLM {
 			description: tool.description,
 			input_schema: tool.inputSchema,
 		} as Anthropic.Tool));
+	}
+
+	/**
+	 * Extract PDF content from tool_result blocks and convert to 'document' type blocks
+	 * Anthropic tool_result types don't support PDF, but 'document' types do
+	 */
+	private extractPdfContentFromMessages(
+		messages: Array<Anthropic.MessageParam>,
+	): Array<Anthropic.MessageParam> {
+		return messages.map((message, msgIndex) => {
+			if (!Array.isArray(message.content)) {
+				return message;
+			}
+
+			const transformedContent: Array<Anthropic.Messages.ContentBlockParam> = [];
+			const extractedPdfBlocks: Array<Anthropic.Messages.ContentBlockParam> = [];
+
+			message.content.forEach((block, blockIndex) => {
+				if (block.type === 'tool_result' && Array.isArray(block.content)) {
+					// Process tool_result blocks that might contain PDF
+					const cleanedToolContent: Array<
+						Anthropic.Messages.TextBlockParam | Anthropic.Messages.ImageBlockParam
+					> = [];
+					let foundPdf = false;
+
+					// Handle paired blocks: metadata block + content block
+					for (let toolIndex = 0; toolIndex < block.content.length; toolIndex++) {
+						const toolContentBlock = block.content[toolIndex];
+						if (toolContentBlock.type === 'text') {
+							const pdfCheck = this.isPdfContentType(toolContentBlock.text);
+							// If this block has PDF metadata, check next block for PDF content
+							if (pdfCheck.isPdf && pdfCheck.metadata) {
+								logger.info(
+									`LlmProvider[${this.llmProviderName}]: Found PDF metadata! File: ${pdfCheck.metadata.uri}, Size: ${pdfCheck.metadata.size} bytes`,
+								);
+
+								// Check if next block contains PDF content
+								const nextBlock = block.content[toolIndex + 1];
+								if (nextBlock && nextBlock.type === 'text' && this.isPdfContent(nextBlock.text)) {
+									// Create cleaned text with metadata + note
+									const note =
+										`Note: PDF content has been extracted and moved to a separate document block for proper handling by the Anthropic API.`;
+									const cleanedText = toolContentBlock.text + '\n' + note;
+
+									// Add metadata context as text block
+									extractedPdfBlocks.push({
+										type: 'text',
+										text: `PDF Document: ${
+											pdfCheck.metadata.uri?.split('/').pop() || 'document.pdf'
+										} (${pdfCheck.metadata.size} bytes, modified: ${pdfCheck.metadata.last_modified})`,
+									});
+
+									// Create a 'document' type block for the PDF
+									extractedPdfBlocks.push({
+										type: 'document',
+										source: {
+											type: 'base64',
+											media_type: 'application/pdf',
+											data: nextBlock.text,
+										},
+									} as any);
+
+									// Add metadata and note to the tool_result indicating PDF was moved
+									cleanedToolContent.push({
+										type: 'text',
+										text: cleanedText,
+									});
+
+									// Skip the next block since we've processed it as PDF content
+									toolIndex++; // Skip the content block
+									foundPdf = true;
+								} else {
+									// No paired PDF content found, keep metadata as-is
+									logger.info(
+										`LlmProvider[${this.llmProviderName}]: PDF metadata found but no paired content block`,
+									);
+									cleanedToolContent.push(toolContentBlock as Anthropic.Messages.TextBlockParam);
+								}
+							} else {
+								// Keep non-PDF text content as-is
+								cleanedToolContent.push(toolContentBlock as Anthropic.Messages.TextBlockParam);
+							}
+						} else if (toolContentBlock.type === 'image') {
+							// Keep image content as-is
+							cleanedToolContent.push(toolContentBlock as Anthropic.Messages.ImageBlockParam);
+						}
+						// Skip other content types that aren't supported in tool_result content
+					}
+
+					// Add the cleaned tool_result block
+					transformedContent.push({
+						...block,
+						content: cleanedToolContent,
+					});
+				} else {
+					// Keep non-tool_result blocks as-is
+					transformedContent.push(block);
+				}
+			});
+
+			// Add extracted PDF blocks after the transformed content
+			if (extractedPdfBlocks.length > 0) {
+				logger.info(
+					`LlmProvider[${this.llmProviderName}]: Adding ${extractedPdfBlocks.length} extracted PDF blocks to message ${
+						msgIndex + 1
+					}`,
+				);
+			}
+			transformedContent.push(...extractedPdfBlocks);
+
+			return {
+				...message,
+				content: transformedContent,
+			};
+		});
+	}
+
+	/**
+	 * Check if text content contains metadata with application/pdf content-type
+	 */
+	private isPdfContentType(text: string): { isPdf: boolean; metadata?: any } {
+		// Look for bb-resource-metadata blocks using the correct delimiter
+		// Matches JSON block after metadata marker: captures from opening { to closing },
+		// handling one level of nested objects with [^{}]|{[^}]*} pattern
+		const metadataMatch = text.match(
+			new RegExp(`${BB_RESOURCE_METADATA_DELIMITER}\\s*\\n((?:{(?:[^{}]|{[^}]*})*})+)`),
+		);
+		if (!metadataMatch) {
+			return { isPdf: false };
+		}
+
+		try {
+			const metadata = JSON.parse(metadataMatch[1]);
+			if (metadata.mime_type === 'application/pdf') {
+				return { isPdf: true, metadata };
+			}
+		} catch (error) {
+			logger.error(`LlmProvider[${this.llmProviderName}]: Failed to parse metadata:`, error);
+		}
+
+		return { isPdf: false };
+	}
+
+	/**
+	 * Check if text content contains PDF data
+	 */
+	private isPdfContent(pdfContent: string): boolean {
+		// CHECK: Is content base64 encoded?
+		const isBase64 = /^[A-Za-z0-9+/]*={0,2}$/.test(pdfContent.slice(0, 100));
+
+		// Verify PDF signature
+		if (isBase64) {
+			// Verify PDF signature by checking the first 4 bytes match '%PDF' (0x25504446)
+			// More reliable than string conversion since we're working with binary data
+			// and handles potential encoding issues with base64 decoded content
+			const pdfContentDecoded = decodeBase64(pdfContent);
+			const pdfSignature = new Uint8Array([0x25, 0x50, 0x44, 0x46]); // '%PDF'
+
+			// Using every() to iterate through our 4-byte signature array and compare each byte
+			// against the corresponding position in the decoded content - this only checks the
+			// start of the file (bytes 0-3), not scanning the entire array
+			const isPdfSignature = pdfContentDecoded.length >= 4 &&
+				pdfSignature.every((byte, index) => pdfContentDecoded[index] === byte);
+
+			if (isPdfSignature) {
+				logger.info(`LlmProvider[${this.llmProviderName}]: PDF signature verified`);
+				return true;
+			} else {
+				logger.warn(`LlmProvider[${this.llmProviderName}]: No PDF signature found in content block`);
+				return false;
+			}
+		} else {
+			logger.warn(`LlmProvider[${this.llmProviderName}]: PDF is not base64 encoded`);
+			return false;
+		}
 	}
 
 	//// deno-lint-ignore require-await
@@ -373,7 +554,12 @@ class AnthropicLLM extends LLM {
 			model,
 			max_tokens: maxTokens,
 			temperature,
-			betas: ['output-128k-2025-02-19', 'token-efficient-tools-2025-02-19', 'interleaved-thinking-2025-05-14'],
+			betas: [
+				'context-1m-2025-08-07',
+				'output-128k-2025-02-19',
+				'token-efficient-tools-2025-02-19',
+				'interleaved-thinking-2025-05-14',
+			],
 			//stream: false,
 
 			// Add extended thinking support if enabled in the request
@@ -431,7 +617,7 @@ class AnthropicLLM extends LLM {
 						{
 							headers: {
 								'anthropic-beta':
-									'output-128k-2025-02-19,token-efficient-tools-2025-02-19,interleaved-thinking-2025-05-14',
+									'context-1m-2025-08-07,output-128k-2025-02-19,token-efficient-tools-2025-02-19,interleaved-thinking-2025-05-14',
 							},
 						},
 					).withResponse();

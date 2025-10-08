@@ -1,0 +1,10 @@
+{
+	"name": "download_resource",
+	"description": "Download resources using direct HTTP requests (like curl) and save to data sources. Handles query parameter encoding and provides comprehensive error reporting. Use for static resources, API endpoints, raw files, or when you need custom authentication/headers. Does NOT use a browser - no JavaScript execution or dynamic content loading. For pages requiring browser context (GitHub pages, SPAs, dynamic content), use fetch_web_page or fetch_web_screenshot instead. Supports all HTTP methods, authentication, and saves directly to datasources with content type validation.",
+	"version": "1.0.0",
+	"enabled": true,
+	"category": "data-retrieval",
+	"capabilities": ["resource-download"],
+	"author": "BB Team",
+	"license": "MIT"
+}

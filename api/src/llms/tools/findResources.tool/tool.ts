@@ -246,8 +246,15 @@ Leave empty to search only by resource name, date, or size.`,
 							aggregatedResults.errorMessages.push(`[${dsConnection.name}]: ${findResult.errorMessage}`);
 						}
 
-						// Extract resource paths for backward compatibility
-						const resources = findResult.resources.map((resource) => resource.resourcePath);
+						// Extract resource paths for backward compatibility, include document names when available
+						const resources = findResult.resources.map((resource) => {
+							const title = resource.resourceMetadata?.title;
+							// Only include title if it provides additional info beyond the resourcePath
+							if (title && !title.includes(resource.resourcePath)) {
+								return `${resource.resourcePath} (${title})`;
+							}
+							return resource.resourcePath;
+						});
 						const prefixedResources = resources.map((resource) => `[${dsConnection.name}] ${resource}`);
 						aggregatedResults.resources.push(...prefixedResources);
 
@@ -283,14 +290,18 @@ Leave empty to search only by resource name, date, or size.`,
 						const searchQuery = contentPattern || '';
 						const searchResult = await resourceAccessor.searchResources(searchQuery, accessorSearchOptions);
 
-						// Extract resource paths from matches (using legacy match format)
+						// Extract resource paths from matches (using legacy match format), include document names when available
 						const resources = searchResult.matches.map((match: any) => {
 							const uri = match.resource?.uri || match.resourceUri;
+							let pathPart: string;
 							if (uri.startsWith('file:./')) {
-								return uri.substring(7);
+								pathPart = uri.substring(7);
+							} else {
+								pathPart = uri.includes('://') ? uri.split('://')[1] : uri;
 							}
-							const pathPart = uri.includes('://') ? uri.split('://')[1] : uri;
-							return pathPart || uri;
+							// Add document name if available in resourceMetadata
+							const title = match.resourceMetadata?.title;
+							return title ? `${pathPart || uri} (${title})` : (pathPart || uri);
 						});
 
 						// Store enhanced matches for content searches (using legacy match format)

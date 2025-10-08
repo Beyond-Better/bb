@@ -5,7 +5,7 @@ import type LLMChatInteraction from 'api/llms/chatInteraction.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type { LLMSpeakWithResponse } from 'api/types.ts';
 import { LLMCallbackType } from 'api/types.ts';
-import LLMFactory from '../../src/llms/llmProvider.ts';
+import type LLMFactory from '../../src/llms/llmProvider.ts';
 
 //import LLMConversationInteraction from '../../src/llms/interactions/conversationInteraction.ts';
 //import type { LLMSpeakWithResponse } from '../../src/types.ts';
@@ -30,6 +30,7 @@ import LLMFactory from '../../src/llms/llmProvider.ts';
  */
 
 export function makeProjectEditorStub(projectEditor: ProjectEditor) {
+	// deno-lint-ignore require-await
 	const initStub = stub(projectEditor, 'init', async () => projectEditor);
 	/*
 	const initCollaborationStub = stub(
@@ -153,6 +154,7 @@ export function makeOrchestratorControllerStub(orchestratorController: Orchestra
 interface MockLLMInterface {
 	llmProviderName: string;
 	projectEditor: ProjectEditor | undefined;
+	// deno-lint-ignore no-explicit-any
 	invoke(callbackType: LLMCallbackType, ...args: any[]): Promise<any>;
 }
 
@@ -167,6 +169,7 @@ class MockLLM implements MockLLMInterface {
 		}
 	}
 
+	// deno-lint-ignore no-explicit-any
 	async invoke(callbackType: LLMCallbackType, ..._args: any[]): Promise<any> {
 		switch (callbackType) {
 			case LLMCallbackType.PROJECT_DATA_SOURCES:
@@ -179,17 +182,20 @@ class MockLLM implements MockLLMInterface {
 	}
 }
 
-export function makeConversationInteractionStub(
+export async function makeConversationInteractionStub(
 	conversationInteraction: LLMConversationInteraction,
 	projectEditor?: ProjectEditor,
 ) {
+	// Use dynamic import to avoid circular dependency
+	const { default: LLMFactoryClass } = await import('../../src/llms/llmProvider.ts');
 	const mockLLM = new MockLLM(projectEditor);
 
 	// Stub the LLMFactory.getProvider method to return our mock LLM
 	// This prevents the init() method from creating a real provider
 	const factoryStub = stub(
-		LLMFactory,
+		LLMFactoryClass,
 		'getProvider',
+		// deno-lint-ignore no-explicit-any
 		() => mockLLM as any,
 	);
 
@@ -214,6 +220,7 @@ export function makeChatInteractionStub(chatInteraction: LLMChatInteraction) {
 		return stub(
 			chatInteraction,
 			'chat',
+			// deno-lint-ignore require-await
 			async () =>
 				({
 					messageResponse: {
@@ -247,6 +254,7 @@ export function makeChatInteractionStub(chatInteraction: LLMChatInteraction) {
 		return stub(
 			chatInteraction,
 			'chat',
+			// deno-lint-ignore require-await
 			async () => {
 				throw new Error(errorText);
 			},

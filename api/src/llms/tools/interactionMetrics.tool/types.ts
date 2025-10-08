@@ -90,6 +90,6 @@ export interface LLMToolInteractionMetricsResponseData {
 }
 
 export interface LLMToolInteractionMetricsResult {
-	toolResult: LLMToolRunResultContent;
+	toolResults: LLMToolRunResultContent;
 	bbResponse: LLMToolInteractionMetricsResponseData;
 }

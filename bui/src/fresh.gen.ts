@@ -7,8 +7,6 @@ import * as $_500 from './routes/_500.tsx';
 import * as $_app from './routes/_app.tsx';
 import * as $_middleware from './routes/_middleware.ts';
 import * as $api_v1_config_supabase from './routes/api/v1/config/supabase.ts';
-import * as $api_v1_oauth_google_config from './routes/api/v1/oauth/google/config.ts';
-import * as $api_v1_oauth_google_token from './routes/api/v1/oauth/google/token.ts';
 import * as $api_v1_status from './routes/api/v1/status.ts';
 import * as $app_chat_index from './routes/app/chat/index.tsx';
 import * as $app_chat_partial from './routes/app/chat/partial.tsx';
@@ -28,11 +26,10 @@ import * as $auth_update_password_index from './routes/auth/update-password/inde
 import * as $auth_verify_index from './routes/auth/verify/index.tsx';
 import * as $doctor from './routes/doctor.tsx';
 import * as $index from './routes/index.tsx';
-import * as $oauth_google_callback from './routes/oauth/google/callback.tsx';
+import * as $oauth_mcp_serverId_callback from './routes/oauth/mcp/[serverId]/callback.tsx';
 import * as $AppSettings from './islands/AppSettings.tsx';
 import * as $AppSettings_AppearanceSettings from './islands/AppSettings/AppearanceSettings.tsx';
 import * as $AppSettings_DefaultProjectSettings from './islands/AppSettings/DefaultProjectSettings.tsx';
-import * as $AppSettings_MCPServerItem from './islands/AppSettings/MCPServerItem.tsx';
 import * as $AppSettings_MCPServersSection from './islands/AppSettings/MCPServersSection.tsx';
 import * as $AppSettings_NotificationSettings from './islands/AppSettings/NotificationSettings.tsx';
 import * as $AppSettings_PlansAndCreditsTab from './islands/AppSettings/PlansAndCreditsTab.tsx';
@@ -70,8 +67,6 @@ const manifest = {
 		'./routes/_app.tsx': $_app,
 		'./routes/_middleware.ts': $_middleware,
 		'./routes/api/v1/config/supabase.ts': $api_v1_config_supabase,
-		'./routes/api/v1/oauth/google/config.ts': $api_v1_oauth_google_config,
-		'./routes/api/v1/oauth/google/token.ts': $api_v1_oauth_google_token,
 		'./routes/api/v1/status.ts': $api_v1_status,
 		'./routes/app/chat/index.tsx': $app_chat_index,
 		'./routes/app/chat/partial.tsx': $app_chat_partial,
@@ -91,13 +86,12 @@ const manifest = {
 		'./routes/auth/verify/index.tsx': $auth_verify_index,
 		'./routes/doctor.tsx': $doctor,
 		'./routes/index.tsx': $index,
-		'./routes/oauth/google/callback.tsx': $oauth_google_callback,
+		'./routes/oauth/mcp/[serverId]/callback.tsx': $oauth_mcp_serverId_callback,
 	},
 	islands: {
 		'./islands/AppSettings.tsx': $AppSettings,
 		'./islands/AppSettings/AppearanceSettings.tsx': $AppSettings_AppearanceSettings,
 		'./islands/AppSettings/DefaultProjectSettings.tsx': $AppSettings_DefaultProjectSettings,
-		'./islands/AppSettings/MCPServerItem.tsx': $AppSettings_MCPServerItem,
 		'./islands/AppSettings/MCPServersSection.tsx': $AppSettings_MCPServersSection,
 		'./islands/AppSettings/NotificationSettings.tsx': $AppSettings_NotificationSettings,
 		'./islands/AppSettings/PlansAndCreditsTab.tsx': $AppSettings_PlansAndCreditsTab,

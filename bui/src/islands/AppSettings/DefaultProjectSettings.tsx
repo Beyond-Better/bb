@@ -169,8 +169,8 @@ export default function DefaultProjectSettings() {
 		extendedThinkingBudget: 4000,
 		activeTab: 'general',
 		defaultModels: {
-			orchestrator: 'claude-sonnet-4-20250514',
-			agent: 'claude-sonnet-4-20250514',
+			orchestrator: 'claude-sonnet-4-5-20250929',
+			agent: 'claude-sonnet-4-5-20250929',
 			chat: 'claude-3-5-haiku-20241022',
 		},
 	});
@@ -194,8 +194,8 @@ export default function DefaultProjectSettings() {
 						extendedThinkingBudget: config.api.extendedThinking?.budgetTokens ?? 4000,
 						activeTab: 'general',
 						defaultModels: {
-							orchestrator: config.defaultModels?.orchestrator || 'claude-sonnet-4-20250514',
-							agent: config.defaultModels?.agent || 'claude-sonnet-4-20250514',
+							orchestrator: config.defaultModels?.orchestrator || 'claude-sonnet-4-5-20250929',
+							agent: config.defaultModels?.agent || 'claude-sonnet-4-5-20250929',
 							chat: config.defaultModels?.chat || 'claude-3-5-haiku-20241022',
 						},
 					});

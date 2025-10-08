@@ -4,12 +4,12 @@ import { assert } from 'api/tests/deps.ts';
 import { join } from '@std/path';
 
 import type ProjectEditor from 'api/editor/projectEditor.ts';
-import ProjectEditorManager from 'api/editor/projectEditorManager.ts';
+import type ProjectEditorManager from 'api/editor/projectEditorManager.ts';
 import type LLMConversationInteraction from 'api/llms/conversationInteraction.ts';
 import type LLMChatInteraction from 'api/llms/chatInteraction.ts';
 import LLMToolManager from '../../src/llms/llmToolManager.ts';
 import type { InteractionStats, ProjectId } from 'shared/types.ts';
-import { SessionManager } from 'api/auth/session.ts';
+import { SessionRegistry } from 'api/auth/sessionRegistry.ts';
 import { getProjectPersistenceManager } from 'api/storage/projectPersistenceManager.ts';
 import { FilesystemProvider } from 'api/dataSources/filesystemProvider.ts';
 import { getDataSourceRegistry } from 'api/dataSources/dataSourceRegistry.ts';
@@ -88,11 +88,15 @@ export async function cleanupTestProject(projectId: ProjectId, _dataSourceRoot: 
 }
 
 export async function getProjectEditor(projectId: ProjectId): Promise<ProjectEditor> {
-	const projectEditorManager = new ProjectEditorManager();
+	// Use dynamic import to avoid circular dependency in test setup
+	const { default: ProjectEditorManagerClass } = await import('api/editor/projectEditorManager.ts');
+	const projectEditorManager = new ProjectEditorManagerClass();
 	//console.log('getProjectEditor', { projectId });
-	const sessionManager = new SessionManager();
-	await sessionManager.initialize();
-	const projectEditor = await projectEditorManager.getOrCreateEditor(projectId, 'test-collaboration', sessionManager);
+
+	await SessionRegistry.getInstance().registerSession('test-user');
+	const userContext = SessionRegistry.getInstance().getUserContext('test-user');
+
+	const projectEditor = await projectEditorManager.getOrCreateEditor(projectId, 'test-collaboration', userContext!); // we created the session before getting userContext, so must be defined
 
 	assert(projectEditor, 'Failed to get ProjectEditor');
 
@@ -114,7 +118,7 @@ export async function getToolManager(
 		projectEditor.projectConfig = await configManager.getProjectConfig(projectEditor.projectId);
 	}
 
-	const toolManager = await new LLMToolManager(projectEditor.projectConfig, projectEditor.sessionManager, [
+	const toolManager = await new LLMToolManager(projectEditor.projectConfig, projectEditor.userContext, [
 		'core',
 		'legacy',
 	])
@@ -178,6 +182,7 @@ export function incrementInteractionStats(interactionStats: InteractionStats): I
  * @param extraDatasources List of datasource types to setup
  * @param additionalDsConnections Array to add new connections to
  */
+// deno-lint-ignore require-await
 async function setupTestProviders(
 	dataSourceRegistry: DataSourceRegistry,
 	extraDatasources: DataSourceProviderType[],

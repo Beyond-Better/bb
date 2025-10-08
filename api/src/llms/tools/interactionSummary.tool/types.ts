@@ -70,6 +70,6 @@ export interface LLMToolInteractionSummaryResponseData {
 }
 
 export interface LLMToolInteractionSummaryResult {
-	toolResult: LLMToolRunResultContent;
+	toolResults: LLMToolRunResultContent;
 	bbResponse: LLMToolInteractionSummaryResponseData;
 }

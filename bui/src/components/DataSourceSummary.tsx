@@ -51,16 +51,6 @@ export function DataSourceSummary({ project, showAdditionalCount = true, classNa
 				<span className='font-mono'>{sourceDetails}</span>
 			</>
 		);
-	} else if (primaryDsConnection.providerType === 'notion') {
-		sourceDetails = (primaryDsConnection.config.workspace as string) || 'Workspace';
-		icon = (
-			<>
-				<svg className='w-4 h-4 mr-1 flex-shrink-0' viewBox='0 0 24 24' fill='currentColor'>
-					<path d='M4.5 4.5c0-.55.45-1 1-1h13c.55 0 1 .45 1 1v15c0 .55-.45 1-1 1h-13c-.55 0-1-.45-1-1v-15zm9 6c0-1.1-.9-2-2-2s-2 .9-2 2 .9 2 2 2 2-.9 2-2zm-4 6h4c0-1.1-.9-2-2-2s-2 .9-2 2z' />
-				</svg>
-				<span>Notion: {sourceDetails}</span>
-			</>
-		);
 	} else {
 		sourceDetails = `${primaryDsConnection.providerType}`;
 		icon = (

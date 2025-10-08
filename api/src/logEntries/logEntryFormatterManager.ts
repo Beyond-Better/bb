@@ -34,7 +34,7 @@ export default class LogEntryFormatterManager {
 	public async init(): Promise<LogEntryFormatterManager> {
 		const configManager = await getConfigManager();
 		this.globalConfig = await configManager.getGlobalConfig();
-		this.toolManager = await new LLMToolManager(this.projectConfig, this.projectEditor.sessionManager, [
+		this.toolManager = await new LLMToolManager(this.projectConfig, this.projectEditor.userContext, [
 			'core',
 			'legacy',
 		])

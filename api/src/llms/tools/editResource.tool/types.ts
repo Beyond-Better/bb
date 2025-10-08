@@ -101,7 +101,7 @@ export interface LLMToolEditResourceResponseData {
  * Complete result for edit_resource tool (updated to match writeResource pattern)
  */
 export interface LLMToolEditResourceResult {
-	toolResult: LLMToolRunResultContent;
+	toolResults: LLMToolRunResultContent;
 	bbResponse: LLMToolEditResourceResponseData;
 }
 

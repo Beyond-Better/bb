@@ -4,16 +4,22 @@ import hljs from 'highlight';
 import { Toast } from './Toast.tsx';
 import { ApiClient, LogEntryFormatResponse } from '../utils/apiClient.utils.ts';
 import { CollaborationLogEntry } from 'shared/types.ts';
+import type { ProjectConfig } from 'shared/config/types.ts';
 
 interface MessageEntryToolProps {
 	type: 'input' | 'output';
 	toolName: string;
 	content: any;
-	onCopy?: (text: string) => void;
+	onCopy?: (text: string, html?: string, toastMessage?: string) => void;
+	onFormattedLogEntry: (
+		logEntry: CollaborationLogEntry,
+		formattedLogEntry: LogEntryFormatResponse['formattedResult'],
+	) => void;
 	apiClient?: ApiClient;
 	projectId?: string;
 	collaborationId?: string;
 	logEntry?: CollaborationLogEntry;
+	projectConfig?: ProjectConfig | null; // Project configuration
 }
 
 export function MessageEntryTool({
@@ -21,10 +27,12 @@ export function MessageEntryTool({
 	//toolName,
 	content,
 	//onCopy,
+	onFormattedLogEntry,
 	apiClient,
 	projectId,
 	collaborationId,
 	logEntry,
+	projectConfig,
 }: MessageEntryToolProps): JSX.Element {
 	const [showToast, setShowToast] = useState(false);
 	const [isLoading, setIsLoading] = useState(false);
@@ -34,7 +42,7 @@ export function MessageEntryTool({
 	useEffect(() => {
 		if (!apiClient || !projectId || !collaborationId || !logEntry) return;
 
-		const fetchFormatting = async () => {
+		const fetchFormatted = async () => {
 			setIsLoading(true);
 			try {
 				const response = await apiClient.formatLogEntry(
@@ -43,6 +51,10 @@ export function MessageEntryTool({
 					projectId,
 					collaborationId,
 				);
+				if (response) {
+					onFormattedLogEntry(logEntry, response.formattedResult);
+					setFormatted(response);
+				}
 				setFormatted(response);
 			} catch (error) {
 				console.error('Error formatting tool message:', error);
@@ -51,8 +63,8 @@ export function MessageEntryTool({
 			}
 		};
 
-		fetchFormatting();
-	}, [apiClient, projectId, collaborationId, logEntry]);
+		fetchFormatted();
+	}, [logEntry, apiClient, projectId, collaborationId]);
 
 	// Default JSON formatting as fallback
 	const formattedContent = JSON.stringify(content, null, 2);
