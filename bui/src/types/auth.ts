@@ -51,7 +51,7 @@ export const DUMMY_SESSION: Session = {
 	expires_at: DEFAULT_EXPIRATION(),
 	refresh_token: '',
 	expires_in: DEFAULT_EXPIRES_IN,
-	token_type: '',
+	token_type: 'bearer',
 	user: DUMMY_USER,
 };
 
